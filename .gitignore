@@ -1,0 +1,6 @@
+# Prerequisites
+archive/
+build/
+binutils*/
+gcc*/
+newlib*/

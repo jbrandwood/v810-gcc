@@ -1,0 +1,57 @@
+DO NOT USE ICONV, EVEN IF FOUND. SAVES 1MB ON STATIC GCC.EXE BUILD.
+
+
+diff -Naur gcc-4.7.4-pure/gcc/configure gcc-4.7.4/gcc/configure
+--- gcc-4.7.4-pure/gcc/configure	2016-04-26 00:22:52.200532500 +0100
++++ gcc-4.7.4/gcc/configure	2016-07-16 21:02:16.232136900 +0100
+@@ -10192,6 +10192,8 @@
+ fi
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $am_cv_func_iconv" >&5
+ $as_echo "$am_cv_func_iconv" >&6; }
++  am_cv_func_iconv=no
++  am_cv_lib_iconv=no
+   if test "$am_cv_func_iconv" = yes; then
+ 
+ $as_echo "#define HAVE_ICONV 1" >>confdefs.h
+@@ -10354,6 +10356,8 @@
+ fi
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $am_cv_func_iconv" >&5
+ $as_echo "$am_cv_func_iconv" >&6; }
++  am_cv_func_iconv=no
++  am_cv_lib_iconv=no
+   if test "$am_cv_func_iconv" = yes; then
+ 
+ $as_echo "#define HAVE_ICONV 1" >>confdefs.h
+diff -Naur gcc-4.7.4-pure/intl/configure gcc-4.7.4/intl/configure
+--- gcc-4.7.4-pure/intl/configure	2010-09-27 21:19:41.000000000 +0100
++++ gcc-4.7.4/intl/configure	2016-07-16 20:04:30.677918500 +0100
+@@ -5509,6 +5509,8 @@
+ fi
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $am_cv_func_iconv" >&5
+ $as_echo "$am_cv_func_iconv" >&6; }
++  am_cv_func_iconv=no
++  am_cv_lib_iconv=no
+   if test "$am_cv_func_iconv" = yes; then
+ 
+ $as_echo "#define HAVE_ICONV 1" >>confdefs.h
+diff -Naur gcc-4.7.4-pure/libcpp/configure gcc-4.7.4/libcpp/configure
+--- gcc-4.7.4-pure/libcpp/configure	2014-06-12 13:46:20.000000000 +0100
++++ gcc-4.7.4/libcpp/configure	2016-07-16 21:13:53.661027500 +0100
+@@ -7088,6 +7088,8 @@
+ fi
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $am_cv_func_iconv" >&5
+ $as_echo "$am_cv_func_iconv" >&6; }
++  am_cv_func_iconv=no
++  am_cv_lib_iconv=no
+   if test "$am_cv_func_iconv" = yes; then
+ 
+ $as_echo "#define HAVE_ICONV 1" >>confdefs.h
+@@ -7250,6 +7252,8 @@
+ fi
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $am_cv_func_iconv" >&5
+ $as_echo "$am_cv_func_iconv" >&6; }
++  am_cv_func_iconv=no
++  am_cv_lib_iconv=no
+   if test "$am_cv_func_iconv" = yes; then
+ 
+ $as_echo "#define HAVE_ICONV 1" >>confdefs.h

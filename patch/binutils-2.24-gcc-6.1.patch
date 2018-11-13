@@ -1,0 +1,38 @@
+Fix build error: "left shift of negative value [-Werror=shift-negative-value]"
+
+diff -Naur binutils-2.24-pure/binutils/dwarf.c binutils-2.24/binutils/dwarf.c
+--- binutils-2.24-pure/binutils/dwarf.c	2013-11-08 10:13:48.000000000 +0000
++++ binutils-2.24/binutils/dwarf.c	2016-12-15 02:24:52.873605600 +0000
+@@ -263,7 +263,7 @@
+     *length_return = num_read;
+ 
+   if (sign && (shift < 8 * sizeof (result)) && (byte & 0x40))
+-    result |= -1L << shift;
++    result |= -1UL << shift;
+ 
+   return result;
+ }
+diff -Naur binutils-2.24-pure/gas/read.c binutils-2.24/gas/read.c
+--- binutils-2.24-pure/gas/read.c	2013-11-08 10:13:48.000000000 +0000
++++ binutils-2.24/gas/read.c	2016-12-15 02:27:05.098168400 +0000
+@@ -5019,7 +5019,7 @@
+     {
+       /* Sign-extend VAL.  */
+       if (val & (1 << (loaded - 1)))
+-	val |= ~0 << loaded;
++	val |= ~0U << loaded;
+       if (orig)
+ 	*p = val & 0x7f;
+       p++;
+diff -Naur binutils-2.24-pure/gas/write.c binutils-2.24/gas/write.c
+--- binutils-2.24-pure/gas/write.c	2013-11-04 15:33:38.000000000 +0000
++++ binutils-2.24/gas/write.c	2016-12-15 02:26:35.569479500 +0000
+@@ -2292,7 +2292,7 @@
+   relax_addressT mask;
+   relax_addressT new_address;
+ 
+-  mask = ~((~0) << alignment);
++  mask = ~((~0U) << alignment);
+   new_address = (address + mask) & (~mask);
+ #ifdef LINKER_RELAXING_SHRINKS_ONLY
+   if (linkrelax)

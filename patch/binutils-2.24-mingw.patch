@@ -1,0 +1,17 @@
+diff -Naur binutils-2.24-pure/bfd/configure binutils-2.24/bfd/configure
+--- binutils-2.24-pure/bfd/configure	2013-12-02 09:30:30.000000000 +0000
++++ binutils-2.24/bfd/configure	2016-04-04 01:25:00.185206600 +0100
+@@ -15101,6 +15101,13 @@
+       fi
+     fi
+   fi
++else
++  case "${host}" in
++  *-*-mingw*)
++    # mingw32 needs this flag even when compiling with -disable-shared.
++    SHARED_LDFLAGS="-no-undefined"
++  ;;
++  esac
+ fi
+ 
+ 

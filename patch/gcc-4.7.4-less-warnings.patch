@@ -1,0 +1,38 @@
+DISABLE THE POINTLESS WARNINGS THAT ARE DROWNING OUT REAL PROBLEMS.
+
+
+diff -Naur gcc-4.7.4-pure/fixincludes/configure gcc-4.7.4/fixincludes/configure
+--- gcc-4.7.4-pure/fixincludes/configure	2012-08-06 15:34:27.000000000 +0100
++++ gcc-4.7.4/fixincludes/configure	2016-04-25 23:03:55.296597100 +0100
+@@ -4641,7 +4641,7 @@
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_cv_prog_cc_pedantic__Wlong_long" >&5
+ $as_echo "$acx_cv_prog_cc_pedantic__Wlong_long" >&6; }
+ if test $acx_cv_prog_cc_pedantic__Wlong_long = yes; then :
+-  WARN_PEDANTIC="$WARN_PEDANTIC${WARN_PEDANTIC:+ }-pedantic -Wno-long-long"
++  WARN_PEDANTIC="$WARN_PEDANTIC${WARN_PEDANTIC:+ }-Wno-long-long"
+ fi
+ 
+ fi
+diff -Naur gcc-4.7.4-pure/gcc/configure gcc-4.7.4/gcc/configure
+--- gcc-4.7.4-pure/gcc/configure	2014-02-12 16:43:47.000000000 +0000
++++ gcc-4.7.4/gcc/configure	2016-04-25 23:56:34.229277700 +0100
+@@ -6608,7 +6608,7 @@
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_cv_prog_cc_pedantic__Wlong_long__Wvariadic_macros__Woverlength_strings" >&5
+ $as_echo "$acx_cv_prog_cc_pedantic__Wlong_long__Wvariadic_macros__Woverlength_strings" >&6; }
+ if test $acx_cv_prog_cc_pedantic__Wlong_long__Wvariadic_macros__Woverlength_strings = yes; then :
+-  strict_warn="$strict_warn${strict_warn:+ }-pedantic -Wno-long-long -Wno-variadic-macros -Wno-overlength-strings"
++  strict_warn="$strict_warn${strict_warn:+ }-Wno-long-long -Wno-variadic-macros -Wno-overlength-strings"
+ fi
+ 
+ fi
+diff -Naur gcc-4.7.4-pure/gcc/tree.h gcc-4.7.4/gcc/tree.h
+--- gcc-4.7.4-pure/gcc/tree.h	2012-10-17 00:18:08.000000000 +0100
++++ gcc-4.7.4/gcc/tree.h	2016-04-25 23:31:08.281998500 +0100
+@@ -3274,7 +3274,6 @@
+  /* Belong to VAR_DECL exclusively.  */
+  unsigned defer_output : 1;
+  unsigned hard_register : 1;
+- unsigned thread_local : 1;
+  unsigned common_flag : 1;
+  unsigned in_text_section : 1;
+  unsigned in_constant_pool : 1;

@@ -1,0 +1,21 @@
+diff -Naur gcc-4.7.4-pure/gcc/doc/gcc.texi gcc-4.7.4/gcc/doc/gcc.texi
+--- gcc-4.7.4-pure/gcc/doc/gcc.texi	2010-06-09 16:46:33.000000000 -0700
++++ gcc-4.7.4/gcc/doc/gcc.texi	2018-05-29 23:12:09.843941000 -0700
+@@ -86,9 +86,15 @@
+ @item GNU Press
+ @tab Website: www.gnupress.org
+ @item a division of the
+-@tab General: @tex press@@gnu.org @end tex
++@tab General: 
++@tex 
++press@@gnu.org 
++@end tex
+ @item Free Software Foundation
+-@tab Orders:  @tex sales@@gnu.org @end tex
++@tab Orders:  
++@tex 
++sales@@gnu.org 
++@end tex
+ @item 51 Franklin Street, Fifth Floor
+ @tab Tel 617-542-5942
+ @item Boston, MA 02110-1301 USA

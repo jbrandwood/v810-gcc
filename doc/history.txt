@@ -1,0 +1,69 @@
+This project is a GCC-based C99 toolchain for the NEC V810 cpu.
+
+
+THE BACKSTORY
+=============
+
+The history traces back to the work done by Japanese homebrew developers in
+late 2000 to create a GCC toolchain for PC-FXGA development to replace
+Hudson's old MS-DOS C compiler.
+
+The PC-FXGA is an expansion board that plugs into a NEC PC98 or IBM PC that
+allows programmers to create games for the NEC PC-FX game console (plus extra
+3D capabilities that were never released for the PC-FX itself during its short
+lifetime).
+
+That toolchain was based on GCC 2.95.2 and binutils 2.10, which were the
+current versions at the time.
+
+The patches are basically modified versions of the continued GCC/binutils
+support for the Renesas V850 cpu that is still manufactured and used as an
+embedded microcontroller today. The Renesas V850 is a direct descendant of
+the NEC V810 and shares the same basic architecture (but enhanced over the
+last 25+ years).
+
+Although a lot of those Japanese websites have disappeared over time, you can
+still find the original patches and info here ...
+http://hp.vector.co.jp/authors/VA007898/pcfxga/
+
+More information on the Japanese PC-FX scene at the time can be found here ...
+http://pc-fx.moemoe.gr.jp/
+
+English speakers can find information about the PC-FX here ...
+https://en.wikipedia.org/wiki/PC-FX
+http://www.pcenginefx.com/PC-FX/
+
+
+In 2007, the homebrew community for the Nintendo VirtualBoy took the old
+PC-FXGA GCC 2.95 patches and used them to make a GCC toolchain for their
+console, since both consoles use the same NEC V810 cpu. Those developers
+added Newlib 1.10.0 support to the toolchain to give them standard C
+library functions.
+
+That toolchain and patches can be found here ...
+https://www.planetvb.com/modules/tech/?sec=tools&pid=gccvb
+
+
+In the years since then, it has become harder and harder to actually compile
+GCC 2.95 any more with modern GNU toolchains which now either complain about
+or totally fail to understand the old GCC source code.
+
+
+THE SOLUTION
+============
+
+This project has updated/rewritten those patches to work on a more-modern
+GCC toolchain that supports newer C language standards (C99 and almost-all
+of C11), and that can still be built by the latest GCC compilers.
+
+GCC 4.7.4 was chosen because it is the last version of GCC that can be
+compiled with C instead of C++.
+
+While developing these patches, a number of fixes and changes have been
+made to the V810 support to better allow for modern homebrew development,
+including the support for C++.
+
+Limiting any C++ usage to the Embedded C++ language restrictions (see
+http://www.caravan.net/ec2plus/rationale.html) is highly recommended
+on these old V810 cpus, and C++ exceptions are definitely not supported
+at all in this toolchain.
