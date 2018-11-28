@@ -1,9 +1,11 @@
-#!/bin/sh
+#! /bin/sh
 #
 # Build script for V810-GCC.
 #
 # Stage 3 of 6 - Unpack, patch and configure the initial minimal GCC.
 #
+
+OSNAME=`uname`
 
 TOPDIR=$(pwd)
 echo TOPDIR is $TOPDIR
@@ -43,10 +45,11 @@ TestFile()
 
 TestFile "archive/gcc-4.7.4.tar.bz2";
 
-TestFile "patch/gcc-4.7.4-gcc-5.0.patch";
-TestFile "patch/gcc-4.7.4-less-warnings.patch";
 TestFile "patch/gcc-4.7.4-no-iconv.patch";
 TestFile "patch/gcc-4.7.4-texi.patch";
+TestFile "patch/gcc-4.7.4-gcc-5.0.patch";
+TestFile "patch/gcc-4.7.4-fix-warnings.patch";
+TestFile "patch/gcc-4.7.4-rmv-warnings.patch";
 TestFile "patch/gcc-4.7.4-v810.patch";
 
 #---------------------------------------------------------------------------------
@@ -62,10 +65,11 @@ PrepareSource()
   tar jxvf archive/gcc-4.7.4.tar.bz2
   cd gcc-4.7.4
 
-  patch -p 1 -i ../patch/gcc-4.7.4-gcc-5.0.patch
-  patch -p 1 -i ../patch/gcc-4.7.4-less-warnings.patch
   patch -p 1 -i ../patch/gcc-4.7.4-no-iconv.patch
   patch -p 1 -i ../patch/gcc-4.7.4-texi.patch
+  patch -p 1 -i ../patch/gcc-4.7.4-gcc-5.0.patch
+  patch -p 1 -i ../patch/gcc-4.7.4-fix-warnings.patch
+  patch -p 1 -i ../patch/gcc-4.7.4-rmv-warnings.patch
   patch -p 1 -i ../patch/gcc-4.7.4-v810.patch
 
   cd ..
@@ -91,9 +95,14 @@ fi
 
 TARGET=v810
 
-export CFLAGS='-O2 -pipe'
-export CXXFLAGS='-O2 -pipe'
-export LDFLAGS='-Wl,-Bstatic'
+export CFLAGS='-O2'
+export CXXFLAGS='-O2'
+
+if [ "$OSNAME" = "Linux" ] ; then
+  export LDFLAGS=
+else
+  export LDFLAGS='-Wl,-Bstatic'
+fi
 
 #---------------------------------------------------------------------------------
 # Build a minimal GCC to compile newlib
@@ -131,20 +140,17 @@ $SRCDIR/configure                              \
   --with-newlib                                \
   --with-local-prefix=$DESTDIR                 \
   --with-native-system-header=$DESTDIR/include \
+  --disable-shared                             \
+  --enable-static                              \
   --disable-pedantic                           \
   --disable-nls                                \
-  --disable-shared                             \
   --disable-multilib                           \
   --disable-decimal-float                      \
-  --disable-libatomic                          \
-  --disable-libcilkrts                         \
   --disable-libgomp                            \
   --disable-libitm                             \
-  --disable-libsanitizer                       \
   --disable-libssp                             \
   --disable-libstdc++-v3                       \
   --disable-libquadmath                        \
-  --disable-libvtv                             \
   --disable-lto                                \
   --enable-frame-pointer                       \
   --enable-languages=c                         \

@@ -1,0 +1,1020 @@
+diff -Naur gcc-4.7.4-pure/fixincludes/fixfixes.c gcc-4.7.4/fixincludes/fixfixes.c
+--- gcc-4.7.4-pure/fixincludes/fixfixes.c	2009-04-09 08:00:19.000000000 -0700
++++ gcc-4.7.4/fixincludes/fixfixes.c	2018-11-26 17:09:27.345494100 -0800
+@@ -738,8 +738,10 @@
+ {
+   tFixDesc* pFix;
+   char* pz_tmptmp;
++#ifdef _PC_NAME_MAX
+   char* pz_tmp_base;
+   char* pz_tmp_dot;
++#endif /* _PC_NAME_MAX */
+ 
+   if (argc != 5)
+     {
+@@ -775,9 +777,9 @@
+   /* Don't lose because "12345678" and "12345678X" map to the same
+      file under DOS restricted 8+3 file namespace.  Note that DOS
+      doesn't allow more than one dot in the trunk of a file name.  */
++#ifdef _PC_NAME_MAX
+   pz_tmp_base = basename( pz_tmptmp );
+   pz_tmp_dot = strchr( pz_tmp_base, '.' );
+-#ifdef _PC_NAME_MAX
+   if (pathconf( pz_tmptmp, _PC_NAME_MAX ) <= 12	/* is this DOS or Windows9X? */
+       && pz_tmp_dot != (char*)NULL)
+     strcpy (pz_tmp_dot+1, "X"); /* nuke the original extension */
+diff -Naur gcc-4.7.4-pure/fixincludes/fixincl.c gcc-4.7.4/fixincludes/fixincl.c
+--- gcc-4.7.4-pure/fixincludes/fixincl.c	2009-04-09 08:00:19.000000000 -0700
++++ gcc-4.7.4/fixincludes/fixincl.c	2018-11-26 17:09:27.351494900 -0800
+@@ -88,7 +88,9 @@
+ #endif /* DO_STATS */
+ 
+ const char incl_quote_pat[] = "^[ \t]*#[ \t]*include[ \t]*\"[^/]";
++#ifndef SEPARATE_FIX_PROC
+ tSCC z_fork_err[] = "Error %d (%s) starting filter process for %s\n";
++#endif
+ regex_t incl_quote_re;
+ 
+ static void do_version (void) ATTRIBUTE_NORETURN;
+@@ -829,8 +831,8 @@
+       /*
+        *  Now add the fix number and file names that may be needed
+        */
+-      sprintf (pz_scan, " %ld '%s' '%s'",  (long) (p_fixd - fixDescList),
+-	       pz_fix_file, pz_file_source, pz_temp_file);
++      sprintf (pz_scan, " %ld '%s' '%s' '%s'", (long) (p_fixd - fixDescList),
++               pz_fix_file, pz_file_source, pz_temp_file);
+     }
+   else /* NOT an "internal" fix: */
+     {
+diff -Naur gcc-4.7.4-pure/gcc/c-family/c-ada-spec.c gcc-4.7.4/gcc/c-family/c-ada-spec.c
+--- gcc-4.7.4-pure/gcc/c-family/c-ada-spec.c	2011-07-12 13:07:09.000000000 -0700
++++ gcc-4.7.4/gcc/c-family/c-ada-spec.c	2018-11-26 17:09:27.357495700 -0800
+@@ -1423,7 +1423,7 @@
+ {
+   tree arg;
+   const tree node = TREE_TYPE (func);
+-  char buf [16];
++  char buf [32];
+   int num = 0, num_args = 0, have_args = true, have_ellipsis = false;
+ 
+   /* Compute number of arguments.  */
+@@ -3048,7 +3048,7 @@
+   tree tmp;
+   int is_union =
+     TREE_CODE (node) == UNION_TYPE || TREE_CODE (node) == QUAL_UNION_TYPE;
+-  char buf [16];
++  char buf [32];
+   int field_num = 0;
+   int field_spc = spc + INDENT_INCR;
+   int need_semicolon;
+diff -Naur gcc-4.7.4-pure/gcc/c-family/c-common.c gcc-4.7.4/gcc/c-family/c-common.c
+--- gcc-4.7.4-pure/gcc/c-family/c-common.c	2012-12-03 05:10:18.000000000 -0800
++++ gcc-4.7.4/gcc/c-family/c-common.c	2018-11-26 17:09:27.365496700 -0800
+@@ -10314,7 +10314,7 @@
+           if (bits < TYPE_PRECISION (result_type)
+               && bits < HOST_BITS_PER_LONG && unsignedp)
+             {
+-              mask = (~ (HOST_WIDE_INT) 0) << bits;
++              mask = (~ (unsigned HOST_WIDE_INT) 0) << bits;
+               if ((mask & constant) != mask)
+ 		{
+ 		  if (constant == 0)
+diff -Naur gcc-4.7.4-pure/gcc/c-family/c-common.h gcc-4.7.4/gcc/c-family/c-common.h
+--- gcc-4.7.4-pure/gcc/c-family/c-common.h	2011-12-20 12:44:13.000000000 -0800
++++ gcc-4.7.4/gcc/c-family/c-common.h	2018-11-26 17:09:27.372497600 -0800
+@@ -327,26 +327,7 @@
+   const unsigned int disable   : 16;
+ };
+ 
+-/* Extra cpp_ttype values for C++.  */
+-
+-/* A token type for keywords, as opposed to ordinary identifiers.  */
+-#define CPP_KEYWORD ((enum cpp_ttype) (N_TTYPES + 1))
+-
+-/* A token type for template-ids.  If a template-id is processed while
+-   parsing tentatively, it is replaced with a CPP_TEMPLATE_ID token;
+-   the value of the CPP_TEMPLATE_ID is whatever was returned by
+-   cp_parser_template_id.  */
+-#define CPP_TEMPLATE_ID ((enum cpp_ttype) (CPP_KEYWORD + 1))
+-
+-/* A token type for nested-name-specifiers.  If a
+-   nested-name-specifier is processed while parsing tentatively, it is
+-   replaced with a CPP_NESTED_NAME_SPECIFIER token; the value of the
+-   CPP_NESTED_NAME_SPECIFIER is whatever was returned by
+-   cp_parser_nested_name_specifier_opt.  */
+-#define CPP_NESTED_NAME_SPECIFIER ((enum cpp_ttype) (CPP_TEMPLATE_ID + 1))
+-
+-/* A token type for pre-parsed C++0x decltype.  */
+-#define CPP_DECLTYPE ((enum cpp_ttype) (CPP_NESTED_NAME_SPECIFIER + 1))
++/* The extra cpp_ttype values for C++ have been moved into libcpp/cpplib.h  */
+ 
+ /* The number of token types, including C++-specific ones.  */
+ #define N_CP_TTYPES ((int) (CPP_DECLTYPE + 1))
+diff -Naur gcc-4.7.4-pure/gcc/cfgcleanup.c gcc-4.7.4/gcc/cfgcleanup.c
+--- gcc-4.7.4-pure/gcc/cfgcleanup.c	2014-05-07 09:04:44.000000000 -0700
++++ gcc-4.7.4/gcc/cfgcleanup.c	2018-11-26 17:09:27.378498300 -0800
+@@ -992,7 +992,7 @@
+           ? rtx_renumbered_equal_p (e1, e2) : rtx_equal_p (e1, e2))
+         continue;
+ 
+-        return false;
++      return false;
+     }
+ 
+   return true;
+diff -Naur gcc-4.7.4-pure/gcc/cgraphunit.c gcc-4.7.4/gcc/cgraphunit.c
+--- gcc-4.7.4-pure/gcc/cgraphunit.c	2012-04-30 23:23:13.000000000 -0700
++++ gcc-4.7.4/gcc/cgraphunit.c	2018-11-26 17:09:27.384999200 -0800
+@@ -683,11 +683,11 @@
+ 	  }
+ 	else
+ 	  ref_found = true;
+-	if (!ref_found)
+-	  {
+-	    error ("Analyzed alias has no reference");
+-	    error_found = true;
+-	  }
++      if (!ref_found)
++	{
++	  error ("Analyzed alias has no reference");
++	  error_found = true;
++	}
+     }
+   if (node->analyzed && node->thunk.thunk_p)
+     {
+diff -Naur gcc-4.7.4-pure/gcc/config/v850/v850.c gcc-4.7.4/gcc/config/v850/v850.c
+--- gcc-4.7.4-pure/gcc/config/v850/v850.c	2012-08-06 07:34:27.000000000 -0700
++++ gcc-4.7.4/gcc/config/v850/v850.c	2018-11-26 17:09:27.391500000 -0800
+@@ -44,6 +44,9 @@
+ #include "df.h"
+ #include "opts.h"
+ 
++/* Remove the warning about the unused value in CC_STATUS_INIT */
++#pragma GCC diagnostic ignored "-Wunused-value"
++
+ #ifndef streq
+ #define streq(a,b) (strcmp (a, b) == 0)
+ #endif
+diff -Naur gcc-4.7.4-pure/gcc/cp/init.c gcc-4.7.4/gcc/cp/init.c
+--- gcc-4.7.4-pure/gcc/cp/init.c	2014-05-07 09:03:49.000000000 -0700
++++ gcc-4.7.4/gcc/cp/init.c	2018-11-26 17:09:27.398000800 -0800
+@@ -79,7 +79,7 @@
+ 
+   stmt_expr = finish_stmt_expr (stmt_expr, true);
+ 
+-  gcc_assert (!building_stmt_list_p () == is_global);
++  gcc_assert (!(building_stmt_list_p () == is_global));
+ 
+   return stmt_expr;
+ }
+diff -Naur gcc-4.7.4-pure/gcc/cp/optimize.c gcc-4.7.4/gcc/cp/optimize.c
+--- gcc-4.7.4-pure/gcc/cp/optimize.c	2011-07-08 20:33:44.000000000 -0700
++++ gcc-4.7.4/gcc/cp/optimize.c	2018-11-26 17:09:27.403501500 -0800
+@@ -222,16 +222,18 @@
+   /* Look for the complete destructor which may be used to build the
+      delete destructor.  */
+   FOR_EACH_CLONE (clone, fn)
+-    if (DECL_NAME (clone) == complete_dtor_identifier
+-	|| DECL_NAME (clone) == complete_ctor_identifier)
+-      fns[1] = clone;
+-    else if (DECL_NAME (clone) == base_dtor_identifier
+-	     || DECL_NAME (clone) == base_ctor_identifier)
+-      fns[0] = clone;
+-    else if (DECL_NAME (clone) == deleting_dtor_identifier)
+-      fns[2] = clone;
+-    else
+-      gcc_unreachable ();
++    {
++      if (DECL_NAME (clone) == complete_dtor_identifier
++	  || DECL_NAME (clone) == complete_ctor_identifier)
++	fns[1] = clone;
++      else if (DECL_NAME (clone) == base_dtor_identifier
++	       || DECL_NAME (clone) == base_ctor_identifier)
++	fns[0] = clone;
++      else if (DECL_NAME (clone) == deleting_dtor_identifier)
++	fns[2] = clone;
++      else
++	gcc_unreachable ();
++    }
+ 
+   /* Remember if we can't have multiple clones for some reason.  We need to
+      check this before we remap local static initializers in clone_body.  */
+diff -Naur gcc-4.7.4-pure/gcc/cp/parser.c gcc-4.7.4/gcc/cp/parser.c
+--- gcc-4.7.4-pure/gcc/cp/parser.c	2014-02-26 13:16:15.000000000 -0800
++++ gcc-4.7.4/gcc/cp/parser.c	2018-11-26 17:09:27.415003000 -0800
+@@ -240,7 +240,7 @@
+ /* Variables.  */
+ 
+ /* The stream to which debugging output should be written.  */
+-static FILE *cp_lexer_debug_stream;
++FILE *cp_lexer_debug_stream = NULL;
+ 
+ /* Nonzero if we are parsing an unevaluated operand: an operand to
+    sizeof, typeof, or alignof.  */
+@@ -15273,8 +15273,8 @@
+ 	      && !goto_p)
+ 	    outputs = cp_parser_asm_operand_list (parser);
+ 
+-	    if (outputs == error_mark_node)
+-	      invalid_outputs_p = true;
++	  if (outputs == error_mark_node)
++	    invalid_outputs_p = true;
+ 	}
+       /* If the next token is `::', there are no outputs, and the
+ 	 next token is the beginning of the inputs.  */
+@@ -15297,8 +15297,8 @@
+ 					     CPP_CLOSE_PAREN))
+ 	    inputs = cp_parser_asm_operand_list (parser);
+ 
+-	    if (inputs == error_mark_node)
+-	      invalid_inputs_p = true;
++	  if (inputs == error_mark_node)
++	    invalid_inputs_p = true;
+ 	}
+       else if (cp_lexer_next_token_is (parser->lexer, CPP_SCOPE))
+ 	/* The clobbers are coming next.  */
+@@ -19124,11 +19124,11 @@
+ 	      else
+ 		if (declarator->kind == cdk_function)
+ 		  declarator->id_loc = token->location;
+-		/* Create the declaration.  */
+-		decl = grokfield (declarator, &decl_specifiers,
+-				  initializer, /*init_const_expr_p=*/true,
+-				  asm_specification,
+-				  attributes);
++	      /* Create the declaration.  */
++	      decl = grokfield (declarator, &decl_specifiers,
++				initializer, /*init_const_expr_p=*/true,
++				asm_specification,
++				attributes);
+ 	    }
+ 
+ 	  /* Reset PREFIX_ATTRIBUTES.  */
+diff -Naur gcc-4.7.4-pure/gcc/c-parser.c gcc-4.7.4/gcc/c-parser.c
+--- gcc-4.7.4-pure/gcc/c-parser.c	2012-03-22 03:08:49.000000000 -0700
++++ gcc-4.7.4/gcc/c-parser.c	2018-11-26 17:09:27.425004200 -0800
+@@ -121,11 +121,6 @@
+    C++).  It would then be possible to share more of the C and C++
+    lexer code, if desired.  */
+ 
+-/* The following local token type is used.  */
+-
+-/* A keyword.  */
+-#define CPP_KEYWORD ((enum cpp_ttype) (N_TTYPES + 1))
+-
+ /* More information about the type of a CPP_NAME token.  */
+ typedef enum c_id_kind {
+   /* An ordinary identifier.  */
+diff -Naur gcc-4.7.4-pure/gcc/cse.c gcc-4.7.4/gcc/cse.c
+--- gcc-4.7.4-pure/gcc/cse.c	2012-10-30 16:08:26.000000000 -0700
++++ gcc-4.7.4/gcc/cse.c	2018-11-26 17:09:27.434005400 -0800
+@@ -5251,7 +5251,7 @@
+ 	      && CONST_INT_P (width)
+ 	      && INTVAL (width) < HOST_BITS_PER_WIDE_INT
+ 	      && ! (INTVAL (src_const)
+-		    & ((HOST_WIDE_INT) (-1) << INTVAL (width))))
++		    & (HOST_WIDE_INT_M1U << INTVAL (width))))
+ 	    /* Exception: if the value is constant,
+ 	       and it won't be truncated, record it.  */
+ 	    ;
+diff -Naur gcc-4.7.4-pure/gcc/c-typeck.c gcc-4.7.4/gcc/c-typeck.c
+--- gcc-4.7.4-pure/gcc/c-typeck.c	2012-09-20 13:50:17.000000000 -0700
++++ gcc-4.7.4/gcc/c-typeck.c	2018-11-26 17:09:27.442506500 -0800
+@@ -7701,7 +7701,7 @@
+ 	    {
+ 	      if (val[1] & (((HOST_WIDE_INT) 1) << (bitpos - 1)))
+ 		{
+-		  val[1] |= ((HOST_WIDE_INT) -1) << bitpos;
++		  val[1] |= (HOST_WIDE_INT_M1U << bitpos);
+ 		  val[0] = -1;
+ 		}
+ 	    }
+@@ -7712,7 +7712,7 @@
+ 	    }
+ 	  else if (val[0] & (((HOST_WIDE_INT) 1)
+ 			     << (bitpos - 1 - HOST_BITS_PER_WIDE_INT)))
+-	    val[0] |= ((HOST_WIDE_INT) -1)
++	    val[0] |= HOST_WIDE_INT_M1U
+ 		      << (bitpos - HOST_BITS_PER_WIDE_INT);
+ 	}
+ 
+diff -Naur gcc-4.7.4-pure/gcc/double-int.c gcc-4.7.4/gcc/double-int.c
+--- gcc-4.7.4-pure/gcc/double-int.c	2012-07-06 02:25:46.000000000 -0700
++++ gcc-4.7.4/gcc/double-int.c	2018-11-26 17:09:27.449007300 -0800
+@@ -237,13 +237,13 @@
+     ;
+   else if ((prec - count) >= HOST_BITS_PER_WIDE_INT)
+     {
+-      *hv &= ~((HOST_WIDE_INT) (-1) << (prec - count - HOST_BITS_PER_WIDE_INT));
++      *hv &= ~(HOST_WIDE_INT_M1U << (prec - count - HOST_BITS_PER_WIDE_INT));
+       *hv |= signmask << (prec - count - HOST_BITS_PER_WIDE_INT);
+     }
+   else
+     {
+       *hv = signmask;
+-      *lv &= ~((unsigned HOST_WIDE_INT) (-1) << (prec - count));
++      *lv &= ~(HOST_WIDE_INT_M1U << (prec - count));
+       *lv |= signmask << (prec - count);
+     }
+ }
+@@ -300,7 +300,7 @@
+     ;
+   else if (prec >= HOST_BITS_PER_WIDE_INT)
+     {
+-      *hv &= ~((HOST_WIDE_INT) (-1) << (prec - HOST_BITS_PER_WIDE_INT));
++      *hv &= ~(HOST_WIDE_INT_M1U << (prec - HOST_BITS_PER_WIDE_INT));
+       *hv |= signmask << (prec - HOST_BITS_PER_WIDE_INT);
+     }
+   else
+diff -Naur gcc-4.7.4-pure/gcc/dwarf2out.c gcc-4.7.4/gcc/dwarf2out.c
+--- gcc-4.7.4-pure/gcc/dwarf2out.c	2013-04-16 10:09:14.000000000 -0700
++++ gcc-4.7.4/gcc/dwarf2out.c	2018-11-26 17:09:27.460008700 -0800
+@@ -15306,12 +15306,12 @@
+ 	  && !TREE_STATIC (decl)))
+     return false;
+ 
+-    if (TREE_READONLY (decl)
+-	&& ! TREE_THIS_VOLATILE (decl)
+-	&& DECL_INITIAL (decl))
+-      /* OK */;
+-    else
+-      return false;
++  if (TREE_READONLY (decl)
++      && ! TREE_THIS_VOLATILE (decl)
++      && DECL_INITIAL (decl))
++    /* OK */;
++  else
++    return false;
+ 
+   /* Don't add DW_AT_const_value if abstract origin already has one.  */
+   if (get_AT (var_die, DW_AT_const_value))
+diff -Naur gcc-4.7.4-pure/gcc/expmed.c gcc-4.7.4/gcc/expmed.c
+--- gcc-4.7.4-pure/gcc/expmed.c	2013-02-13 12:26:51.000000000 -0800
++++ gcc-4.7.4/gcc/expmed.c	2018-11-26 17:09:27.468009700 -0800
+@@ -3702,11 +3702,11 @@
+   masklow = ((HOST_WIDE_INT) 1 << logd) - 1;
+   if (GET_MODE_BITSIZE (mode) <= HOST_BITS_PER_WIDE_INT)
+     {
+-      masklow |= (HOST_WIDE_INT) -1 << (GET_MODE_BITSIZE (mode) - 1);
++      masklow |= HOST_WIDE_INT_M1U << (GET_MODE_BITSIZE (mode) - 1);
+       maskhigh = -1;
+     }
+   else
+-    maskhigh = (HOST_WIDE_INT) -1
++    maskhigh = HOST_WIDE_INT_M1U
+ 		 << (GET_MODE_BITSIZE (mode) - HOST_BITS_PER_WIDE_INT - 1);
+ 
+   temp = expand_binop (mode, and_optab, op0,
+@@ -3720,7 +3720,7 @@
+ 
+   temp = expand_binop (mode, sub_optab, result, const1_rtx, result,
+ 		       0, OPTAB_LIB_WIDEN);
+-  masklow = (HOST_WIDE_INT) -1 << logd;
++  masklow = HOST_WIDE_INT_M1U << logd;
+   maskhigh = -1;
+   temp = expand_binop (mode, ior_optab, temp,
+ 		       immed_double_const (masklow, maskhigh, mode),
+diff -Naur gcc-4.7.4-pure/gcc/expr.c gcc-4.7.4/gcc/expr.c
+--- gcc-4.7.4-pure/gcc/expr.c	2013-07-10 01:53:49.000000000 -0700
++++ gcc-4.7.4/gcc/expr.c	2018-11-26 17:09:27.477510900 -0800
+@@ -10384,7 +10384,7 @@
+       || !host_integerp (TREE_OPERAND (offset, 1), 1)
+       || compare_tree_int (TREE_OPERAND (offset, 1),
+ 			   BIGGEST_ALIGNMENT / BITS_PER_UNIT) <= 0
+-      || !exact_log2 (tree_low_cst (TREE_OPERAND (offset, 1), 1) + 1) < 0)
++      || exact_log2 (tree_low_cst (TREE_OPERAND (offset, 1), 1) + 1) < 0)
+     return 0;
+ 
+   /* Look at the first operand of BIT_AND_EXPR and strip any conversion.
+diff -Naur gcc-4.7.4-pure/gcc/final.c gcc-4.7.4/gcc/final.c
+--- gcc-4.7.4-pure/gcc/final.c	2011-12-13 05:41:12.000000000 -0800
++++ gcc-4.7.4/gcc/final.c	2018-11-26 17:12:36.334492700 -0800
+@@ -100,6 +100,9 @@
+ #include "sdbout.h"
+ #endif
+ 
++/* Remove the warning about the unused value in CC_STATUS_INIT */
++#pragma GCC diagnostic ignored "-Wunused-value"
++
+ /* Most ports that aren't using cc0 don't need to define CC_STATUS_INIT.
+    So define a null default for it to save conditionalization later.  */
+ #ifndef CC_STATUS_INIT
+@@ -4093,9 +4096,9 @@
+       if (BITS_PER_WORD < HOST_BITS_PER_LONG && BITS_PER_WORD == 32)
+ 	{
+ 	  if (l[0] & ((long) 1 << 31))
+-	    l[0] |= ((long) (-1) << 32);
++	    l[0] |= ((-1UL) << 32);
+ 	  if (l[1] & ((long) 1 << 31))
+-	    l[1] |= ((long) (-1) << 32);
++	    l[1] |= ((-1UL) << 32);
+ 	}
+ #endif
+ 
+diff -Naur gcc-4.7.4-pure/gcc/fold-const.c gcc-4.7.4/gcc/fold-const.c
+--- gcc-4.7.4-pure/gcc/fold-const.c	2014-05-07 09:11:42.000000000 -0700
++++ gcc-4.7.4/gcc/fold-const.c	2018-11-26 17:09:27.495513200 -0800
+@@ -7982,7 +7982,7 @@
+ 	      unsigned HOST_WIDE_INT cst;
+ 
+ 	      cst = tree_low_cst (and1, 1);
+-	      cst &= (HOST_WIDE_INT) -1
++	      cst &= HOST_WIDE_INT_M1U
+ 		     << (TYPE_PRECISION (TREE_TYPE (and1)) - 1);
+ 	      change = (cst == 0);
+ #ifdef LOAD_EXTEND_OP
+diff -Naur gcc-4.7.4-pure/gcc/gengtype-lex.c gcc-4.7.4/gcc/gengtype-lex.c
+--- gcc-4.7.4-pure/gcc/gengtype-lex.c	2014-06-12 05:53:26.000000000 -0700
++++ gcc-4.7.4/gcc/gengtype-lex.c	2018-11-26 17:09:27.503014100 -0800
+@@ -1886,7 +1886,7 @@
+ 
+ 		/* Read in more data. */
+ 		YY_INPUT( (&YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[number_to_move]),
+-			(yy_n_chars), (size_t) num_to_read );
++			(yy_n_chars), num_to_read );
+ 
+ 		YY_CURRENT_BUFFER_LVALUE->yy_n_chars = (yy_n_chars);
+ 		}
+diff -Naur gcc-4.7.4-pure/gcc/gengtype-state.c gcc-4.7.4/gcc/gengtype-state.c
+--- gcc-4.7.4-pure/gcc/gengtype-state.c	2011-08-24 04:14:56.000000000 -0700
++++ gcc-4.7.4/gcc/gengtype-state.c	2018-11-26 17:09:27.509014900 -0800
+@@ -2343,7 +2343,7 @@
+ 				 "expecting file in !fileslist of state file");
+ 	};
+       t0 = peek_state_token (0);
+-      if (!state_token_kind (t0) == STOK_RIGHTPAR)
++      if (state_token_kind (t0) != STOK_RIGHTPAR)
+ 	fatal_reading_state (t0, "missing ) for !fileslist in state file");
+       next_state_tokens (1);
+     }
+diff -Naur gcc-4.7.4-pure/gcc/gimplify.c gcc-4.7.4/gcc/gimplify.c
+--- gcc-4.7.4-pure/gcc/gimplify.c	2014-05-07 09:10:35.000000000 -0700
++++ gcc-4.7.4/gcc/gimplify.c	2018-11-26 17:09:27.515515700 -0800
+@@ -5074,7 +5074,7 @@
+ 	     flexibility, split it into separate input and output
+  	     operands.  */
+ 	  tree input;
+-	  char buf[10];
++	  char buf[16];
+ 
+ 	  /* Turn the in/out constraint into an output constraint.  */
+ 	  char *p = xstrdup (constraint);
+diff -Naur gcc-4.7.4-pure/gcc/hwint.h gcc-4.7.4/gcc/hwint.h
+--- gcc-4.7.4-pure/gcc/hwint.h	2011-09-29 06:14:51.000000000 -0700
++++ gcc-4.7.4/gcc/hwint.h	2018-11-26 17:09:27.522016600 -0800
+@@ -79,7 +79,7 @@
+ #if HOST_BITS_PER_WIDE_INT == HOST_BITS_PER_LONG
+ # define HOST_WIDE_INT_PRINT HOST_LONG_FORMAT
+ # define HOST_WIDE_INT_PRINT_C "L"
+-# define HOST_WIDE_INT_1 1L
++# define HOST_WIDE_INT_C(X) X ## L
+   /* 'long' might be 32 or 64 bits, and the number of leading zeroes
+      must be tweaked accordingly.  */
+ # if HOST_BITS_PER_WIDE_INT == 64
+@@ -92,12 +92,18 @@
+ #else
+ # define HOST_WIDE_INT_PRINT HOST_LONG_LONG_FORMAT
+ # define HOST_WIDE_INT_PRINT_C "LL"
+-# define HOST_WIDE_INT_1 1LL
++# define HOST_WIDE_INT_C(X) X ## LL
+   /* We can assume that 'long long' is at least 64 bits.  */
+ # define HOST_WIDE_INT_PRINT_DOUBLE_HEX \
+     "0x%" HOST_LONG_LONG_FORMAT "x%016" HOST_LONG_LONG_FORMAT "x"
+ #endif /* HOST_BITS_PER_WIDE_INT == HOST_BITS_PER_LONG */
+ 
++#define HOST_WIDE_INT_UC(X) HOST_WIDE_INT_C (X ## U)
++#define HOST_WIDE_INT_1 HOST_WIDE_INT_C (1)
++#define HOST_WIDE_INT_1U HOST_WIDE_INT_UC (1)
++#define HOST_WIDE_INT_M1 HOST_WIDE_INT_C (-1)
++#define HOST_WIDE_INT_M1U HOST_WIDE_INT_UC (-1)
++
+ #define HOST_WIDE_INT_PRINT_DEC "%" HOST_WIDE_INT_PRINT "d"
+ #define HOST_WIDE_INT_PRINT_DEC_C HOST_WIDE_INT_PRINT_DEC HOST_WIDE_INT_PRINT_C
+ #define HOST_WIDE_INT_PRINT_UNSIGNED "%" HOST_WIDE_INT_PRINT "u"
+diff -Naur gcc-4.7.4-pure/gcc/ipa.c gcc-4.7.4/gcc/ipa.c
+--- gcc-4.7.4-pure/gcc/ipa.c	2013-01-21 09:02:08.000000000 -0800
++++ gcc-4.7.4/gcc/ipa.c	2018-11-26 17:09:27.528517400 -0800
+@@ -507,6 +507,8 @@
+ 	    case IPA_REF_STORE:
+ 	      written = true;
+ 	      break;
++	    case IPA_REF_ALIAS:
++	      break;
+ 	    }
+ 	if (TREE_ADDRESSABLE (vnode->decl) && !address_taken)
+ 	  {
+diff -Naur gcc-4.7.4-pure/gcc/ipa-pure-const.c gcc-4.7.4/gcc/ipa-pure-const.c
+--- gcc-4.7.4-pure/gcc/ipa-pure-const.c	2012-08-21 06:34:19.000000000 -0700
++++ gcc-4.7.4/gcc/ipa-pure-const.c	2018-11-26 17:09:27.535518300 -0800
+@@ -455,6 +455,8 @@
+ 	  *looping = true;
+ 	  *state = IPA_CONST;
+ 	  return true;
++	default:
++	  break;
+       }
+   return false;
+ }
+@@ -1280,6 +1282,7 @@
+ 		    fprintf (dump_file, "    global var write\n");
+ 		  break;
+ 		case IPA_REF_ADDR:
++		case IPA_REF_ALIAS:
+ 		  break;
+ 		}
+ 	      better_state (&ref_state, &ref_looping,
+diff -Naur gcc-4.7.4-pure/gcc/ipa-reference.c gcc-4.7.4/gcc/ipa-reference.c
+--- gcc-4.7.4-pure/gcc/ipa-reference.c	2011-08-12 09:42:13.000000000 -0700
++++ gcc-4.7.4/gcc/ipa-reference.c	2018-11-26 17:09:27.541519000 -0800
+@@ -454,6 +454,7 @@
+ 	  break;
+ 	case IPA_REF_ADDR:
+ 	  gcc_unreachable ();
++	case IPA_REF_ALIAS:
+ 	  break;
+ 	}
+     }
+diff -Naur gcc-4.7.4-pure/gcc/ira-color.c gcc-4.7.4/gcc/ira-color.c
+--- gcc-4.7.4-pure/gcc/ira-color.c	2012-08-06 07:34:27.000000000 -0700
++++ gcc-4.7.4/gcc/ira-color.c	2018-11-26 17:09:27.547519800 -0800
+@@ -3490,7 +3490,7 @@
+   slot_num2 = -ALLOCNO_HARD_REGNO (a2);
+   if ((diff = slot_num1 - slot_num2) != 0)
+     return (frame_pointer_needed
+-	    || !FRAME_GROWS_DOWNWARD == STACK_GROWS_DOWNWARD ? diff : -diff);
++	    || (!FRAME_GROWS_DOWNWARD) == STACK_GROWS_DOWNWARD ? diff : -diff);
+   total_size1 = MAX (PSEUDO_REGNO_BYTES (regno1),
+ 		     regno_max_ref_width[regno1]);
+   total_size2 = MAX (PSEUDO_REGNO_BYTES (regno2),
+diff -Naur gcc-4.7.4-pure/gcc/omp-low.c gcc-4.7.4/gcc/omp-low.c
+--- gcc-4.7.4-pure/gcc/omp-low.c	2013-02-19 09:19:36.000000000 -0800
++++ gcc-4.7.4/gcc/omp-low.c	2018-11-26 17:09:27.555020800 -0800
+@@ -1536,16 +1536,18 @@
+     }
+ 
+   if (scan_array_reductions)
+-    for (c = clauses; c; c = OMP_CLAUSE_CHAIN (c))
+-      if (OMP_CLAUSE_CODE (c) == OMP_CLAUSE_REDUCTION
+-	  && OMP_CLAUSE_REDUCTION_PLACEHOLDER (c))
+-	{
+-	  scan_omp (OMP_CLAUSE_REDUCTION_GIMPLE_INIT (c), ctx);
+-	  scan_omp (OMP_CLAUSE_REDUCTION_GIMPLE_MERGE (c), ctx);
+-	}
+-      else if (OMP_CLAUSE_CODE (c) == OMP_CLAUSE_LASTPRIVATE
+-	       && OMP_CLAUSE_LASTPRIVATE_GIMPLE_SEQ (c))
+-	scan_omp (OMP_CLAUSE_LASTPRIVATE_GIMPLE_SEQ (c), ctx);
++    {
++      for (c = clauses; c; c = OMP_CLAUSE_CHAIN (c))
++	if (OMP_CLAUSE_CODE (c) == OMP_CLAUSE_REDUCTION
++	    && OMP_CLAUSE_REDUCTION_PLACEHOLDER (c))
++	  {
++	    scan_omp (OMP_CLAUSE_REDUCTION_GIMPLE_INIT (c), ctx);
++	    scan_omp (OMP_CLAUSE_REDUCTION_GIMPLE_MERGE (c), ctx);
++	  }
++	else if (OMP_CLAUSE_CODE (c) == OMP_CLAUSE_LASTPRIVATE
++		 && OMP_CLAUSE_LASTPRIVATE_GIMPLE_SEQ (c))
++	  scan_omp (OMP_CLAUSE_LASTPRIVATE_GIMPLE_SEQ (c), ctx);
++    }
+ }
+ 
+ /* Create a new name for omp child function.  Returns an identifier.  */
+diff -Naur gcc-4.7.4-pure/gcc/passes.c gcc-4.7.4/gcc/passes.c
+--- gcc-4.7.4-pure/gcc/passes.c	2012-02-24 03:38:39.000000000 -0800
++++ gcc-4.7.4/gcc/passes.c	2018-11-26 17:09:27.563021800 -0800
+@@ -384,7 +384,7 @@
+ {
+   char *dot_name, *flag_name, *glob_name;
+   const char *name, *full_name, *prefix;
+-  char num[10];
++  char num[16];
+   int flags, id;
+ 
+   /* See below in next_pass_1.  */
+diff -Naur gcc-4.7.4-pure/gcc/predict.c gcc-4.7.4/gcc/predict.c
+--- gcc-4.7.4-pure/gcc/predict.c	2013-04-19 01:18:29.000000000 -0700
++++ gcc-4.7.4/gcc/predict.c	2018-11-26 17:09:27.570022700 -0800
+@@ -1292,6 +1292,8 @@
+ 		/* Assume that any given atomic operation has low contention,
+ 		   and thus the compare-and-swap operation succeeds.  */
+ 		return boolean_true_node;
++	      default:
++		break;
+ 	    }
+ 	}
+ 
+diff -Naur gcc-4.7.4-pure/gcc/print-tree.c gcc-4.7.4/gcc/print-tree.c
+--- gcc-4.7.4-pure/gcc/print-tree.c	2012-12-10 01:54:16.000000000 -0800
++++ gcc-4.7.4/gcc/print-tree.c	2018-11-26 17:09:27.575023300 -0800
+@@ -740,7 +740,7 @@
+ 	  i = 0;
+ 	  FOR_EACH_CALL_EXPR_ARG (arg, iter, node)
+ 	    {
+-	      char temp[10];
++	      char temp[32];
+ 	      sprintf (temp, "arg %d", i);
+ 	      print_node (file, temp, arg, indent + 4);
+ 	      i++;
+@@ -752,7 +752,7 @@
+ 
+ 	  for (i = 0; i < len; i++)
+ 	    {
+-	      char temp[10];
++	      char temp[32];
+ 
+ 	      sprintf (temp, "arg %d", i);
+ 	      print_node (file, temp, TREE_OPERAND (node, i), indent + 4);
+@@ -822,7 +822,7 @@
+ 	case VECTOR_CST:
+ 	  {
+ 	    tree vals = TREE_VECTOR_CST_ELTS (node);
+-	    char buf[10];
++	    char buf[32];
+ 	    tree link;
+ 	    int i;
+ 
+@@ -872,7 +872,7 @@
+ 	  for (i = 0; i < len; i++)
+ 	    if (TREE_VEC_ELT (node, i))
+ 	      {
+-		char temp[10];
++		char temp[32];
+ 		sprintf (temp, "elt %d", i);
+ 		print_node (file, temp, TREE_VEC_ELT (node, i), indent + 4);
+ 	      }
+diff -Naur gcc-4.7.4-pure/gcc/stor-layout.c gcc-4.7.4/gcc/stor-layout.c
+--- gcc-4.7.4-pure/gcc/stor-layout.c	2012-08-10 06:21:31.000000000 -0700
++++ gcc-4.7.4/gcc/stor-layout.c	2018-11-26 17:09:27.580524000 -0800
+@@ -2524,8 +2524,8 @@
+ 	= build_int_cst_wide (type,
+ 			      (precision - HOST_BITS_PER_WIDE_INT > 0
+ 			       ? 0
+-			       : (HOST_WIDE_INT) (-1) << (precision - 1)),
+-			      (((HOST_WIDE_INT) (-1)
++			       : HOST_WIDE_INT_M1U << (precision - 1)),
++			      ((HOST_WIDE_INT_M1U
+ 				<< (precision - HOST_BITS_PER_WIDE_INT - 1 > 0
+ 				    ? precision - HOST_BITS_PER_WIDE_INT - 1
+ 				    : 0))));
+diff -Naur gcc-4.7.4-pure/gcc/system.h gcc-4.7.4/gcc/system.h
+--- gcc-4.7.4-pure/gcc/system.h	2012-02-16 15:16:28.000000000 -0800
++++ gcc-4.7.4/gcc/system.h	2018-11-26 17:09:27.586524800 -0800
+@@ -285,7 +285,7 @@
+ /* The outer cast is needed to work around a bug in Cray C 5.0.3.0.
+    It is necessary at least when t == time_t.  */
+ #define INTTYPE_MINIMUM(t) ((t) (INTTYPE_SIGNED (t) \
+-                             ? ~ (t) 0 << (sizeof(t) * CHAR_BIT - 1) : (t) 0))
++			    ? (t) 1 << (sizeof (t) * CHAR_BIT - 1) : (t) 0))
+ #define INTTYPE_MAXIMUM(t) ((t) (~ (t) 0 - INTTYPE_MINIMUM (t)))
+ 
+ /* Use that infrastructure to provide a few constants.  */
+@@ -671,10 +671,10 @@
+ /* Use gcc_assert(EXPR) to test invariants.  */
+ #if ENABLE_ASSERT_CHECKING
+ #define gcc_assert(EXPR) 						\
+-   ((void)(!(EXPR) ? fancy_abort (__FILE__, __LINE__, __FUNCTION__), 0 : 0))
++   ((void)((!(EXPR)) ? fancy_abort (__FILE__, __LINE__, __FUNCTION__), 0 : 0))
+ #elif (GCC_VERSION >= 4005)
+ #define gcc_assert(EXPR) 						\
+-  ((void)(__builtin_expect(!(EXPR), 0) ? __builtin_unreachable(), 0 : 0))
++  ((void)(__builtin_expect((!(EXPR)), 0) ? __builtin_unreachable(), 0 : 0))
+ #else
+ /* Include EXPR, so that unused variable warnings do not occur.  */
+ #define gcc_assert(EXPR) ((void)(0 && (EXPR)))
+diff -Naur gcc-4.7.4-pure/gcc/tree.c gcc-4.7.4/gcc/tree.c
+--- gcc-4.7.4-pure/gcc/tree.c	2013-01-02 11:03:37.000000000 -0800
++++ gcc-4.7.4/gcc/tree.c	2018-11-26 17:09:27.594025700 -0800
+@@ -1817,12 +1817,12 @@
+   if (prec == 2 * HOST_BITS_PER_WIDE_INT)
+     ;
+   else if (prec > HOST_BITS_PER_WIDE_INT)
+-    high &= ~((HOST_WIDE_INT) (-1) << (prec - HOST_BITS_PER_WIDE_INT));
++    high &= ~(HOST_WIDE_INT_M1U << (prec - HOST_BITS_PER_WIDE_INT));
+   else
+     {
+       high = 0;
+       if (prec < HOST_BITS_PER_WIDE_INT)
+-	low &= ~((HOST_WIDE_INT) (-1) << prec);
++	low &= ~(HOST_WIDE_INT_M1U << prec);
+     }
+ 
+   if (high == 0 && low == 0)
+@@ -1881,12 +1881,12 @@
+   if (prec == 2 * HOST_BITS_PER_WIDE_INT)
+     ;
+   else if (prec > HOST_BITS_PER_WIDE_INT)
+-    high &= ~((HOST_WIDE_INT) (-1) << (prec - HOST_BITS_PER_WIDE_INT));
++    high &= ~(HOST_WIDE_INT_M1U << (prec - HOST_BITS_PER_WIDE_INT));
+   else
+     {
+       high = 0;
+       if (prec < HOST_BITS_PER_WIDE_INT)
+-	low &= ~((HOST_WIDE_INT) (-1) << prec);
++	low &= ~(HOST_WIDE_INT_M1U << prec);
+     }
+ 
+   return (high != 0 ? HOST_BITS_PER_WIDE_INT + exact_log2 (high)
+@@ -1918,12 +1918,12 @@
+   if (prec == 2 * HOST_BITS_PER_WIDE_INT || prec == 0)
+     ;
+   else if (prec > HOST_BITS_PER_WIDE_INT)
+-    high &= ~((HOST_WIDE_INT) (-1) << (prec - HOST_BITS_PER_WIDE_INT));
++    high &= ~(HOST_WIDE_INT_M1U << (prec - HOST_BITS_PER_WIDE_INT));
+   else
+     {
+       high = 0;
+       if (prec < HOST_BITS_PER_WIDE_INT)
+-	low &= ~((HOST_WIDE_INT) (-1) << prec);
++	low &= ~(HOST_WIDE_INT_M1U << prec);
+     }
+ 
+   return (high != 0 ? HOST_BITS_PER_WIDE_INT + floor_log2 (high)
+@@ -8512,7 +8512,7 @@
+ 	    if (TREE_CODE (type) == QUAL_UNION_TYPE)
+ 	      RETURN_TRUE_IF_VAR (DECL_QUALIFIER (t));
+ 	  }
+-	break;
++      break;
+ 
+     case ARRAY_TYPE:
+       /* Do not call ourselves to avoid infinite recursion.  This is
+diff -Naur gcc-4.7.4-pure/gcc/tree.h gcc-4.7.4/gcc/tree.h
+--- gcc-4.7.4-pure/gcc/tree.h	2012-10-16 16:18:08.000000000 -0700
++++ gcc-4.7.4/gcc/tree.h	2018-11-26 17:09:27.602526800 -0800
+@@ -3274,7 +3274,6 @@
+  /* Belong to VAR_DECL exclusively.  */
+  unsigned defer_output : 1;
+  unsigned hard_register : 1;
+- unsigned thread_local : 1;
+  unsigned common_flag : 1;
+  unsigned in_text_section : 1;
+  unsigned in_constant_pool : 1;
+diff -Naur gcc-4.7.4-pure/gcc/tree-parloops.c gcc-4.7.4/gcc/tree-parloops.c
+--- gcc-4.7.4-pure/gcc/tree-parloops.c	2012-02-29 09:43:56.000000000 -0800
++++ gcc-4.7.4/gcc/tree-parloops.c	2018-11-26 17:09:27.609027600 -0800
+@@ -722,14 +722,16 @@
+ 
+   FOR_EACH_VEC_ELT (basic_block, body, i, bb)
+     if (bb != entry_bb && bb != exit_bb)
+-      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+-	if (is_gimple_debug (gsi_stmt (gsi)))
+-	  {
+-	    if (gimple_debug_bind_p (gsi_stmt (gsi)))
+-	      has_debug_stmt = true;
+-	  }
+-	else
+-	  eliminate_local_variables_stmt (entry, &gsi, decl_address);
++      {
++        for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
++	  if (is_gimple_debug (gsi_stmt (gsi)))
++	    {
++	      if (gimple_debug_bind_p (gsi_stmt (gsi)))
++	        has_debug_stmt = true;
++	    }
++	  else
++	    eliminate_local_variables_stmt (entry, &gsi, decl_address);
++      }
+ 
+   if (has_debug_stmt)
+     FOR_EACH_VEC_ELT (basic_block, body, i, bb)
+diff -Naur gcc-4.7.4-pure/gcc/tree-ssa-loop-ivcanon.c gcc-4.7.4/gcc/tree-ssa-loop-ivcanon.c
+--- gcc-4.7.4-pure/gcc/tree-ssa-loop-ivcanon.c	2010-09-20 08:48:42.000000000 -0700
++++ gcc-4.7.4/gcc/tree-ssa-loop-ivcanon.c	2018-11-26 17:09:27.614028200 -0800
+@@ -162,7 +162,7 @@
+       /* First make fast look if we see constant array inside.  */
+       while (handled_component_p (base))
+ 	base = TREE_OPERAND (base, 0);
+-      if ((DECL_P (base) == VAR_DECL
++      if ((DECL_P (base) && (TREE_CODE (base) == VAR_DECL)
+ 	   && const_value_known_p (base))
+ 	  || CONSTANT_CLASS_P (base))
+ 	{
+diff -Naur gcc-4.7.4-pure/gcc/tree-ssa-structalias.c gcc-4.7.4/gcc/tree-ssa-structalias.c
+--- gcc-4.7.4-pure/gcc/tree-ssa-structalias.c	2013-02-04 04:04:35.000000000 -0800
++++ gcc-4.7.4/gcc/tree-ssa-structalias.c	2018-11-26 17:09:27.621029100 -0800
+@@ -470,7 +470,7 @@
+ };
+ 
+ /* Use 0x8000... as special unknown offset.  */
+-#define UNKNOWN_OFFSET ((HOST_WIDE_INT)-1 << (HOST_BITS_PER_WIDE_INT-1))
++#define UNKNOWN_OFFSET HOST_WIDE_INT_MIN
+ 
+ typedef struct constraint_expr ce_s;
+ DEF_VEC_O(ce_s);
+diff -Naur gcc-4.7.4-pure/gcc/tree-vect-loop.c gcc-4.7.4/gcc/tree-vect-loop.c
+--- gcc-4.7.4-pure/gcc/tree-vect-loop.c	2014-05-23 02:46:18.000000000 -0700
++++ gcc-4.7.4/gcc/tree-vect-loop.c	2018-11-26 17:09:27.627530000 -0800
+@@ -4616,7 +4616,7 @@
+           if (vect_print_dump_info (REPORT_DETAILS))
+             fprintf (vect_dump, "unsupported condition in reduction");
+ 
+-            return false;
++          return false;
+         }
+     }
+   else
+diff -Naur gcc-4.7.4-pure/gcc/tree-vectorizer.h gcc-4.7.4/gcc/tree-vectorizer.h
+--- gcc-4.7.4-pure/gcc/tree-vectorizer.h	2013-01-14 06:59:51.000000000 -0800
++++ gcc-4.7.4/gcc/tree-vectorizer.h	2018-11-26 17:09:27.633030700 -0800
+@@ -309,9 +309,9 @@
+ #define LOOP_VINFO_PEELING_FOR_GAPS(L)     (L)->peeling_for_gaps
+ 
+ #define LOOP_REQUIRES_VERSIONING_FOR_ALIGNMENT(L) \
+-VEC_length (gimple, (L)->may_misalign_stmts) > 0
++(VEC_length (gimple, (L)->may_misalign_stmts) > 0)
+ #define LOOP_REQUIRES_VERSIONING_FOR_ALIAS(L)     \
+-VEC_length (ddr_p, (L)->may_alias_ddrs) > 0
++(VEC_length (ddr_p, (L)->may_alias_ddrs) > 0)
+ 
+ #define NITERS_KNOWN_P(n)                     \
+ (host_integerp ((n),0)                        \
+diff -Naur gcc-4.7.4-pure/gcc/value-prof.c gcc-4.7.4/gcc/value-prof.c
+--- gcc-4.7.4-pure/gcc/value-prof.c	2012-01-03 01:09:41.000000000 -0800
++++ gcc-4.7.4/gcc/value-prof.c	2018-11-26 17:09:27.638531400 -0800
+@@ -1618,7 +1618,7 @@
+       count = histogram->hvalue.counters[0];
+       alignment = 1;
+       while (!(count & alignment)
+-	     && (alignment * 2 * BITS_PER_UNIT))
++	     && ((alignment * 2 * BITS_PER_UNIT) != 0))
+ 	alignment <<= 1;
+       *expected_align = alignment * BITS_PER_UNIT;
+       gimple_remove_histogram_value (cfun, stmt, histogram);
+diff -Naur gcc-4.7.4-pure/gcc/varasm.c gcc-4.7.4/gcc/varasm.c
+--- gcc-4.7.4-pure/gcc/varasm.c	2012-04-23 23:10:53.000000000 -0700
++++ gcc-4.7.4/gcc/varasm.c	2018-11-26 17:09:27.645532200 -0800
+@@ -5795,7 +5795,7 @@
+ 	       /* We use local aliases for C++ thunks to force the tailcall
+ 		  to bind locally.  This is a hack - to keep it working do
+ 		  the following (which is not strictly correct).  */
+-	       && (! TREE_CODE (target_decl) == FUNCTION_DECL
++	       && (! (TREE_CODE (target_decl) == FUNCTION_DECL)
+ 		   || ! DECL_VIRTUAL_P (target_decl))
+ 	       && ! lookup_attribute ("weakref", DECL_ATTRIBUTES (p->decl)))
+ 	{
+diff -Naur gcc-4.7.4-pure/libcpp/include/cpplib.h gcc-4.7.4/libcpp/include/cpplib.h
+--- gcc-4.7.4-pure/libcpp/include/cpplib.h	2011-12-20 12:44:13.000000000 -0800
++++ gcc-4.7.4/libcpp/include/cpplib.h	2018-11-26 17:09:27.651533000 -0800
+@@ -155,6 +155,25 @@
+   TTYPE_TABLE
+   N_TTYPES,
+ 
++  /* A token type for keywords, as opposed to ordinary identifiers.  */
++  CPP_KEYWORD,
++
++  /* A token type for template-ids.  If a template-id is processed while
++     parsing tentatively, it is replaced with a CPP_TEMPLATE_ID token;
++     the value of the CPP_TEMPLATE_ID is whatever was returned by
++     cp_parser_template_id.  */
++  CPP_TEMPLATE_ID = (CPP_KEYWORD + 1),
++
++  /* A token type for nested-name-specifiers.  If a
++     nested-name-specifier is processed while parsing tentatively, it is
++     replaced with a CPP_NESTED_NAME_SPECIFIER token; the value of the
++     CPP_NESTED_NAME_SPECIFIER is whatever was returned by
++     cp_parser_nested_name_specifier_opt.  */
++  CPP_NESTED_NAME_SPECIFIER = (CPP_TEMPLATE_ID + 1),
++
++  /* A token type for pre-parsed C++0x decltype.  */
++  CPP_DECLTYPE = (CPP_NESTED_NAME_SPECIFIER + 1),
++
+   /* Positions in the table.  */
+   CPP_LAST_EQ        = CPP_LSHIFT,
+   CPP_FIRST_DIGRAPH  = CPP_HASH,
+diff -Naur gcc-4.7.4-pure/libcpp/pch.c gcc-4.7.4/libcpp/pch.c
+--- gcc-4.7.4-pure/libcpp/pch.c	2011-04-20 11:19:03.000000000 -0700
++++ gcc-4.7.4/libcpp/pch.c	2018-11-26 17:09:27.656533600 -0800
+@@ -702,7 +702,7 @@
+ 	cpp_warning_syshdr (r, CPP_W_INVALID_PCH,
+ 		            "%s: not used because `__COUNTER__' is invalid",
+ 		            name);
+-	goto fail;
++      goto fail;
+     }
+ 
+   /* We win!  */
+diff -Naur gcc-4.7.4-pure/libcpp/system.h gcc-4.7.4/libcpp/system.h
+--- gcc-4.7.4-pure/libcpp/system.h	2012-01-03 03:44:34.000000000 -0800
++++ gcc-4.7.4/libcpp/system.h	2018-11-26 17:09:27.662034300 -0800
+@@ -231,7 +231,7 @@
+ /* The outer cast is needed to work around a bug in Cray C 5.0.3.0.
+    It is necessary at least when t == time_t.  */
+ #define INTTYPE_MINIMUM(t) ((t) (INTTYPE_SIGNED (t) \
+-                             ? ~ (t) 0 << (sizeof(t) * CHAR_BIT - 1) : (t) 0))
++			    ? (t) 1 << (sizeof (t) * CHAR_BIT - 1) : (t) 0))
+ #define INTTYPE_MAXIMUM(t) ((t) (~ (t) 0 - INTTYPE_MINIMUM (t)))
+ 
+ /* Use that infrastructure to provide a few constants.  */
+diff -Naur gcc-4.7.4-pure/libdecnumber/decNumberLocal.h gcc-4.7.4/libdecnumber/decNumberLocal.h
+--- gcc-4.7.4-pure/libdecnumber/decNumberLocal.h	2009-04-09 08:00:19.000000000 -0700
++++ gcc-4.7.4/libdecnumber/decNumberLocal.h	2018-11-26 17:09:27.666534900 -0800
+@@ -155,8 +155,8 @@
+   /* Store a uInt, etc., into bytes starting at a char* or uByte*.    */
+   /* Returns i, evaluated, for convenience; has to use uiwork because */
+   /* i may be an expression.					      */
+-  #define UBFROMUS(b, i)  (uswork=(i), memcpy(b, (void *)&uswork, 2), uswork)
+-  #define UBFROMUI(b, i)  (uiwork=(i), memcpy(b, (void *)&uiwork, 4), uiwork)
++  #define UBFROMUS(b, i)  (uswork=(i), memcpy(b, (void *)&uswork, 2))
++  #define UBFROMUI(b, i)  (uiwork=(i), memcpy(b, (void *)&uiwork, 4))
+ 
+   /* X10 and X100 -- multiply integer i by 10 or 100		      */
+   /* [shifts are usually faster than multiply; could be conditional]  */
+diff -Naur gcc-4.7.4-pure/libgcc/libgcc2.c gcc-4.7.4/libgcc/libgcc2.c
+--- gcc-4.7.4-pure/libgcc/libgcc2.c	2011-11-02 08:26:35.000000000 -0700
++++ gcc-4.7.4/libgcc/libgcc2.c	2018-11-26 17:09:27.672035600 -0800
+@@ -1961,7 +1961,7 @@
+      are nonzero/zero, infinite/finite, and finite/infinite.  */
+   if (isnan (x) && isnan (y))
+     {
+-      if (c == 0.0 && d == 0.0 && (!isnan (a) || !isnan (b)))
++      if (c == 0.0f && d == 0.0f && (!isnan (a) || !isnan (b)))
+ 	{
+ 	  x = COPYSIGN (INFINITY, c) * a;
+ 	  y = COPYSIGN (INFINITY, c) * b;
+@@ -1977,8 +1977,8 @@
+ 	{
+ 	  c = COPYSIGN (isinf (c) ? 1 : 0, c);
+ 	  d = COPYSIGN (isinf (d) ? 1 : 0, d);
+-	  x = 0.0 * (a * c + b * d);
+-	  y = 0.0 * (b * c - a * d);
++	  x = 0.0f * (a * c + b * d);
++	  y = 0.0f * (b * c - a * d);
+ 	}
+     }
+ 
+diff -Naur gcc-4.7.4-pure/libiberty/pex-win32.c gcc-4.7.4/libiberty/pex-win32.c
+--- gcc-4.7.4-pure/libiberty/pex-win32.c	2012-08-06 07:34:27.000000000 -0700
++++ gcc-4.7.4/libiberty/pex-win32.c	2018-11-26 17:09:27.677036200 -0800
+@@ -738,7 +738,7 @@
+   OSVERSIONINFO version_info;
+   STARTUPINFO si;
+   PROCESS_INFORMATION pi;
+-  int orig_out, orig_in, orig_err;
++  int orig_out, orig_in, orig_err = 0;
+   BOOL separate_stderr = !(flags & PEX_STDERR_TO_STDOUT);
+ 
+   /* Ensure we have inheritable descriptors to pass to the child, and close the
+diff -Naur gcc-4.7.4-pure/libiberty/regex.c gcc-4.7.4/libiberty/regex.c
+--- gcc-4.7.4-pure/libiberty/regex.c	2013-02-19 09:26:56.000000000 -0800
++++ gcc-4.7.4/libiberty/regex.c	2018-11-26 17:09:27.683537100 -0800
+@@ -151,7 +151,7 @@
+ #    include <string.h>
+ #    ifndef bzero
+ #     ifndef _LIBC
+-#      define bzero(s, n)	(memset (s, '\0', n), (s))
++#      define bzero(s, n)	(memset (s, '\0', n))
+ #     else
+ #      define bzero(s, n)	__bzero (s, n)
+ #     endif
+diff -Naur gcc-4.7.4-pure/libiberty/stack-limit.c gcc-4.7.4/libiberty/stack-limit.c
+--- gcc-4.7.4-pure/libiberty/stack-limit.c	2012-08-06 07:34:27.000000000 -0700
++++ gcc-4.7.4/libiberty/stack-limit.c	2018-11-26 17:09:27.688037600 -0800
+@@ -34,6 +34,7 @@
+ */
+ 
+ #include "config.h"
++#include "ansidecl.h"
+ 
+ #ifdef HAVE_STDINT_H
+ #include <stdint.h>
+@@ -43,7 +44,7 @@
+ #endif
+ 
+ void
+-stack_limit_increase (unsigned long pref)
++stack_limit_increase (unsigned long pref ATTRIBUTE_UNUSED)
+ {
+ #if defined(HAVE_SETRLIMIT) && defined(HAVE_GETRLIMIT) \
+     && defined(RLIMIT_STACK) && defined(RLIM_INFINITY)
+diff -Naur gcc-4.7.4-pure/libiberty/strerror.c gcc-4.7.4/libiberty/strerror.c
+--- gcc-4.7.4-pure/libiberty/strerror.c	2005-03-27 17:28:01.000000000 -0800
++++ gcc-4.7.4/libiberty/strerror.c	2018-11-26 17:09:27.693038300 -0800
+@@ -469,8 +469,13 @@
+ 
+ #else
+ 
++
++#ifndef sys_nerr
+ extern int sys_nerr;
++#endif
++#ifndef sys_errlist
+ extern char *sys_errlist[];
++#endif
+ 
+ #endif
+ 
+diff -Naur gcc-4.7.4-pure/libiberty/waitpid.c gcc-4.7.4/libiberty/waitpid.c
+--- gcc-4.7.4-pure/libiberty/waitpid.c	2005-04-02 11:57:12.000000000 -0800
++++ gcc-4.7.4/libiberty/waitpid.c	2018-11-26 17:09:27.697038800 -0800
+@@ -23,6 +23,11 @@
+ #include <sys/wait.h>
+ #endif
+ 
++#ifdef __MINGW32__
++#include <process.h>
++#define wait(s)  _cwait(s,pid,_WAIT_CHILD)
++#endif
++
+ pid_t
+ waitpid (pid_t pid, int *stat_loc, int options ATTRIBUTE_UNUSED)
+ {

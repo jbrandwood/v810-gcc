@@ -1,0 +1,12 @@
+2015-02-27 Private release for PC-FX Zeroigar English translation.
+
+2016-07-24 Private release for VirtualBoy VBDE & VUEngine developers.
+
+2018-11-18 Initial Public Release on github.
+
+2018-11-28 Support compilation on Linux.
+           This version either fixes or hides all of the myriad extraneous
+           compilation warnings that were making it impossible to see real
+           problems.
+           newlib now uses libgloss (as it is supposed to), rather than
+           putting the board-support files into libc.

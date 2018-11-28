@@ -1,4 +1,4 @@
-#!/bin/sh
+#! /bin/sh
 #
 # Build script for V810-GCC.
 #
@@ -7,6 +7,8 @@
 # If this stage fails, then you can find out what the error was, fix it, and
 # re-run this script without running prepare_gcc1.sh again.
 #
+
+OSNAME=`uname`
 
 TOPDIR=$(pwd)
 echo TOPDIR is $TOPDIR
@@ -19,9 +21,14 @@ echo TOPDIR is $TOPDIR
 
 TARGET=v810
 
-export CFLAGS='-O2 -pipe'
-export CXXFLAGS='-O2 -pipe'
-export LDFLAGS='-Wl,-Bstatic'
+export CFLAGS='-O2'
+export CXXFLAGS='-O2'
+
+if [ "$OSNAME" = "Linux" ] ; then
+  export LDFLAGS=
+else
+  export LDFLAGS='-Wl,-Bstatic'
+fi
 
 #---------------------------------------------------------------------------------
 # Setup the toolchain for linux
@@ -58,10 +65,10 @@ cd ../../
 # Remove duplicate/unnecessary files to save space
 #---------------------------------------------------------------------------------
 
-rm $DSTDIR/bin/$TARGET-gcc-4.7.4.exe
-rm $DSTDIR/bin/$TARGET-gcc-ar.exe
-rm $DSTDIR/bin/$TARGET-gcc-nm.exe
-rm $DSTDIR/bin/$TARGET-gcc-ranlib.exe
+rm $DSTDIR/bin/$TARGET-gcc-4.7.4*
+rm $DSTDIR/bin/$TARGET-gcc-ar*
+rm $DSTDIR/bin/$TARGET-gcc-nm*
+rm $DSTDIR/bin/$TARGET-gcc-ranlib*
 
 echo
 echo "$0 finished, don't forget to check for any error messages."

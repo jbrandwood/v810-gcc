@@ -1,4 +1,4 @@
-#!/bin/sh
+#! /bin/sh
 #
 # Build script for V810-GCC.
 #
@@ -7,6 +7,8 @@
 # If this stage fails, then you can find out what the error was, fix it, and
 # re-run this script without running prepare_binutils.sh again.
 #
+
+OSNAME=`uname`
 
 TOPDIR=$(pwd)
 echo TOPDIR is $TOPDIR
@@ -19,9 +21,14 @@ echo TOPDIR is $TOPDIR
 
 TARGET=v810
 
-export CFLAGS='-O2 -pipe'
-export CXXFLAGS='-O2 -pipe'
-export LDFLAGS='-Wl,-Bstatic'
+export CFLAGS='-O2'
+export CXXFLAGS='-O2'
+
+if [ "$OSNAME" = "Linux" ] ; then
+  export LDFLAGS=
+else
+  export LDFLAGS='-Wl,-Bstatic'
+fi
 
 #---------------------------------------------------------------------------------
 # Build and install binutils
@@ -38,6 +45,8 @@ if [ $? != 0 ]; then
   exit 1;
 fi
 
+# make tooldir=$DSTDIR install-strip 2>&1 | tee binutils_install.log
+
 make install-strip 2>&1 | tee binutils_install.log
 
 if [ $? != 0 ]; then
@@ -51,8 +60,8 @@ cd ../../
 # Remove duplicate/unnecessary files to save space
 #---------------------------------------------------------------------------------
 
-rm $DSTDIR/bin/$TARGET-ld.bfd.exe
-rm $DSTDIR/$TARGET/bin/ld.bfd.exe
+rm $DSTDIR/bin/$TARGET-ld.bfd*
+rm $DSTDIR/$TARGET/bin/ld.bfd*
 
 echo
 echo "$0 finished, don't forget to check for any error messages."

@@ -1,9 +1,11 @@
-#!/bin/sh
+#! /bin/sh
 #
 # Build script for V810-GCC.
 #
 # Stage 5 of 8 - Unpack, patch and configure NEWLIB.
 #
+
+OSNAME=`uname`
 
 TOPDIR=$(pwd)
 echo TOPDIR is $TOPDIR
@@ -62,7 +64,8 @@ PrepareSource()
   tar zxvf archive/newlib-2.2.0-1.tar.gz
   cd newlib-2.2.0-1
 
-  cat ../patch/newlib-2.2.0-1-v810.patch | patch -p1
+  patch -p 1 -i ../patch/newlib-2.2.0-1-v810.patch
+
   cd ..
 }
 
@@ -86,9 +89,14 @@ fi
 
 TARGET=v810
 
-export CFLAGS='-O2 -pipe'
-export CXXFLAGS='-O2 -pipe'
-export LDFLAGS='-Wl,-Bstatic'
+export CFLAGS='-O2'
+export CXXFLAGS='-O2'
+
+if [ "$OSNAME" = "Linux" ] ; then
+  export LDFLAGS=
+else
+  export LDFLAGS='-Wl,-Bstatic'
+fi
 
 #---------------------------------------------------------------------------------
 # Build and install binutils
@@ -114,11 +122,13 @@ $SRCDIR/configure                       \
   --target=$TARGET                      \
   --disable-multilib                    \
   --disable-newlib-multithread          \
+  --disable-newlib-iconv                \
   --disable-newlib-fvwrite-in-streamio  \
   --disable-newlib-fseek-optimization   \
   --disable-newlib-wide-orient          \
   --disable-newlib-io-float             \
   --disable-newlib-atexit-dynamic-alloc \
+  --disable-newlib-supplied-syscalls    \
   --enable-newlib-global-atexit         \
   --enable-newlib-nano-formatted-io     \
   --enable-newlib-nano-malloc           \
@@ -126,10 +136,6 @@ $SRCDIR/configure                       \
   --enable-lite-exit                    \
   --enable-newlib-hw-fp                 \
   2>&1 | tee newlib_configure.log
-
-# --enable-target-optspace
-# --enable-newlib-mb
-# --enable-newlib-hw-fp
 
 cd ../../
 

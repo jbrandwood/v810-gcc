@@ -1,9 +1,11 @@
-#!/bin/sh
+#! /bin/sh
 #
 # Build script for V810-GCC.
 #
 # Stage 1 of 8 - Unpack, patch and configure BINUTILS.
 #
+
+OSNAME=`uname`
 
 TOPDIR=$(pwd)
 echo TOPDIR is $TOPDIR
@@ -44,8 +46,7 @@ TestFile()
 TestFile "archive/binutils-2.24.tar.bz2";
 
 TestFile "patch/binutils-2.24-gcc-4.9.patch";
-TestFile "patch/binutils-2.24-gcc-6.1.patch";
-TestFile "patch/binutils-2.24-gcc-7.0.patch";
+TestFile "patch/binutils-2.24-gcc-7.3.patch";
 TestFile "patch/binutils-2.24-v810.patch";
 
 #---------------------------------------------------------------------------------
@@ -66,8 +67,7 @@ PrepareSource()
   cd binutils-2.24
 
   patch -p 1 -i ../patch/binutils-2.24-gcc-4.9.patch
-  patch -p 1 -i ../patch/binutils-2.24-gcc-6.1.patch
-  patch -p 1 -i ../patch/binutils-2.24-gcc-7.0.patch
+  patch -p 1 -i ../patch/binutils-2.24-gcc-7.3.patch
   patch -p 1 -i ../patch/binutils-2.24-v810.patch
 
   cd ..
@@ -91,11 +91,18 @@ fi
 
 # Building the toolchain to compile for the NEC V810 cpu.
 
+
+
 TARGET=v810
 
-export CFLAGS='-O2 -pipe'
-export CXXFLAGS='-O2 -pipe'
-export LDFLAGS='-Wl,-Bstatic'
+export CFLAGS='-O2'
+export CXXFLAGS='-O2'
+
+if [ "$OSNAME" = "Linux" ] ; then
+  export LDFLAGS=
+else
+  export LDFLAGS='-Wl,-Bstatic'
+fi
 
 #---------------------------------------------------------------------------------
 # Build and install binutils

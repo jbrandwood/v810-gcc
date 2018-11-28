@@ -1,0 +1,361 @@
+diff -Naur binutils-2.24-pure/bfd/configure binutils-2.24/bfd/configure
+--- binutils-2.24-pure/bfd/configure	2013-12-02 01:30:30.000000000 -0800
++++ binutils-2.24/bfd/configure	2018-11-16 12:03:31.955590900 -0800
+@@ -12199,7 +12199,7 @@
+ 
+ NO_WERROR=
+ if test "${ERROR_ON_WARNING}" = yes ; then
+-    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough"
+     NO_WERROR="-Wno-error"
+ fi
+ 
+diff -Naur binutils-2.24-pure/bfd/warning.m4 binutils-2.24/bfd/warning.m4
+--- binutils-2.24-pure/bfd/warning.m4	2013-11-04 07:33:37.000000000 -0800
++++ binutils-2.24/bfd/warning.m4	2018-11-16 12:04:17.382870700 -0800
+@@ -46,7 +46,7 @@
+ 
+ NO_WERROR=
+ if test "${ERROR_ON_WARNING}" = yes ; then
+-    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough"
+     NO_WERROR="-Wno-error"
+ fi
+ 		   
+diff -Naur binutils-2.24-pure/binutils/configure binutils-2.24/binutils/configure
+--- binutils-2.24-pure/binutils/configure	2013-11-04 07:33:37.000000000 -0800
++++ binutils-2.24/binutils/configure	2018-11-16 12:05:14.575971300 -0800
+@@ -11633,7 +11633,7 @@
+ 
+ NO_WERROR=
+ if test "${ERROR_ON_WARNING}" = yes ; then
+-    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough"
+     NO_WERROR="-Wno-error"
+ fi
+ 
+diff -Naur binutils-2.24-pure/binutils/dwarf.c binutils-2.24/binutils/dwarf.c
+--- binutils-2.24-pure/binutils/dwarf.c	2013-11-08 02:13:48.000000000 -0800
++++ binutils-2.24/binutils/dwarf.c	2018-11-16 11:57:36.327764800 -0800
+@@ -263,7 +263,7 @@
+     *length_return = num_read;
+ 
+   if (sign && (shift < 8 * sizeof (result)) && (byte & 0x40))
+-    result |= -1L << shift;
++    result |= -((dwarf_vma) 1 << shift);
+ 
+   return result;
+ }
+diff -Naur binutils-2.24-pure/binutils/stabs.c binutils-2.24/binutils/stabs.c
+--- binutils-2.24-pure/binutils/stabs.c	2013-11-04 07:33:37.000000000 -0800
++++ binutils-2.24/binutils/stabs.c	2018-11-16 12:05:50.081633700 -0800
+@@ -2697,7 +2697,7 @@
+ 	      ++*pp;
+ 	      voffset &= 0x7fffffff;
+ 
+-	      if (**pp == ';' || *pp == '\0')
++	      if (**pp == ';' || **pp == '\0')
+ 		{
+ 		  /* Must be g++ version 1.  */
+ 		  context = DEBUG_TYPE_NULL;
+diff -Naur binutils-2.24-pure/config/tls.m4 binutils-2.24/config/tls.m4
+--- binutils-2.24-pure/config/tls.m4	2013-11-04 07:33:37.000000000 -0800
++++ binutils-2.24/config/tls.m4	2018-11-16 12:07:08.567771700 -0800
+@@ -116,7 +116,7 @@
+   		 gcc_cv_use_emutls, [
+     gcc_cv_use_emutls=no
+     echo '__thread int a; int b; int main() { return a = b; }' > conftest.c
+-    if AC_TRY_COMMAND(${CC-cc} -Werror -S -o conftest.s conftest.c 1>&AS_MESSAGE_LOG_FD); then
++    if AC_TRY_COMMAND(${CC-cc} -Werror -Wno-implicit-fallthrough -S -o conftest.s conftest.c 1>&AS_MESSAGE_LOG_FD); then
+       if grep __emutls_get_address conftest.s > /dev/null; then
+ 	gcc_cv_use_emutls=yes
+       fi
+diff -Naur binutils-2.24-pure/config/warnings.m4 binutils-2.24/config/warnings.m4
+--- binutils-2.24-pure/config/warnings.m4	2013-11-04 07:33:37.000000000 -0800
++++ binutils-2.24/config/warnings.m4	2018-11-16 12:48:05.572394800 -0800
+@@ -72,7 +72,7 @@
+    [AS_VAR_SET(acx_Pedantic, no)])
+ CFLAGS="$save_CFLAGS"])
+ AS_IF([test AS_VAR_GET(acx_Pedantic) = yes],
+-      [acx_Var="$acx_Var${acx_Var:+ }-pedantic $1"])
++      [acx_Var="$acx_Var${acx_Var:+ }-pedantic -Wno-implicit-fallthrough $1"])
+ ])
+ AS_VAR_POPDEF([acx_Pedantic])dnl
+ m4_popdef([acx_Woptions])dnl
+@@ -97,7 +97,7 @@
+ 		   [enable -Werror despite compiler version]),
+ [], [enable_werror_always=no])
+ AS_IF([test $enable_werror_always = yes],
+-      [acx_Var="$acx_Var${acx_Var:+ }-Werror"])
++      [acx_Var="$acx_Var${acx_Var:+ }-Werror -Wno-implicit-fallthrough"])
+  m4_if($1, [manual],,
+  [AS_VAR_PUSHDEF([acx_GCCvers], [acx_cv_prog_cc_gcc_$1_or_newer])dnl
+   AC_CACHE_CHECK([whether $CC is GCC >=$1], acx_GCCvers,
+@@ -111,7 +111,7 @@
+    [AS_VAR_SET(acx_GCCvers, yes)],
+    [AS_VAR_SET(acx_GCCvers, no)])])
+  AS_IF([test AS_VAR_GET(acx_GCCvers) = yes],
+-       [acx_Var="$acx_Var${acx_Var:+ }-Werror"])
++       [acx_Var="$acx_Var${acx_Var:+ }-Werror -Wno-implicit-fallthrough"])
+   AS_VAR_POPDEF([acx_GCCvers])])
+ m4_popdef([acx_Var])dnl
+ ])# ACX_PROG_CC_WARNINGS_ARE_ERRORS
+diff -Naur binutils-2.24-pure/config/weakref.m4 binutils-2.24/config/weakref.m4
+--- binutils-2.24-pure/config/weakref.m4	2013-11-04 07:33:37.000000000 -0800
++++ binutils-2.24/config/weakref.m4	2018-11-16 12:09:32.524824600 -0800
+@@ -4,7 +4,7 @@
+   AC_CACHE_CHECK([whether the target supports weak],
+ 		 ac_cv_have_attribute_weak, [
+   weakref_m4_saved_CFLAGS="$CFLAGS"
+-  CFLAGS="$CFLAGS -Werror"
++  CFLAGS="$CFLAGS -Werror -Wno-implicit-fallthrough"
+   AC_TRY_COMPILE([void __attribute__((weak)) foo(void) { }],
+ 		 [], ac_cv_have_attribute_weak=yes,
+ 		 ac_cv_have_attribute_weak=no)
+diff -Naur binutils-2.24-pure/gas/config/tc-v850.c binutils-2.24/gas/config/tc-v850.c
+--- binutils-2.24-pure/gas/config/tc-v850.c	2013-11-04 07:33:37.000000000 -0800
++++ binutils-2.24/gas/config/tc-v850.c	2018-11-16 12:32:31.038086300 -0800
+@@ -1873,7 +1873,7 @@
+ md_section_align (asection *seg, valueT addr)
+ {
+   int align = bfd_get_section_alignment (stdoutput, seg);
+-  return ((addr + (1 << align) - 1) & (-1 << align));
++  return ((addr + (1 << align) - 1) & -(1 << align));
+ }
+ 
+ void
+@@ -2283,7 +2283,7 @@
+   const unsigned char *opindex_ptr;
+   int next_opindex;
+   int relaxable = 0;
+-  unsigned long insn;
++  unsigned long insn = 0;
+   unsigned long insn_size;
+   char *f = NULL;
+   int i;
+diff -Naur binutils-2.24-pure/gas/configure binutils-2.24/gas/configure
+--- binutils-2.24-pure/gas/configure	2013-11-04 07:33:37.000000000 -0800
++++ binutils-2.24/gas/configure	2018-11-16 12:10:36.908537800 -0800
+@@ -11616,7 +11616,7 @@
+ 
+ NO_WERROR=
+ if test "${ERROR_ON_WARNING}" = yes ; then
+-    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough"
+     NO_WERROR="-Wno-error"
+ fi
+ 
+diff -Naur binutils-2.24-pure/gas/read.c binutils-2.24/gas/read.c
+--- binutils-2.24-pure/gas/read.c	2013-11-08 02:13:48.000000000 -0800
++++ binutils-2.24/gas/read.c	2018-11-16 11:59:12.405534300 -0800
+@@ -5019,7 +5019,7 @@
+     {
+       /* Sign-extend VAL.  */
+       if (val & (1 << (loaded - 1)))
+-	val |= ~0 << loaded;
++	val |= ~0U << loaded;
+       if (orig)
+ 	*p = val & 0x7f;
+       p++;
+diff -Naur binutils-2.24-pure/gas/write.c binutils-2.24/gas/write.c
+--- binutils-2.24-pure/gas/write.c	2013-11-04 07:33:38.000000000 -0800
++++ binutils-2.24/gas/write.c	2018-11-16 12:01:23.305364200 -0800
+@@ -2292,7 +2292,7 @@
+   relax_addressT mask;
+   relax_addressT new_address;
+ 
+-  mask = ~((~0) << alignment);
++  mask = ~((relax_addressT) ~0 << alignment);
+   new_address = (address + mask) & (~mask);
+ #ifdef LINKER_RELAXING_SHRINKS_ONLY
+   if (linkrelax)
+diff -Naur binutils-2.24-pure/gold/configure binutils-2.24/gold/configure
+--- binutils-2.24-pure/gold/configure	2013-11-08 02:13:48.000000000 -0800
++++ binutils-2.24/gold/configure	2018-11-16 12:11:41.002450600 -0800
+@@ -6472,7 +6472,7 @@
+ 
+ 
+ save_CFLAGS="$CFLAGS"
+-CFLAGS="$CFLAGS -Werror -fpic -mtls-dialect=gnu2"
++CFLAGS="$CFLAGS -Werror -Wno-implicit-fallthrough -fpic -mtls-dialect=gnu2"
+ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+ 
+@@ -6669,7 +6669,7 @@
+ 
+ NO_WERROR=
+ if test "${ERROR_ON_WARNING}" = yes ; then
+-    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough"
+     NO_WERROR="-Wno-error"
+ fi
+ 
+@@ -7444,7 +7444,7 @@
+ fi
+ 
+ save_CXXFLAGS="$CXXFLAGS"
+-CXXFLAGS="$CXXFLAGS -Werror -gpubnames"
++CXXFLAGS="$CXXFLAGS -Werror -Wno-implicit-fallthrough -gpubnames"
+ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+ int i;
+diff -Naur binutils-2.24-pure/gold/configure.ac binutils-2.24/gold/configure.ac
+--- binutils-2.24-pure/gold/configure.ac	2013-11-08 02:13:48.000000000 -0800
++++ binutils-2.24/gold/configure.ac	2018-11-16 12:17:03.258786900 -0800
+@@ -395,7 +395,7 @@
+ dnl assuming here that there is no compiler that groks -mtls-dialect=gnu2
+ dnl but does not grok -Werror.)
+ save_CFLAGS="$CFLAGS"
+-CFLAGS="$CFLAGS -Werror -fpic -mtls-dialect=gnu2"
++CFLAGS="$CFLAGS -Werror -Wno-implicit-fallthrough -fpic -mtls-dialect=gnu2"
+ AC_COMPILE_IFELSE([
+ __thread int i;
+ void foo (void)
+@@ -603,7 +603,7 @@
+ dnl assuming here that there is no compiler that groks -gpubnames
+ dnl but does not grok -Werror.)
+ save_CXXFLAGS="$CXXFLAGS"
+-CXXFLAGS="$CXXFLAGS -Werror -gpubnames"
++CXXFLAGS="$CXXFLAGS -Werror -Wno-implicit-fallthrough -gpubnames"
+ AC_COMPILE_IFELSE([int i;], [have_pubnames=yes], [have_pubnames=no])
+ CXXFLAGS="$save_CXXFLAGS"
+ AM_CONDITIONAL(HAVE_PUBNAMES, test "$have_pubnames" = "yes")
+diff -Naur binutils-2.24-pure/gprof/configure binutils-2.24/gprof/configure
+--- binutils-2.24-pure/gprof/configure	2013-11-04 07:33:39.000000000 -0800
++++ binutils-2.24/gprof/configure	2018-11-16 12:18:17.838891400 -0800
+@@ -12045,7 +12045,7 @@
+ 
+ NO_WERROR=
+ if test "${ERROR_ON_WARNING}" = yes ; then
+-    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough"
+     NO_WERROR="-Wno-error"
+ fi
+ 
+diff -Naur binutils-2.24-pure/ld/configure binutils-2.24/ld/configure
+--- binutils-2.24-pure/ld/configure	2013-11-04 07:33:39.000000000 -0800
++++ binutils-2.24/ld/configure	2018-11-16 12:12:36.455348600 -0800
+@@ -4682,7 +4682,7 @@
+ 
+ NO_WERROR=
+ if test "${ERROR_ON_WARNING}" = yes ; then
+-    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough"
+     NO_WERROR="-Wno-error"
+ fi
+ 
+diff -Naur binutils-2.24-pure/ld/ldlang.h binutils-2.24/ld/ldlang.h
+--- binutils-2.24-pure/ld/ldlang.h	2013-11-04 07:33:39.000000000 -0800
++++ binutils-2.24/ld/ldlang.h	2018-11-16 13:14:17.035595500 -0800
+@@ -475,7 +475,6 @@
+ extern lang_statement_list_type lang_output_section_statement;
+ extern struct lang_input_statement_flags input_flags;
+ extern bfd_boolean lang_has_input_file;
+-extern etree_type *base;
+ extern lang_statement_list_type *stat_ptr;
+ extern bfd_boolean delete_output_file_on_failure;
+ 
+diff -Naur binutils-2.24-pure/ld/mri.c binutils-2.24/ld/mri.c
+--- binutils-2.24-pure/ld/mri.c	2013-11-04 07:33:39.000000000 -0800
++++ binutils-2.24/ld/mri.c	2018-11-16 13:13:14.845508400 -0800
+@@ -45,6 +45,8 @@
+ };
+ 
+ static unsigned int symbol_truncate = 10000;
++static etree_type *base; /* Relocation base - or null */
++
+ static struct section_name_struct *order;
+ static struct section_name_struct *only_load;
+ static struct section_name_struct *address;
+diff -Naur binutils-2.24-pure/libiberty/configure binutils-2.24/libiberty/configure
+--- binutils-2.24-pure/libiberty/configure	2013-11-08 02:13:49.000000000 -0800
++++ binutils-2.24/libiberty/configure	2018-11-16 12:46:18.542245000 -0800
+@@ -4025,7 +4025,7 @@
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_cv_prog_cc_pedantic_" >&5
+ $as_echo "$acx_cv_prog_cc_pedantic_" >&6; }
+ if test $acx_cv_prog_cc_pedantic_ = yes; then :
+-  ac_libiberty_warn_cflags="$ac_libiberty_warn_cflags${ac_libiberty_warn_cflags:+ }-pedantic "
++  ac_libiberty_warn_cflags="$ac_libiberty_warn_cflags${ac_libiberty_warn_cflags:+ }-pedantic -Wno-implicit-fallthrough "
+ fi
+ 
+ fi
+diff -Naur binutils-2.24-pure/libiberty/pex-win32.c binutils-2.24/libiberty/pex-win32.c
+--- binutils-2.24-pure/libiberty/pex-win32.c	2013-11-04 07:33:40.000000000 -0800
++++ binutils-2.24/libiberty/pex-win32.c	2018-11-16 12:54:28.636931300 -0800
+@@ -738,7 +738,7 @@
+   OSVERSIONINFO version_info;
+   STARTUPINFO si;
+   PROCESS_INFORMATION pi;
+-  int orig_out, orig_in, orig_err;
++  int orig_out, orig_in, orig_err = 0;
+   BOOL separate_stderr = !(flags & PEX_STDERR_TO_STDOUT);
+ 
+   /* Ensure we have inheritable descriptors to pass to the child.  */
+diff -Naur binutils-2.24-pure/libiberty/regex.c binutils-2.24/libiberty/regex.c
+--- binutils-2.24-pure/libiberty/regex.c	2013-11-04 07:33:40.000000000 -0800
++++ binutils-2.24/libiberty/regex.c	2018-11-16 13:00:48.960463900 -0800
+@@ -151,7 +151,7 @@
+ #    include <string.h>
+ #    ifndef bzero
+ #     ifndef _LIBC
+-#      define bzero(s, n)	(memset (s, '\0', n), (s))
++#      define bzero(s, n)	((void) memset (s, '\0', n))
+ #     else
+ #      define bzero(s, n)	__bzero (s, n)
+ #     endif
+diff -Naur binutils-2.24-pure/libiberty/strerror.c binutils-2.24/libiberty/strerror.c
+--- binutils-2.24-pure/libiberty/strerror.c	2013-11-04 07:33:40.000000000 -0800
++++ binutils-2.24/libiberty/strerror.c	2018-11-16 12:58:10.417241800 -0800
+@@ -469,8 +469,13 @@
+ 
+ #else
+ 
++
++#ifndef sys_nerr
+ extern int sys_nerr;
++#endif
++#ifndef sys_errlist
+ extern char *sys_errlist[];
++#endif
+ 
+ #endif
+ 
+diff -Naur binutils-2.24-pure/libiberty/waitpid.c binutils-2.24/libiberty/waitpid.c
+--- binutils-2.24-pure/libiberty/waitpid.c	2013-11-04 07:33:40.000000000 -0800
++++ binutils-2.24/libiberty/waitpid.c	2018-11-16 12:59:27.469349800 -0800
+@@ -23,6 +23,11 @@
+ #include <sys/wait.h>
+ #endif
+ 
++#ifdef __MINGW32__
++#include <process.h>
++#define wait(s)  _cwait(s,pid,_WAIT_CHILD)
++#endif
++
+ pid_t
+ waitpid (pid_t pid, int *stat_loc, int options ATTRIBUTE_UNUSED)
+ {
+diff -Naur binutils-2.24-pure/opcodes/configure binutils-2.24/opcodes/configure
+--- binutils-2.24-pure/opcodes/configure	2013-11-04 07:33:40.000000000 -0800
++++ binutils-2.24/opcodes/configure	2018-11-16 12:13:18.483223100 -0800
+@@ -11545,7 +11545,7 @@
+ 
+ NO_WERROR=
+ if test "${ERROR_ON_WARNING}" = yes ; then
+-    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough"
+     NO_WERROR="-Wno-error"
+ fi
+ 
+diff -Naur binutils-2.24-pure/opcodes/v850-dis.c binutils-2.24/opcodes/v850-dis.c
+--- binutils-2.24-pure/opcodes/v850-dis.c	2013-11-04 07:33:40.000000000 -0800
++++ binutils-2.24/opcodes/v850-dis.c	2018-11-16 12:28:44.034768300 -0800
+@@ -152,7 +152,7 @@
+ 	  if (operand->flags & V850E_IMMEDIATE16HI)
+ 	    value <<= 16;
+ 	  else if (value & 0x8000)
+-	    value |= (-1L << 16);
++	    value |= -(1L << 16);
+ 
+ 	  return value;
+ 	}

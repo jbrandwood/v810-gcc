@@ -1,9 +1,11 @@
-#!/bin/sh
+#! /bin/sh
 #
 # Build script for V810-GCC.
 #
 # Stage 7 of 8 - Configure the final version GCC now that NEWLIB exists.
 #
+
+OSNAME=`uname`
 
 TOPDIR=$(pwd)
 echo TOPDIR is $TOPDIR
@@ -32,51 +34,14 @@ TestEXE "autoconf";
 TestEXE "gperf";
 TestEXE "bison";
 
-## Test for files to unpack
-TestFile()
-{
-  if [ ! -f "$1" ]; then 
-    echo "Error: $1 not found";
-    exit 1;
-  fi
-}
-
-TestFile "archive/gcc-4.7.4.tar.bz2";
-
-TestFile "patch/gcc-4.7.4-gcc-5.0.patch";
-TestFile "patch/gcc-4.7.4-less-warnings.patch";
-TestFile "patch/gcc-4.7.4-no-iconv.patch";
-TestFile "patch/gcc-4.7.4-texi.patch";
-TestFile "patch/gcc-4.7.4-v810.patch";
-
 #---------------------------------------------------------------------------------
 # Prepare Source and Install directories
 #---------------------------------------------------------------------------------
 
-PrepareSource()
-{
-  if [ -e  gcc-4.7.4 ]; then
-    rm -rf gcc-4.7.4
-  fi
-
-  tar jxvf archive/gcc-4.7.4.tar.bz2
-  cd gcc-4.7.4
-
-  patch -p 1 -i ../patch/gcc-4.7.4-gcc-5.0.patch
-  patch -p 1 -i ../patch/gcc-4.7.4-less-warnings.patch
-  patch -p 1 -i ../patch/gcc-4.7.4-no-iconv.patch
-  patch -p 1 -i ../patch/gcc-4.7.4-texi.patch
-  patch -p 1 -i ../patch/gcc-4.7.4-v810.patch
-
-  cd ..
-}
-
-if [ -d gcc-4.7.4 ] ; then
-  if [ "${1}" = "clean" ] ; then
-    PrepareSource
-  fi
-else
-  PrepareSource
+if [ ! -d gcc-4.7.4 ] ; then
+  echo
+  echo "$0 failed, the patched gcc-4.7.4 directory is missing!"
+  exit 1
 fi
 
 if [ -d build/gcc ] ; then
@@ -91,9 +56,14 @@ fi
 
 TARGET=v810
 
-export CFLAGS='-O2 -pipe'
-export CXXFLAGS='-O2 -pipe'
-export LDFLAGS='-Wl,-Bstatic'
+export CFLAGS='-O2'
+export CXXFLAGS='-O2'
+
+if [ "$OSNAME" = "Linux" ] ; then
+  export LDFLAGS=
+else
+  export LDFLAGS='-Wl,-Bstatic'
+fi
 
 #---------------------------------------------------------------------------------
 # Build full GCC now that we've got newlib
@@ -129,20 +99,17 @@ $SRCDIR/configure                              \
   --prefix=$DSTDIR                             \
   --with-local-prefix=$DESTDIR                 \
   --with-native-system-header=$DESTDIR/include \
+  --disable-shared                             \
+  --enable-static                              \
   --disable-pedantic                           \
   --disable-nls                                \
-  --disable-shared                             \
   --disable-multilib                           \
   --disable-decimal-float                      \
-  --disable-libatomic                          \
-  --disable-libcilkrts                         \
   --disable-libgomp                            \
   --disable-libitm                             \
-  --disable-libsanitizer                       \
   --disable-libssp                             \
   --disable-libstdc++-v3                       \
   --disable-libquadmath                        \
-  --disable-libvtv                             \
   --disable-lto                                \
   --enable-frame-pointer                       \
   --enable-languages=c,c++                     \
