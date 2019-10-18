@@ -46,7 +46,7 @@ TestFile()
 TestFile "archive/binutils-2.24.tar.bz2";
 
 TestFile "patch/binutils-2.24-gcc-4.9.patch";
-TestFile "patch/binutils-2.24-gcc-7.3.patch";
+TestFile "patch/binutils-2.24-gcc-8.0.patch";
 TestFile "patch/binutils-2.24-v810.patch";
 
 #---------------------------------------------------------------------------------
@@ -67,7 +67,7 @@ PrepareSource()
   cd binutils-2.24
 
   patch -p 1 -i ../patch/binutils-2.24-gcc-4.9.patch
-  patch -p 1 -i ../patch/binutils-2.24-gcc-7.3.patch
+  patch -p 1 -i ../patch/binutils-2.24-gcc-8.0.patch
   patch -p 1 -i ../patch/binutils-2.24-v810.patch
 
   cd ..

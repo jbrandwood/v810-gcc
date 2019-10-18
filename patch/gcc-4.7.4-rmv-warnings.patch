@@ -18,7 +18,7 @@ diff -Naur gcc-4.7.4-pure/gcc/configure gcc-4.7.4/gcc/configure
  loose_warn=
  save_CFLAGS="$CFLAGS"
 -for real_option in -W -Wall -Wno-narrowing -Wwrite-strings -Wcast-qual; do
-+for real_option in -W -Wall -Wno-implicit-fallthrough -Wno-expansion-to-defined -Wno-narrowing -Wwrite-strings -Wcast-qual; do
++for real_option in -W -Wall -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation -Wno-expansion-to-defined -Wno-narrowing -Wwrite-strings -Wcast-qual; do
    # Do the check with the no- prefix removed since gcc silently
    # accepts any -Wno-* option on purpose
    case $real_option in
@@ -39,7 +39,7 @@ diff -Naur gcc-4.7.4-pure/gcc/configure.ac gcc-4.7.4/gcc/configure.ac
  
  ACX_PROG_CC_WARNING_OPTS(
 -	m4_quote(m4_do([-W -Wall -Wno-narrowing -Wwrite-strings -Wcast-qual])), [loose_warn])
-+	m4_quote(m4_do([-W -Wall -Wno-implicit-fallthrough -Wno-expansion-to-defined -Wno-narrowing -Wwrite-strings -Wcast-qual])), [loose_warn])
++	m4_quote(m4_do([-W -Wall -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation -Wno-expansion-to-defined -Wno-narrowing -Wwrite-strings -Wcast-qual])), [loose_warn])
  ACX_PROG_CC_WARNING_OPTS(
  	m4_quote(m4_do([-Wstrict-prototypes -Wmissing-prototypes])),
  	[c_loose_warn])
@@ -87,7 +87,7 @@ diff -Naur gcc-4.7.4-pure/libcpp/configure gcc-4.7.4/libcpp/configure
  warn=
  save_CFLAGS="$CFLAGS"
 -for real_option in -W -Wall -Wno-narrowing -Wwrite-strings \
-+for real_option in -W -Wall -Wno-implicit-fallthrough -Wno-expansion-to-defined -Wno-narrowing -Wwrite-strings \
++for real_option in -W -Wall -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation -Wno-expansion-to-defined -Wno-narrowing -Wwrite-strings \
  			  -Wmissing-format-attribute; do
    # Do the check with the no- prefix removed since gcc silently
    # accepts any -Wno-* option on purpose
@@ -108,7 +108,7 @@ diff -Naur gcc-4.7.4-pure/libcpp/configure.ac gcc-4.7.4/libcpp/configure.ac
  # See config/warnings.m4 for details.
  
 -ACX_PROG_CC_WARNING_OPTS([-W -Wall -Wno-narrowing -Wwrite-strings \
-+ACX_PROG_CC_WARNING_OPTS([-W -Wall -Wno-implicit-fallthrough -Wno-expansion-to-defined -Wno-narrowing -Wwrite-strings \
++ACX_PROG_CC_WARNING_OPTS([-W -Wall -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation -Wno-expansion-to-defined -Wno-narrowing -Wwrite-strings \
  			  -Wmissing-format-attribute], [warn])
  ACX_PROG_CC_WARNING_OPTS([-Wstrict-prototypes -Wmissing-prototypes \
  			  -Wold-style-definition -Wc++-compat], [c_warn])
@@ -120,7 +120,7 @@ diff -Naur gcc-4.7.4-pure/libdecnumber/configure gcc-4.7.4/libdecnumber/configur
  WARN_CFLAGS=
  save_CFLAGS="$CFLAGS"
 -for real_option in -W -Wall -Wwrite-strings -Wstrict-prototypes \
-+for real_option in -W -Wall -Wno-implicit-fallthrough -Wno-expansion-to-defined -Wwrite-strings -Wstrict-prototypes \
++for real_option in -W -Wall -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation -Wno-expansion-to-defined -Wwrite-strings -Wstrict-prototypes \
  			  -Wmissing-prototypes -Wold-style-definition \
  			  -Wmissing-format-attribute -Wcast-qual; do
    # Do the check with the no- prefix removed since gcc silently
@@ -141,7 +141,7 @@ diff -Naur gcc-4.7.4-pure/libdecnumber/configure.ac gcc-4.7.4/libdecnumber/confi
  # See config/warnings.m4 for details.
  
 -ACX_PROG_CC_WARNING_OPTS([-W -Wall -Wwrite-strings -Wstrict-prototypes \
-+ACX_PROG_CC_WARNING_OPTS([-W -Wall -Wno-implicit-fallthrough -Wno-expansion-to-defined -Wwrite-strings -Wstrict-prototypes \
++ACX_PROG_CC_WARNING_OPTS([-W -Wall -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation -Wno-expansion-to-defined -Wwrite-strings -Wstrict-prototypes \
  			  -Wmissing-prototypes -Wold-style-definition \
  			  -Wmissing-format-attribute -Wcast-qual])
  ACX_PROG_CC_WARNING_ALMOST_PEDANTIC([-Wno-long-long])
@@ -153,7 +153,7 @@ diff -Naur gcc-4.7.4-pure/libiberty/configure gcc-4.7.4/libiberty/configure
  ac_libiberty_warn_cflags=
  save_CFLAGS="$CFLAGS"
 -for real_option in -W -Wall -Wwrite-strings -Wc++-compat \
-+for real_option in -W -Wall -Wno-implicit-fallthrough -Wno-expansion-to-defined -Wwrite-strings -Wc++-compat \
++for real_option in -W -Wall -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation -Wno-expansion-to-defined -Wwrite-strings -Wc++-compat \
  			  -Wstrict-prototypes; do
    # Do the check with the no- prefix removed since gcc silently
    # accepts any -Wno-* option on purpose
@@ -174,7 +174,7 @@ diff -Naur gcc-4.7.4-pure/libiberty/configure.ac gcc-4.7.4/libiberty/configure.a
  AC_PROG_CPP_WERROR
  
 -ACX_PROG_CC_WARNING_OPTS([-W -Wall -Wwrite-strings -Wc++-compat \
-+ACX_PROG_CC_WARNING_OPTS([-W -Wall -Wno-implicit-fallthrough -Wno-expansion-to-defined -Wwrite-strings -Wc++-compat \
++ACX_PROG_CC_WARNING_OPTS([-W -Wall -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation -Wno-expansion-to-defined -Wwrite-strings -Wc++-compat \
  			  -Wstrict-prototypes], [ac_libiberty_warn_cflags])
  ACX_PROG_CC_WARNING_ALMOST_PEDANTIC([], [ac_libiberty_warn_cflags])
  
