@@ -114,7 +114,7 @@ cd archive
 if [ ! -e binutils-2.24.tar.bz2 ] ; then
   echo
   echo "Downloading binutils-2.24.tar.bz2 from ftp.gnu.org";
-  curl.exe -L -O -R https://ftp.gnu.org/gnu/binutils/binutils-2.24.tar.bz2
+  curl -L -O -R https://ftp.gnu.org/gnu/binutils/binutils-2.24.tar.bz2
 
   if [ $? != 0 ]; then
     echo "Error: Cannot download the required version of the binutils source";
@@ -127,7 +127,7 @@ fi
 if [ ! -e gcc-4.7.4.tar.bz2 ] ; then
   echo
   echo "Downloading gcc-4.7.4.tar.bz2 from ftp.gnu.org";
-  curl.exe -L -O -R https://ftp.gnu.org/gnu/gcc/gcc-4.7.4/gcc-4.7.4.tar.bz2
+  curl -L -O -R https://ftp.gnu.org/gnu/gcc/gcc-4.7.4/gcc-4.7.4.tar.bz2
 
   if [ $? != 0 ]; then
     echo "Error: Cannot download the required version of the gcc source";
@@ -140,7 +140,7 @@ fi
 if [ ! -e newlib-2.2.0-1.tar.gz ] ; then
   echo
   echo "Downloading newlib-2.2.0-1.tar.gz from sourceware.org";
-  curl.exe -L -O -R ftp://sourceware.org/pub/newlib/newlib-2.2.0-1.tar.gz
+  curl -L -O -R ftp://sourceware.org/pub/newlib/newlib-2.2.0-1.tar.gz
 
   if [ $? != 0 ]; then
     echo "Error: Cannot download the required version of the newlib source";
