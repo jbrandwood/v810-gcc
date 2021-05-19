@@ -6,7 +6,7 @@ diff -Naur binutils-2.24-pure/bfd/configure binutils-2.24/bfd/configure
  NO_WERROR=
  if test "${ERROR_ON_WARNING}" = yes ; then
 -    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
-+    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
      NO_WERROR="-Wno-error"
  fi
  
@@ -18,7 +18,7 @@ diff -Naur binutils-2.24-pure/bfd/warning.m4 binutils-2.24/bfd/warning.m4
  NO_WERROR=
  if test "${ERROR_ON_WARNING}" = yes ; then
 -    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
-+    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
      NO_WERROR="-Wno-error"
  fi
  		   
@@ -30,7 +30,7 @@ diff -Naur binutils-2.24-pure/binutils/configure binutils-2.24/binutils/configur
  NO_WERROR=
  if test "${ERROR_ON_WARNING}" = yes ; then
 -    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
-+    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
      NO_WERROR="-Wno-error"
  fi
  
@@ -141,7 +141,7 @@ diff -Naur binutils-2.24-pure/gas/configure binutils-2.24/gas/configure
  NO_WERROR=
  if test "${ERROR_ON_WARNING}" = yes ; then
 -    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
-+    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
      NO_WERROR="-Wno-error"
  fi
  
@@ -204,7 +204,7 @@ diff -Naur binutils-2.24-pure/gold/configure binutils-2.24/gold/configure
  NO_WERROR=
  if test "${ERROR_ON_WARNING}" = yes ; then
 -    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
-+    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
      NO_WERROR="-Wno-error"
  fi
  
@@ -246,7 +246,7 @@ diff -Naur binutils-2.24-pure/gprof/configure binutils-2.24/gprof/configure
  NO_WERROR=
  if test "${ERROR_ON_WARNING}" = yes ; then
 -    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
-+    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
      NO_WERROR="-Wno-error"
  fi
  
@@ -258,7 +258,7 @@ diff -Naur binutils-2.24-pure/ld/configure binutils-2.24/ld/configure
  NO_WERROR=
  if test "${ERROR_ON_WARNING}" = yes ; then
 -    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
-+    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
      NO_WERROR="-Wno-error"
  fi
  
@@ -361,7 +361,7 @@ diff -Naur binutils-2.24-pure/opcodes/configure binutils-2.24/opcodes/configure
  NO_WERROR=
  if test "${ERROR_ON_WARNING}" = yes ; then
 -    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
-+    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
      NO_WERROR="-Wno-error"
  fi
  
