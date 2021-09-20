@@ -1018,3 +1018,189 @@ diff -Naur gcc-4.7.4-pure/libiberty/waitpid.c gcc-4.7.4/libiberty/waitpid.c
  pid_t
  waitpid (pid_t pid, int *stat_loc, int options ATTRIBUTE_UNUSED)
  {
+diff -Naur gcc-4.7.4-pure/gcc/c-family/c-ada-spec.c gcc-4.7.4/gcc/c-family/c-ada-spec.c
+--- gcc-4.7.4-pure/gcc/c-family/c-ada-spec.c	2021-09-18 07:17:46.911753626 -0700
++++ gcc-4.7.4/gcc/c-family/c-ada-spec.c	2021-09-19 10:59:48.231438507 -0700
+@@ -77,7 +77,7 @@
+ 
+   if (macro->fun_like)
+     {
+-      param_len++;
++      (*param_len)++;
+       for (i = 0; i < macro->paramc; i++)
+ 	{
+ 	  cpp_hashnode *param = macro->params[i];
+diff -Naur gcc-4.7.4-pure/gcc/c-family/c-cppbuiltin.c gcc-4.7.4/gcc/c-family/c-cppbuiltin.c
+--- gcc-4.7.4-pure/gcc/c-family/c-cppbuiltin.c	2012-01-26 13:48:27.000000000 -0800
++++ gcc-4.7.4/gcc/c-family/c-cppbuiltin.c	2021-09-19 10:59:48.235438507 -0700
+@@ -1074,7 +1074,7 @@
+ 				  const char *fp_cast)
+ {
+   REAL_VALUE_TYPE real;
+-  char dec_str[64], buf1[256], buf2[256];
++  char dec_str[64], buf[256], buf1[128], buf2[64];
+ 
+   /* This is very expensive, so if possible expand them lazily.  */
+   if (lazy_hex_fp_value_count < 12
+@@ -1117,11 +1117,11 @@
+ 
+   /* Assemble the macro in the following fashion
+      macro = fp_cast [dec_str fp_suffix] */
+-  sprintf (buf1, "%s%s", dec_str, fp_suffix);
+-  sprintf (buf2, fp_cast, buf1);
+-  sprintf (buf1, "%s=%s", macro, buf2);
++  sprintf (buf2, "%s%s", dec_str, fp_suffix);
++  sprintf (buf1, fp_cast, buf2);
++  sprintf (buf, "%s=%s", macro, buf1);
+ 
+-  cpp_define (parse_in, buf1);
++  cpp_define (parse_in, buf);
+ }
+ 
+ /* Return a string constant for the suffix for a value of type TYPE
+diff -Naur gcc-4.7.4-pure/gcc/genmodes.c gcc-4.7.4/gcc/genmodes.c
+--- gcc-4.7.4-pure/gcc/genmodes.c	2011-12-10 12:42:55.000000000 -0800
++++ gcc-4.7.4/gcc/genmodes.c	2021-09-19 10:59:48.295438505 -0700
+@@ -427,7 +427,6 @@
+ {
+   struct mode_data *m;
+   struct mode_data *c;
+-  char buf[8];
+   enum mode_class cclass = complex_class (cl);
+ 
+   if (cclass == MODE_RANDOM)
+@@ -435,41 +434,40 @@
+ 
+   for (m = modes[cl]; m; m = m->next)
+     {
++      char *p, *buf;
++      size_t m_len;
++
+       /* Skip BImode.  FIXME: BImode probably shouldn't be MODE_INT.  */
+       if (m->precision == 1)
+ 	continue;
+ 
+-      if (strlen (m->name) >= sizeof buf)
+-	{
+-	  error ("%s:%d:mode name \"%s\" is too long",
+-		 m->file, m->line, m->name);
+-	  continue;
+-	}
++      m_len = strlen (m->name);
++      /* The leading "1 +" is in case we prepend a "C" below.  */
++      buf = (char *) xmalloc (1 + m_len + 1);
+ 
+       /* Float complex modes are named SCmode, etc.
+ 	 Int complex modes are named CSImode, etc.
+          This inconsistency should be eliminated.  */
++      p = 0;
+       if (cl == MODE_FLOAT)
+ 	{
+-	  char *p, *q = 0;
+-	  strncpy (buf, m->name, sizeof buf);
++	  memcpy (buf, m->name, m_len + 1);
+ 	  p = strchr (buf, 'F');
+-	  if (p == 0)
+-	    q = strchr (buf, 'D');
+-	  if (p == 0 && q == 0)
++	  if (p == 0 && strchr (buf, 'D') == 0)
+ 	    {
+ 	      error ("%s:%d: float mode \"%s\" has no 'F' or 'D'",
+ 		     m->file, m->line, m->name);
++	      free (buf);
+ 	      continue;
+ 	    }
+-
+-	  if (p != 0)
+-	    *p = 'C';
+-	  else
+-	    snprintf (buf, sizeof buf, "C%s", m->name);
+ 	}
++      if (p != 0)
++	*p = 'C';
+       else
+-	snprintf (buf, sizeof buf, "C%s", m->name);
++	{
++	  buf[0] = 'C';
++	  memcpy (buf + 1, m->name, m_len + 1);
++	}
+ 
+       c = new_mode (cclass, xstrdup (buf), file, line);
+       c->component = m;
+diff -Naur gcc-4.7.4-pure/gcc/sched-vis.c gcc-4.7.4/gcc/sched-vis.c
+--- gcc-4.7.4-pure/gcc/sched-vis.c	2011-11-03 13:49:36.000000000 -0700
++++ gcc-4.7.4/gcc/sched-vis.c	2021-09-19 13:43:37.279120905 -0700
+@@ -548,7 +548,7 @@
+ void
+ print_pattern (char *buf, const_rtx x, int verbose)
+ {
+-  char t1[BUF_LEN], t2[BUF_LEN], t3[BUF_LEN];
++  char t1[BUF_LEN], t2[BUF_LEN];
+ 
+   switch (GET_CODE (x))
+     {
+@@ -595,14 +595,18 @@
+       break;
+     case PARALLEL:
+       {
++	char *p;
+ 	int i;
+ 
+-	sprintf (t1, "{");
++	strcpy (t1, "{");
++	p = t1 + strlen (t1);
+ 	for (i = 0; i < XVECLEN (x, 0); i++)
+ 	  {
+ 	    print_pattern (t2, XVECEXP (x, 0, i), verbose);
+-	    sprintf (t3, "%s%s;", t1, t2);
+-	    strcpy (t1, t3);
++	    strncat (p, t2, (BUF_LEN - 1) - (p - t1));
++	    p += strlen (p);
++	    strncat (p, ";", (BUF_LEN - 1) - (p - t1));
++	    p += strlen (p);
+ 	  }
+ 	sprintf (buf, "%s}", t1);
+       }
+@@ -624,28 +628,36 @@
+       break;
+     case UNSPEC:
+       {
++	char *p;
+ 	int i;
+ 
+-	sprintf (t1, "unspec{");
++	strcpy (t1, "unspec{");
++	p = t1 + strlen (t1);
+ 	for (i = 0; i < XVECLEN (x, 0); i++)
+ 	  {
+ 	    print_pattern (t2, XVECEXP (x, 0, i), verbose);
+-	    sprintf (t3, "%s%s;", t1, t2);
+-	    strcpy (t1, t3);
++	    strncat (p, t2, (BUF_LEN - 1) - (p - t1));
++	    p += strlen (p);
++	    strncat (p, ";", (BUF_LEN - 1) - (p - t1));
++	    p += strlen (p);
+ 	  }
+ 	sprintf (buf, "%s}", t1);
+       }
+       break;
+     case UNSPEC_VOLATILE:
+       {
++	char *p;
+ 	int i;
+ 
+-	sprintf (t1, "unspec/v{");
++	strcpy (t1, "unspec/v{");
++	p = t1 + strlen (t1);
+ 	for (i = 0; i < XVECLEN (x, 0); i++)
+ 	  {
+ 	    print_pattern (t2, XVECEXP (x, 0, i), verbose);
+-	    sprintf (t3, "%s%s;", t1, t2);
+-	    strcpy (t1, t3);
++	    strncat (p, t2, (BUF_LEN - 1) - (p - t1));
++	    p += strlen (p);
++	    strncat (p, ";", (BUF_LEN - 1) - (p - t1));
++	    p += strlen (p);
+ 	  }
+ 	sprintf (buf, "%s}", t1);
+       }

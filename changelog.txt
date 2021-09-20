@@ -10,3 +10,7 @@
            problems.
            newlib now uses libgloss (as it is supposed to), rather than
            putting the board-support files into libc.
+
+2021-09-20 Fix building V810-GCC project with the current GCC v10 compiler.
+           This involved fixing or hiding the latest compilation warnings
+           that GCC10 complains about. There are no functional changes.
