@@ -1,0 +1,224 @@
+diff -Naur binutils-2.27-pure/bfd/doc/chew.c binutils-2.27/bfd/doc/chew.c
+--- binutils-2.27-pure/bfd/doc/chew.c	2016-08-03 03:36:50.000000000 -0400
++++ binutils-2.27/bfd/doc/chew.c	2022-02-10 13:45:41.327639100 -0500
+@@ -289,8 +289,10 @@
+ stinst_type *pc;
+ stinst_type sstack[STACK];
+ stinst_type *ssp = &sstack[0];
+-long istack[STACK];
+-long *isp = &istack[0];
++//long istack[STACK];
++//long *isp = &istack[0];
++intptr_t istack[STACK];
++intptr_t *isp = &istack[0];
+ 
+ typedef int *word_type;
+ 
+@@ -411,7 +413,7 @@
+   isp++;
+   icheck_range ();
+   pc++;
+-  *isp = (long) (*pc);
++  *isp = (intptr_t) (*pc);
+   pc++;
+ }
+ 
+@@ -1375,7 +1377,7 @@
+ 		  /* Got a number, embedd the magic push number
+ 		     function */
+ 		  add_to_definition (ptr, push_number);
+-		  add_to_definition (ptr, (stinst_type) atol (word));
++		  add_to_definition (ptr, (stinst_type) (intptr_t) atol (word));
+ 		  break;
+ 		default:
+ 		  add_to_definition (ptr, call);
+@@ -1397,7 +1399,7 @@
+ static void
+ bang ()
+ {
+-  *(long *) ((isp[0])) = isp[-1];
++  *(intptr_t *) ((isp[0])) = isp[-1];
+   isp -= 2;
+   icheck_range ();
+   pc++;
+@@ -1406,7 +1408,7 @@
+ static void
+ atsign ()
+ {
+-  isp[0] = *(long *) (isp[0]);
++  isp[0] = *(intptr_t *) (isp[0]);
+   pc++;
+ }
+ 
+diff -Naur binutils-2.27-pure/binutils/prdbg.c binutils-2.27/binutils/prdbg.c
+--- binutils-2.27-pure/binutils/prdbg.c	2016-08-03 03:36:51.000000000 -0400
++++ binutils-2.27/binutils/prdbg.c	2022-02-10 13:45:41.348640300 -0500
+@@ -672,7 +672,7 @@
+ 
+ 	  if (values[i] != val)
+ 	    {
+-	      char ab[20];
++	      char ab[22];
+ 
+ 	      print_vma (values[i], ab, FALSE, FALSE);
+ 	      if (! append_type (info, " = ")
+@@ -802,7 +802,7 @@
+ pr_range_type (void *p, bfd_signed_vma lower, bfd_signed_vma upper)
+ {
+   struct pr_handle *info = (struct pr_handle *) p;
+-  char abl[20], abu[20];
++  char abl[22], abu[22];
+ 
+   assert (info->stack != NULL);
+ 
+@@ -827,7 +827,7 @@
+ {
+   struct pr_handle *info = (struct pr_handle *) p;
+   char *range_type;
+-  char abl[20], abu[20], ab[50];
++  char abl[22], abu[22], ab[50];
+ 
+   range_type = pop_type (info);
+   if (range_type == NULL)
+@@ -1151,7 +1151,7 @@
+ 		 enum debug_visibility visibility)
+ {
+   struct pr_handle *info = (struct pr_handle *) p;
+-  char ab[20];
++  char ab[22];
+   char *t;
+ 
+   if (! substitute_type (info, name))
+@@ -1335,7 +1335,7 @@
+   struct pr_handle *info = (struct pr_handle *) p;
+   char *t;
+   const char *prefix;
+-  char ab[20];
++  char ab[22];
+   char *s, *l, *n;
+ 
+   assert (info->stack != NULL && info->stack->next != NULL);
+@@ -1495,7 +1495,7 @@
+     return FALSE;
+   if (context || voffset != 0)
+     {
+-      char ab[20];
++      char ab[22];
+ 
+       if (context)
+ 	{
+@@ -1698,7 +1698,7 @@
+ pr_int_constant (void *p, const char *name, bfd_vma val)
+ {
+   struct pr_handle *info = (struct pr_handle *) p;
+-  char ab[20];
++  char ab[22];
+ 
+   indent (info);
+   print_vma (val, ab, FALSE, FALSE);
+@@ -1725,7 +1725,7 @@
+ {
+   struct pr_handle *info = (struct pr_handle *) p;
+   char *t;
+-  char ab[20];
++  char ab[22];
+ 
+   t = pop_type (info);
+   if (t == NULL)
+@@ -1748,7 +1748,7 @@
+ {
+   struct pr_handle *info = (struct pr_handle *) p;
+   char *t;
+-  char ab[20];
++  char ab[22];
+ 
+   if (! substitute_type (info, name))
+     return FALSE;
+@@ -1811,7 +1811,7 @@
+ {
+   struct pr_handle *info = (struct pr_handle *) p;
+   char *t;
+-  char ab[20];
++  char ab[22];
+ 
+   if (kind == DEBUG_PARM_REFERENCE
+       || kind == DEBUG_PARM_REF_REG)
+@@ -1849,7 +1849,7 @@
+ pr_start_block (void *p, bfd_vma addr)
+ {
+   struct pr_handle *info = (struct pr_handle *) p;
+-  char ab[20];
++  char ab[22];
+ 
+   if (info->parameter > 0)
+     {
+@@ -1872,7 +1872,7 @@
+ pr_lineno (void *p, const char *filename, unsigned long lineno, bfd_vma addr)
+ {
+   struct pr_handle *info = (struct pr_handle *) p;
+-  char ab[20];
++  char ab[22];
+ 
+   indent (info);
+   print_vma (addr, ab, TRUE, TRUE);
+@@ -1887,7 +1887,7 @@
+ pr_end_block (void *p, bfd_vma addr)
+ {
+   struct pr_handle *info = (struct pr_handle *) p;
+-  char ab[20];
++  char ab[22];
+ 
+   info->indent -= 2;
+ 
+@@ -1993,7 +1993,7 @@
+   struct pr_handle *info = (struct pr_handle *) p;
+   unsigned int i;
+   const char *name;
+-  char ab[20];
++  char ab[22];
+ 
+   if (! pr_enum_type (p, tag, names, values))
+     return FALSE;
+diff -Naur binutils-2.27-pure/binutils/wrstabs.c binutils-2.27/binutils/wrstabs.c
+--- binutils-2.27-pure/binutils/wrstabs.c	2016-08-03 03:36:51.000000000 -0400
++++ binutils-2.27/binutils/wrstabs.c	2022-02-10 13:45:41.364641200 -0500
+@@ -1443,15 +1443,10 @@
+ stab_start_class_type (void *p, const char *tag, unsigned int id, bfd_boolean structp, unsigned int size, bfd_boolean vptr, bfd_boolean ownvptr)
+ {
+   struct stab_write_handle *info = (struct stab_write_handle *) p;
+-  bfd_boolean definition;
+-  char *vstring;
++  bfd_boolean definition = FALSE;
++  char *vstring = NULL;
+ 
+-  if (! vptr || ownvptr)
+-    {
+-      definition = FALSE;
+-      vstring = NULL;
+-    }
+-  else
++  if (vptr && !ownvptr)
+     {
+       definition = info->type_stack->definition;
+       vstring = stab_pop_type (info);
+@@ -1472,17 +1467,16 @@
+ 	}
+       else
+ 	{
++	  assert (vstring);
+ 	  vtable = (char *) xmalloc (strlen (vstring) + 3);
+ 	  sprintf (vtable, "~%%%s", vstring);
+ 	  free (vstring);
++	  if (definition)
++	    info->type_stack->definition = TRUE;
+ 	}
+-
+       info->type_stack->vtable = vtable;
+     }
+ 
+-  if (definition)
+-    info->type_stack->definition = TRUE;
+-
+   return TRUE;
+ }
+ 

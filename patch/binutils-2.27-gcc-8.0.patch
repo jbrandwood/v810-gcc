@@ -1,0 +1,270 @@
+diff -Naur binutils-2.27-pure/bfd/configure binutils-2.27/bfd/configure
+--- binutils-2.27-pure/bfd/configure	2016-08-03 04:33:36.000000000 -0400
++++ binutils-2.27/bfd/configure	2022-02-10 13:39:12.630277900 -0500
+@@ -12313,7 +12313,7 @@
+ 
+ NO_WERROR=
+ if test "${ERROR_ON_WARNING}" = yes ; then
+-    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
+     NO_WERROR="-Wno-error"
+ fi
+ 
+diff -Naur binutils-2.27-pure/bfd/warning.m4 binutils-2.27/bfd/warning.m4
+--- binutils-2.27-pure/bfd/warning.m4	2016-08-03 03:36:51.000000000 -0400
++++ binutils-2.27/bfd/warning.m4	2022-02-10 13:39:12.637778000 -0500
+@@ -59,7 +59,7 @@
+ 
+ NO_WERROR=
+ if test "${ERROR_ON_WARNING}" = yes ; then
+-    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
+     NO_WERROR="-Wno-error"
+ fi
+ 
+diff -Naur binutils-2.27-pure/binutils/configure binutils-2.27/binutils/configure
+--- binutils-2.27-pure/binutils/configure	2016-08-03 04:33:38.000000000 -0400
++++ binutils-2.27/binutils/configure	2022-02-10 13:39:12.682778700 -0500
+@@ -12018,7 +12018,7 @@
+ 
+ NO_WERROR=
+ if test "${ERROR_ON_WARNING}" = yes ; then
+-    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
+     NO_WERROR="-Wno-error"
+ fi
+ 
+diff -Naur binutils-2.27-pure/binutils/stabs.c binutils-2.27/binutils/stabs.c
+--- binutils-2.27-pure/binutils/stabs.c	2016-08-03 03:36:51.000000000 -0400
++++ binutils-2.27/binutils/stabs.c	2022-02-10 13:39:12.692778900 -0500
+@@ -2702,7 +2702,7 @@
+ 	      ++*pp;
+ 	      voffset &= 0x7fffffff;
+ 
+-	      if (**pp == ';' || *pp == '\0')
++	      if (**pp == ';' || **pp == '\0')
+ 		{
+ 		  /* Must be g++ version 1.  */
+ 		  context = DEBUG_TYPE_NULL;
+diff -Naur binutils-2.27-pure/config/tls.m4 binutils-2.27/config/tls.m4
+--- binutils-2.27-pure/config/tls.m4	2013-11-04 10:33:37.000000000 -0500
++++ binutils-2.27/config/tls.m4	2022-02-10 13:39:12.697778900 -0500
+@@ -116,7 +116,7 @@
+   		 gcc_cv_use_emutls, [
+     gcc_cv_use_emutls=no
+     echo '__thread int a; int b; int main() { return a = b; }' > conftest.c
+-    if AC_TRY_COMMAND(${CC-cc} -Werror -S -o conftest.s conftest.c 1>&AS_MESSAGE_LOG_FD); then
++    if AC_TRY_COMMAND(${CC-cc} -Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation -S -o conftest.s conftest.c 1>&AS_MESSAGE_LOG_FD); then
+       if grep __emutls_get_address conftest.s > /dev/null; then
+ 	gcc_cv_use_emutls=yes
+       fi
+diff -Naur binutils-2.27-pure/config/warnings.m4 binutils-2.27/config/warnings.m4
+--- binutils-2.27-pure/config/warnings.m4	2015-11-13 03:27:41.000000000 -0500
++++ binutils-2.27/config/warnings.m4	2022-02-10 13:39:12.705279100 -0500
+@@ -75,7 +75,7 @@
+    [AS_VAR_SET(acx_Pedantic, no)])
+ CFLAGS="$save_CFLAGS"])
+ AS_IF([test AS_VAR_GET(acx_Pedantic) = yes],
+-      [acx_Var="$acx_Var${acx_Var:+ }-pedantic $1"])
++      [acx_Var="$acx_Var${acx_Var:+ }-pedantic -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation $1"])
+ ])
+ AS_VAR_POPDEF([acx_Pedantic])dnl
+ m4_popdef([acx_Woptions])dnl
+@@ -102,7 +102,7 @@
+ 		   [enable -Werror despite compiler version]),
+ [], [enable_werror_always=no])
+ AS_IF([test $enable_werror_always = yes],
+-      [acx_Var="$acx_Var${acx_Var:+ }-Werror"])
++      [acx_Var="$acx_Var${acx_Var:+ }-Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"])
+  m4_if($1, [manual],,
+  [AS_VAR_PUSHDEF([acx_GCCvers], [acx_cv_prog_cc_gcc_$1_or_newer])dnl
+   AC_CACHE_CHECK([whether $CC is GCC >=$1], acx_GCCvers,
+@@ -116,7 +116,7 @@
+    [AS_VAR_SET(acx_GCCvers, yes)],
+    [AS_VAR_SET(acx_GCCvers, no)])])
+  AS_IF([test AS_VAR_GET(acx_GCCvers) = yes],
+-       [acx_Var="$acx_Var${acx_Var:+ }-Werror"])
++       [acx_Var="$acx_Var${acx_Var:+ }-Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"])
+   AS_VAR_POPDEF([acx_GCCvers])])
+ m4_popdef([acx_Var])dnl
+ AC_LANG_POP(C)
+diff -Naur binutils-2.27-pure/config/weakref.m4 binutils-2.27/config/weakref.m4
+--- binutils-2.27-pure/config/weakref.m4	2013-11-04 10:33:37.000000000 -0500
++++ binutils-2.27/config/weakref.m4	2022-02-10 13:39:12.707779100 -0500
+@@ -4,7 +4,7 @@
+   AC_CACHE_CHECK([whether the target supports weak],
+ 		 ac_cv_have_attribute_weak, [
+   weakref_m4_saved_CFLAGS="$CFLAGS"
+-  CFLAGS="$CFLAGS -Werror"
++  CFLAGS="$CFLAGS -Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
+   AC_TRY_COMPILE([void __attribute__((weak)) foo(void) { }],
+ 		 [], ac_cv_have_attribute_weak=yes,
+ 		 ac_cv_have_attribute_weak=no)
+diff -Naur binutils-2.27-pure/gas/config/tc-v850.c binutils-2.27/gas/config/tc-v850.c
+--- binutils-2.27-pure/gas/config/tc-v850.c	2016-08-03 03:36:51.000000000 -0400
++++ binutils-2.27/gas/config/tc-v850.c	2022-02-10 13:39:12.717779200 -0500
+@@ -2298,7 +2298,7 @@
+   const unsigned char *opindex_ptr;
+   int next_opindex;
+   int relaxable = 0;
+-  unsigned long insn;
++  unsigned long insn = 0;
+   unsigned long insn_size;
+   char *f = NULL;
+   int i;
+diff -Naur binutils-2.27-pure/gas/configure binutils-2.27/gas/configure
+--- binutils-2.27-pure/gas/configure	2016-08-03 04:33:37.000000000 -0400
++++ binutils-2.27/gas/configure	2022-02-10 13:39:12.760279900 -0500
+@@ -11794,7 +11794,7 @@
+ 
+ NO_WERROR=
+ if test "${ERROR_ON_WARNING}" = yes ; then
+-    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
+     NO_WERROR="-Wno-error"
+ fi
+ 
+diff -Naur binutils-2.27-pure/gas/stabs.c binutils-2.27/gas/stabs.c
+--- binutils-2.27-pure/gas/stabs.c	2016-08-03 03:36:51.000000000 -0400
++++ binutils-2.27/gas/stabs.c	2022-02-10 13:39:12.770280100 -0500
+@@ -540,12 +540,12 @@
+   while (tmp < file_endp)
+     {
+       const char *bslash = strchr (tmp, '\\');
+-      size_t len = (bslash) ? (size_t) (bslash - tmp + 1) : strlen (tmp);
++      size_t len = (bslash != NULL) ? bslash - tmp + 1 : file_endp - tmp;
+ 
+       /* Double all backslashes, since demand_copy_C_string (used by
+ 	 s_stab to extract the part in quotes) will try to replace them as
+ 	 escape sequences.  backslash may appear in a filespec.  */
+-      strncpy (bufp, tmp, len);
++      memcpy (bufp, tmp, len);
+ 
+       tmp += len;
+       bufp += len;
+diff -Naur binutils-2.27-pure/gold/configure binutils-2.27/gold/configure
+--- binutils-2.27-pure/gold/configure	2016-08-03 03:36:53.000000000 -0400
++++ binutils-2.27/gold/configure	2022-02-10 13:39:12.795280400 -0500
+@@ -6564,7 +6564,7 @@
+ 
+ 
+ save_CFLAGS="$CFLAGS"
+-CFLAGS="$CFLAGS -Werror -fpic -mtls-dialect=gnu2"
++CFLAGS="$CFLAGS -Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation -fpic -mtls-dialect=gnu2"
+ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+ 
+@@ -6796,7 +6796,7 @@
+ 
+ NO_WERROR=
+ if test "${ERROR_ON_WARNING}" = yes ; then
+-    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
+     NO_WERROR="-Wno-error"
+ fi
+ 
+@@ -7045,7 +7045,7 @@
+ 
+ 
+ save_CFLAGS="$CFLAGS"
+-CFLAGS="$CFLAGS -Werror -gpubnames"
++CFLAGS="$CFLAGS -Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation -gpubnames"
+ cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+ /* end confdefs.h.  */
+ int i;
+diff -Naur binutils-2.27-pure/gold/configure.ac binutils-2.27/gold/configure.ac
+--- binutils-2.27-pure/gold/configure.ac	2016-08-03 03:36:53.000000000 -0400
++++ binutils-2.27/gold/configure.ac	2022-02-10 13:39:12.805280600 -0500
+@@ -431,7 +431,7 @@
+ dnl assuming here that there is no compiler that groks -mtls-dialect=gnu2
+ dnl but does not grok -Werror.)
+ save_CFLAGS="$CFLAGS"
+-CFLAGS="$CFLAGS -Werror -fpic -mtls-dialect=gnu2"
++CFLAGS="$CFLAGS -Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation -fpic -mtls-dialect=gnu2"
+ AC_COMPILE_IFELSE([
+ __thread int i;
+ void foo (void)
+@@ -563,7 +563,7 @@
+ dnl assuming here that there is no compiler that groks -gpubnames
+ dnl but does not grok -Werror.)
+ save_CFLAGS="$CFLAGS"
+-CFLAGS="$CFLAGS -Werror -gpubnames"
++CFLAGS="$CFLAGS -Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation -gpubnames"
+ AC_COMPILE_IFELSE([int i;], [have_pubnames=yes], [have_pubnames=no])
+ CFLAGS="$save_CFLAGS"
+ AM_CONDITIONAL(HAVE_PUBNAMES, test "$have_pubnames" = "yes")
+diff -Naur binutils-2.27-pure/gprof/configure binutils-2.27/gprof/configure
+--- binutils-2.27-pure/gprof/configure	2016-08-03 04:33:41.000000000 -0400
++++ binutils-2.27/gprof/configure	2022-02-10 13:39:12.845281200 -0500
+@@ -12174,7 +12174,7 @@
+ 
+ NO_WERROR=
+ if test "${ERROR_ON_WARNING}" = yes ; then
+-    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
+     NO_WERROR="-Wno-error"
+ fi
+ 
+diff -Naur binutils-2.27-pure/ld/configure binutils-2.27/ld/configure
+--- binutils-2.27-pure/ld/configure	2016-08-03 04:33:40.000000000 -0400
++++ binutils-2.27/ld/configure	2022-02-10 13:39:12.905282100 -0500
+@@ -15631,7 +15631,7 @@
+ 
+ NO_WERROR=
+ if test "${ERROR_ON_WARNING}" = yes ; then
+-    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
+     NO_WERROR="-Wno-error"
+ fi
+ 
+diff -Naur binutils-2.27-pure/libiberty/configure binutils-2.27/libiberty/configure
+--- binutils-2.27-pure/libiberty/configure	2016-08-03 03:55:18.000000000 -0400
++++ binutils-2.27/libiberty/configure	2022-02-10 13:39:12.932782500 -0500
+@@ -4485,7 +4485,7 @@
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_cv_prog_cc_pedantic_" >&5
+ $as_echo "$acx_cv_prog_cc_pedantic_" >&6; }
+ if test $acx_cv_prog_cc_pedantic_ = yes; then :
+-  ac_libiberty_warn_cflags="$ac_libiberty_warn_cflags${ac_libiberty_warn_cflags:+ }-pedantic "
++  ac_libiberty_warn_cflags="$ac_libiberty_warn_cflags${ac_libiberty_warn_cflags:+ }-pedantic -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation "
+ fi
+ 
+ fi
+diff -Naur binutils-2.27-pure/libiberty/pex-win32.c binutils-2.27/libiberty/pex-win32.c
+--- binutils-2.27-pure/libiberty/pex-win32.c	2014-10-14 03:32:04.000000000 -0400
++++ binutils-2.27/libiberty/pex-win32.c	2022-02-10 13:39:12.942782700 -0500
+@@ -768,7 +768,7 @@
+   OSVERSIONINFO version_info;
+   STARTUPINFO si;
+   PROCESS_INFORMATION pi;
+-  int orig_out, orig_in, orig_err;
++  int orig_out, orig_in, orig_err = 0;
+   BOOL separate_stderr = !(flags & PEX_STDERR_TO_STDOUT);
+ 
+   /* Ensure we have inheritable descriptors to pass to the child.  */
+diff -Naur binutils-2.27-pure/libiberty/waitpid.c binutils-2.27/libiberty/waitpid.c
+--- binutils-2.27-pure/libiberty/waitpid.c	2013-11-04 10:33:40.000000000 -0500
++++ binutils-2.27/libiberty/waitpid.c	2022-02-10 13:39:12.945282700 -0500
+@@ -23,6 +23,11 @@
+ #include <sys/wait.h>
+ #endif
+ 
++#ifdef __MINGW32__
++#include <process.h>
++#define wait(s)  _cwait(s,pid,_WAIT_CHILD)
++#endif
++
+ pid_t
+ waitpid (pid_t pid, int *stat_loc, int options ATTRIBUTE_UNUSED)
+ {
+diff -Naur binutils-2.27-pure/opcodes/configure binutils-2.27/opcodes/configure
+--- binutils-2.27-pure/opcodes/configure	2016-08-03 04:33:39.000000000 -0400
++++ binutils-2.27/opcodes/configure	2022-02-10 13:39:12.985283400 -0500
+@@ -11581,7 +11581,7 @@
+ 
+ NO_WERROR=
+ if test "${ERROR_ON_WARNING}" = yes ; then
+-    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror"
++    GCC_WARN_CFLAGS="$GCC_WARN_CFLAGS -Werror -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation"
+     NO_WERROR="-Wno-error"
+ fi
+ 
