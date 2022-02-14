@@ -1,0 +1,199 @@
+diff -Naur gcc-4.9.4-pure/config/warnings.m4 gcc-4.9.4/config/warnings.m4
+--- gcc-4.9.4-pure/config/warnings.m4	2011-12-20 11:54:12.000000000 -0500
++++ gcc-4.9.4/config/warnings.m4	2022-02-13 20:18:45.306046700 -0500
+@@ -72,7 +72,7 @@
+    [AS_VAR_SET(acx_Pedantic, no)])
+ CFLAGS="$save_CFLAGS"])
+ AS_IF([test AS_VAR_GET(acx_Pedantic) = yes],
+-      [acx_Var="$acx_Var${acx_Var:+ }-pedantic $1"])
++      [acx_Var="$acx_Var${acx_Var:+ }-Wno-pedantic $1"])
+ ])
+ AS_VAR_POPDEF([acx_Pedantic])dnl
+ m4_popdef([acx_Woptions])dnl
+diff -Naur gcc-4.9.4-pure/gcc/configure gcc-4.9.4/gcc/configure
+--- gcc-4.9.4-pure/gcc/configure	2022-02-13 19:41:22.970155000 -0500
++++ gcc-4.9.4/gcc/configure	2022-02-13 20:18:45.383547900 -0500
+@@ -6312,7 +6312,7 @@
+ fi
+ loose_warn=
+ save_CFLAGS="$CFLAGS"
+-for real_option in -W -Wall -Wno-narrowing -Wwrite-strings -Wcast-qual $wf_opt; do
++for real_option in -W -Wall -Wno-format -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation -Wno-expansion-to-defined -Wno-narrowing -Wwrite-strings -Wcast-qual $wf_opt; do
+   # Do the check with the no- prefix removed since gcc silently
+   # accepts any -Wno-* option on purpose
+   case $real_option in
+@@ -6402,7 +6402,7 @@
+ 
+ strict_warn=
+ save_CFLAGS="$CFLAGS"
+-for real_option in -Wmissing-format-attribute; do
++for real_option in -Wno-missing-format-attribute; do
+   # Do the check with the no- prefix removed since gcc silently
+   # accepts any -Wno-* option on purpose
+   case $real_option in
+@@ -6522,7 +6522,7 @@
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_cv_prog_cc_pedantic__Wlong_long__Wvariadic_macros__Woverlength_strings" >&5
+ $as_echo "$acx_cv_prog_cc_pedantic__Wlong_long__Wvariadic_macros__Woverlength_strings" >&6; }
+ if test $acx_cv_prog_cc_pedantic__Wlong_long__Wvariadic_macros__Woverlength_strings = yes; then :
+-  strict_warn="$strict_warn${strict_warn:+ }-pedantic -Wno-long-long -Wno-variadic-macros -Wno-overlength-strings"
++  strict_warn="$strict_warn${strict_warn:+ }-Wno-pedantic -Wno-long-long -Wno-variadic-macros -Wno-overlength-strings"
+ fi
+ 
+ fi
+diff -Naur gcc-4.9.4-pure/gcc/configure.ac gcc-4.9.4/gcc/configure.ac
+--- gcc-4.9.4-pure/gcc/configure.ac	2016-05-22 04:53:32.000000000 -0400
++++ gcc-4.9.4/gcc/configure.ac	2022-02-13 20:18:45.398548200 -0500
+@@ -333,12 +333,12 @@
+ AS_IF([test $enable_build_format_warnings = no],
+       [wf_opt=-Wno-format],[wf_opt=])
+ ACX_PROG_CC_WARNING_OPTS(
+-	m4_quote(m4_do([-W -Wall -Wno-narrowing -Wwrite-strings -Wcast-qual $wf_opt])), [loose_warn])
++	m4_quote(m4_do([-W -Wall -Wno-format -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation -Wno-expansion-to-defined -Wno-narrowing -Wwrite-strings -Wcast-qual $wf_opt])), [loose_warn])
+ ACX_PROG_CC_WARNING_OPTS(
+ 	m4_quote(m4_do([-Wstrict-prototypes -Wmissing-prototypes])),
+ 	[c_loose_warn])
+ ACX_PROG_CC_WARNING_OPTS(
+-	m4_quote(m4_do([-Wmissing-format-attribute])), [strict_warn])
++	m4_quote(m4_do([-Wno-missing-format-attribute])), [strict_warn])
+ ACX_PROG_CC_WARNING_OPTS(
+ 	m4_quote(m4_do([-Wold-style-definition -Wc++-compat])), [c_strict_warn])
+ ACX_PROG_CC_WARNING_ALMOST_PEDANTIC(
+diff -Naur gcc-4.9.4-pure/gcc/dfp.c gcc-4.9.4/gcc/dfp.c
+--- gcc-4.9.4-pure/gcc/dfp.c	2014-01-02 17:23:26.000000000 -0500
++++ gcc-4.9.4/gcc/dfp.c	2022-02-13 20:18:45.408548300 -0500
+@@ -25,6 +25,8 @@
+ #include "tm_p.h"
+ #include "dfp.h"
+ 
++#pragma GCC diagnostic ignored "-Wstrict-aliasing"
++
+ /* The order of the following headers is important for making sure
+    decNumber structure is large enough to hold decimal128 digits.  */
+ 
+diff -Naur gcc-4.9.4-pure/gcc/expmed.c gcc-4.9.4/gcc/expmed.c
+--- gcc-4.9.4-pure/gcc/expmed.c	2014-12-03 15:38:44.000000000 -0500
++++ gcc-4.9.4/gcc/expmed.c	2022-02-13 20:18:45.416048400 -0500
+@@ -18,6 +18,7 @@
+ along with GCC; see the file COPYING3.  If not see
+ <http://www.gnu.org/licenses/>.  */
+ 
++#pragma GCC diagnostic ignored "-Warray-bounds"
+ 
+ #include "config.h"
+ #include "system.h"
+diff -Naur gcc-4.9.4-pure/gcc/gengtype.c gcc-4.9.4/gcc/gengtype.c
+--- gcc-4.9.4-pure/gcc/gengtype.c	2014-01-02 17:23:26.000000000 -0500
++++ gcc-4.9.4/gcc/gengtype.c	2022-02-13 20:18:45.426048600 -0500
+@@ -1683,7 +1683,8 @@
+     "along with GCC; see the file COPYING3.  If not see\n",
+     "<http://www.gnu.org/licenses/>.  */\n",
+     "\n",
+-    "/* This file is machine generated.  Do not edit.  */\n"
++    "/* This file is machine generated.  Do not edit.  */\n",
++    "\n#pragma GCC diagnostic ignored \"-Wswitch-bool\"\n"
+   };
+   outf_p f;
+   size_t i;
+diff -Naur gcc-4.9.4-pure/libcpp/configure gcc-4.9.4/libcpp/configure
+--- gcc-4.9.4-pure/libcpp/configure	2022-02-13 19:41:23.032158500 -0500
++++ gcc-4.9.4/libcpp/configure	2022-02-13 20:18:45.461049100 -0500
+@@ -4683,8 +4683,8 @@
+ 
+ warn=
+ save_CFLAGS="$CFLAGS"
+-for real_option in -W -Wall -Wno-narrowing -Wwrite-strings \
+-			  -Wmissing-format-attribute; do
++for real_option in -W -Wall -Wno-format -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation -Wno-expansion-to-defined -Wno-narrowing -Wwrite-strings \
++			  -Wno-missing-format-attribute; do
+   # Do the check with the no- prefix removed since gcc silently
+   # accepts any -Wno-* option on purpose
+   case $real_option in
+@@ -4806,7 +4806,7 @@
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_cv_prog_cc_pedantic__Wlong_long" >&5
+ $as_echo "$acx_cv_prog_cc_pedantic__Wlong_long" >&6; }
+ if test $acx_cv_prog_cc_pedantic__Wlong_long = yes; then :
+-  WARN_PEDANTIC="$WARN_PEDANTIC${WARN_PEDANTIC:+ }-pedantic -Wno-long-long"
++  WARN_PEDANTIC="$WARN_PEDANTIC${WARN_PEDANTIC:+ }-Wno-pedantic -Wno-long-long"
+ fi
+ 
+ fi
+diff -Naur gcc-4.9.4-pure/libcpp/configure.ac gcc-4.9.4/libcpp/configure.ac
+--- gcc-4.9.4-pure/libcpp/configure.ac	2014-02-24 10:08:00.000000000 -0500
++++ gcc-4.9.4/libcpp/configure.ac	2022-02-13 20:18:45.466049200 -0500
+@@ -25,8 +25,8 @@
+ # Figure out what compiler warnings we can enable.
+ # See config/warnings.m4 for details.
+ 
+-ACX_PROG_CC_WARNING_OPTS([-W -Wall -Wno-narrowing -Wwrite-strings \
+-			  -Wmissing-format-attribute], [warn])
++ACX_PROG_CC_WARNING_OPTS([-W -Wall -Wno-format -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation -Wno-expansion-to-defined -Wno-narrowing -Wwrite-strings \
++			  -Wno-missing-format-attribute], [warn])
+ ACX_PROG_CC_WARNING_OPTS([-Wstrict-prototypes -Wmissing-prototypes \
+ 			  -Wold-style-definition -Wc++-compat], [c_warn])
+ ACX_PROG_CC_WARNING_ALMOST_PEDANTIC([-Wno-long-long])
+diff -Naur gcc-4.9.4-pure/libdecnumber/configure gcc-4.9.4/libdecnumber/configure
+--- gcc-4.9.4-pure/libdecnumber/configure	2013-10-15 16:33:55.000000000 -0400
++++ gcc-4.9.4/libdecnumber/configure	2022-02-13 20:18:45.473549300 -0500
+@@ -3274,7 +3274,7 @@
+ 
+ WARN_CFLAGS=
+ save_CFLAGS="$CFLAGS"
+-for real_option in -W -Wall -Wwrite-strings -Wstrict-prototypes \
++for real_option in -W -Wall -Wno-format -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation -Wno-expansion-to-defined -Wwrite-strings -Wstrict-prototypes \
+ 			  -Wmissing-prototypes -Wold-style-definition \
+ 			  -Wmissing-format-attribute -Wcast-qual; do
+   # Do the check with the no- prefix removed since gcc silently
+@@ -3352,7 +3352,7 @@
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_cv_prog_cc_pedantic__Wlong_long" >&5
+ $as_echo "$acx_cv_prog_cc_pedantic__Wlong_long" >&6; }
+ if test $acx_cv_prog_cc_pedantic__Wlong_long = yes; then :
+-  WARN_PEDANTIC="$WARN_PEDANTIC${WARN_PEDANTIC:+ }-pedantic -Wno-long-long"
++  WARN_PEDANTIC="$WARN_PEDANTIC${WARN_PEDANTIC:+ }-Wno-pedantic -Wno-long-long"
+ fi
+ 
+ fi
+diff -Naur gcc-4.9.4-pure/libdecnumber/configure.ac gcc-4.9.4/libdecnumber/configure.ac
+--- gcc-4.9.4-pure/libdecnumber/configure.ac	2014-01-02 17:24:52.000000000 -0500
++++ gcc-4.9.4/libdecnumber/configure.ac	2022-02-13 20:18:45.478549400 -0500
+@@ -38,7 +38,7 @@
+ # Figure out what compiler warnings we can enable.
+ # See config/warnings.m4 for details.
+ 
+-ACX_PROG_CC_WARNING_OPTS([-W -Wall -Wwrite-strings -Wstrict-prototypes \
++ACX_PROG_CC_WARNING_OPTS([-W -Wall -Wno-format -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation -Wno-expansion-to-defined -Wwrite-strings -Wstrict-prototypes \
+ 			  -Wmissing-prototypes -Wold-style-definition \
+ 			  -Wmissing-format-attribute -Wcast-qual])
+ ACX_PROG_CC_WARNING_ALMOST_PEDANTIC([-Wno-long-long])
+diff -Naur gcc-4.9.4-pure/libiberty/configure gcc-4.9.4/libiberty/configure
+--- gcc-4.9.4-pure/libiberty/configure	2014-01-06 13:15:31.000000000 -0500
++++ gcc-4.9.4/libiberty/configure	2022-02-13 20:18:45.501049700 -0500
+@@ -3949,7 +3949,7 @@
+ 
+ ac_libiberty_warn_cflags=
+ save_CFLAGS="$CFLAGS"
+-for real_option in -W -Wall -Wwrite-strings -Wc++-compat \
++for real_option in -W -Wall -Wno-format -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation -Wno-expansion-to-defined -Wwrite-strings -Wc++-compat \
+ 			  -Wstrict-prototypes; do
+   # Do the check with the no- prefix removed since gcc silently
+   # accepts any -Wno-* option on purpose
+@@ -4025,7 +4025,7 @@
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $acx_cv_prog_cc_pedantic_" >&5
+ $as_echo "$acx_cv_prog_cc_pedantic_" >&6; }
+ if test $acx_cv_prog_cc_pedantic_ = yes; then :
+-  ac_libiberty_warn_cflags="$ac_libiberty_warn_cflags${ac_libiberty_warn_cflags:+ }-pedantic "
++  ac_libiberty_warn_cflags="$ac_libiberty_warn_cflags${ac_libiberty_warn_cflags:+ }-Wno-pedantic "
+ fi
+ 
+ fi
+diff -Naur gcc-4.9.4-pure/libiberty/configure.ac gcc-4.9.4/libiberty/configure.ac
+--- gcc-4.9.4-pure/libiberty/configure.ac	2014-01-06 13:15:31.000000000 -0500
++++ gcc-4.9.4/libiberty/configure.ac	2022-02-13 20:18:45.513549900 -0500
+@@ -158,7 +158,7 @@
+ AC_SYS_LARGEFILE
+ AC_PROG_CPP_WERROR
+ 
+-ACX_PROG_CC_WARNING_OPTS([-W -Wall -Wwrite-strings -Wc++-compat \
++ACX_PROG_CC_WARNING_OPTS([-W -Wall -Wno-format -Wno-implicit-fallthrough -Wno-cast-function-type -Wno-stringop-truncation -Wno-expansion-to-defined -Wwrite-strings -Wc++-compat \
+ 			  -Wstrict-prototypes], [ac_libiberty_warn_cflags])
+ ACX_PROG_CC_WARNING_ALMOST_PEDANTIC([], [ac_libiberty_warn_cflags])
+ 

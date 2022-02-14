@@ -1,0 +1,36 @@
+diff -Naur gcc-4.9.4-pure/gcc/configure gcc-4.9.4/gcc/configure
+--- gcc-4.9.4-pure/gcc/configure	2016-05-22 04:53:32.000000000 -0400
++++ gcc-4.9.4/gcc/configure	2022-02-13 19:28:19.866554400 -0500
+@@ -10276,6 +10276,8 @@
+ fi
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $am_cv_func_iconv" >&5
+ $as_echo "$am_cv_func_iconv" >&6; }
++  am_cv_func_iconv=no
++  am_cv_lib_iconv=no
+   if test "$am_cv_func_iconv" = yes; then
+ 
+ $as_echo "#define HAVE_ICONV 1" >>confdefs.h
+diff -Naur gcc-4.9.4-pure/intl/configure gcc-4.9.4/intl/configure
+--- gcc-4.9.4-pure/intl/configure	2010-09-27 16:19:41.000000000 -0400
++++ gcc-4.9.4/intl/configure	2022-02-13 19:28:19.894054800 -0500
+@@ -5509,6 +5509,8 @@
+ fi
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $am_cv_func_iconv" >&5
+ $as_echo "$am_cv_func_iconv" >&6; }
++  am_cv_func_iconv=no
++  am_cv_lib_iconv=no
+   if test "$am_cv_func_iconv" = yes; then
+ 
+ $as_echo "#define HAVE_ICONV 1" >>confdefs.h
+diff -Naur gcc-4.9.4-pure/libcpp/configure gcc-4.9.4/libcpp/configure
+--- gcc-4.9.4-pure/libcpp/configure	2016-08-03 01:09:47.000000000 -0400
++++ gcc-4.9.4/libcpp/configure	2022-02-13 19:28:19.926555300 -0500
+@@ -6983,6 +6983,8 @@
+ fi
+ { $as_echo "$as_me:${as_lineno-$LINENO}: result: $am_cv_func_iconv" >&5
+ $as_echo "$am_cv_func_iconv" >&6; }
++  am_cv_func_iconv=no
++  am_cv_lib_iconv=no
+   if test "$am_cv_func_iconv" = yes; then
+ 
+ $as_echo "#define HAVE_ICONV 1" >>confdefs.h

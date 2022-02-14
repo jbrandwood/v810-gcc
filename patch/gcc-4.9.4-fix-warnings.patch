@@ -1,0 +1,1557 @@
+diff -Naur gcc-4.9.4-pure/fixincludes/fixfixes.c gcc-4.9.4/fixincludes/fixfixes.c
+--- gcc-4.9.4-pure/fixincludes/fixfixes.c	2009-04-09 11:00:19.000000000 -0400
++++ gcc-4.9.4/fixincludes/fixfixes.c	2022-02-13 20:09:23.951366300 -0500
+@@ -738,8 +738,10 @@
+ {
+   tFixDesc* pFix;
+   char* pz_tmptmp;
++#ifdef _PC_NAME_MAX
+   char* pz_tmp_base;
+   char* pz_tmp_dot;
++#endif /* _PC_NAME_MAX */
+ 
+   if (argc != 5)
+     {
+@@ -775,9 +777,9 @@
+   /* Don't lose because "12345678" and "12345678X" map to the same
+      file under DOS restricted 8+3 file namespace.  Note that DOS
+      doesn't allow more than one dot in the trunk of a file name.  */
++#ifdef _PC_NAME_MAX
+   pz_tmp_base = basename( pz_tmptmp );
+   pz_tmp_dot = strchr( pz_tmp_base, '.' );
+-#ifdef _PC_NAME_MAX
+   if (pathconf( pz_tmptmp, _PC_NAME_MAX ) <= 12	/* is this DOS or Windows9X? */
+       && pz_tmp_dot != (char*)NULL)
+     strcpy (pz_tmp_dot+1, "X"); /* nuke the original extension */
+diff -Naur gcc-4.9.4-pure/fixincludes/fixincl.c gcc-4.9.4/fixincludes/fixincl.c
+--- gcc-4.9.4-pure/fixincludes/fixincl.c	2013-01-04 07:49:55.000000000 -0500
++++ gcc-4.9.4/fixincludes/fixincl.c	2022-02-13 20:09:23.968367200 -0500
+@@ -74,7 +74,9 @@
+ #endif /* DO_STATS */
+ 
+ const char incl_quote_pat[] = "^[ \t]*#[ \t]*include[ \t]*\"[^/]";
++#ifndef SEPARATE_FIX_PROC
+ tSCC z_fork_err[] = "Error %d (%s) starting filter process for %s\n";
++#endif
+ regex_t incl_quote_re;
+ 
+ static void do_version (void) ATTRIBUTE_NORETURN;
+diff -Naur gcc-4.9.4-pure/gcc/asan.c gcc-4.9.4/gcc/asan.c
+--- gcc-4.9.4-pure/gcc/asan.c	2014-10-24 16:15:37.000000000 -0400
++++ gcc-4.9.4/gcc/asan.c	2022-02-13 20:09:24.688408400 -0500
+@@ -1634,7 +1634,7 @@
+       if ((size_in_bytes & (size_in_bytes - 1)) != 0
+ 	  || size_in_bytes > 16)
+ 	is_scalar_access = false;
+-      else if (align && align < size_in_bytes * BITS_PER_UNIT)
++      else if (align && (HOST_WIDE_INT) align < size_in_bytes * BITS_PER_UNIT)
+ 	{
+ 	  /* On non-strict alignment targets, if
+ 	     16-byte access is just 8-byte aligned,
+@@ -2015,6 +2015,8 @@
+ 	    case BUILT_IN_TRAP:
+ 	      /* Don't instrument these.  */
+ 	      return false;
++	    default:
++	      break;
+ 	    }
+ 	}
+       tree decl = builtin_decl_implicit (BUILT_IN_ASAN_HANDLE_NO_RETURN);
+diff -Naur gcc-4.9.4-pure/gcc/bitmap.c gcc-4.9.4/gcc/bitmap.c
+--- gcc-4.9.4-pure/gcc/bitmap.c	2014-01-02 17:23:26.000000000 -0500
++++ gcc-4.9.4/gcc/bitmap.c	2022-02-13 20:09:24.382390900 -0500
+@@ -2166,9 +2166,9 @@
+       s[41] = 0;
+       fprintf (stderr,
+ 	       "%-41s %9u"
+-	       " %15"HOST_WIDEST_INT_PRINT"d %15"HOST_WIDEST_INT_PRINT"d"
+-	       " %15"HOST_WIDEST_INT_PRINT"d"
+-	       " %10"HOST_WIDEST_INT_PRINT"d %10"HOST_WIDEST_INT_PRINT"d\n",
++	       " %15" HOST_WIDEST_INT_PRINT "d %15" HOST_WIDEST_INT_PRINT "d"
++	       " %15" HOST_WIDEST_INT_PRINT "d"
++	       " %10" HOST_WIDEST_INT_PRINT "d %10" HOST_WIDEST_INT_PRINT "d\n",
+ 	       s, d->created,
+ 	       d->allocated, d->peak, d->current,
+ 	       d->nsearches, d->search_iter);
+@@ -2201,7 +2201,7 @@
+   bitmap_desc_hash.traverse <output_info *, print_statistics> (&info);
+   fprintf (stderr, "---------------------------------------------------------------------------------\n");
+   fprintf (stderr,
+-	   "%-41s %9"HOST_WIDEST_INT_PRINT"d %15"HOST_WIDEST_INT_PRINT"d\n",
++	   "%-41s %9" HOST_WIDEST_INT_PRINT "d %15" HOST_WIDEST_INT_PRINT "d\n",
+ 	   "Total", info.count, info.size);
+   fprintf (stderr, "---------------------------------------------------------------------------------\n");
+ }
+diff -Naur gcc-4.9.4-pure/gcc/c/c-parser.c gcc-4.9.4/gcc/c/c-parser.c
+--- gcc-4.9.4-pure/gcc/c/c-parser.c	2016-02-17 08:13:08.000000000 -0500
++++ gcc-4.9.4/gcc/c/c-parser.c	2022-02-13 20:09:23.983368100 -0500
+@@ -125,11 +125,6 @@
+    C++).  It would then be possible to share more of the C and C++
+    lexer code, if desired.  */
+ 
+-/* The following local token type is used.  */
+-
+-/* A keyword.  */
+-#define CPP_KEYWORD ((enum cpp_ttype) (N_TTYPES + 1))
+-
+ /* More information about the type of a CPP_NAME token.  */
+ typedef enum c_id_kind {
+   /* An ordinary identifier.  */
+diff -Naur gcc-4.9.4-pure/gcc/c/c-typeck.c gcc-4.9.4/gcc/c/c-typeck.c
+--- gcc-4.9.4-pure/gcc/c/c-typeck.c	2016-02-17 08:13:08.000000000 -0500
++++ gcc-4.9.4/gcc/c/c-typeck.c	2022-02-13 20:09:23.999369000 -0500
+@@ -8098,7 +8098,7 @@
+ 	    {
+ 	      if (val[1] & (((HOST_WIDE_INT) 1) << (bitpos - 1)))
+ 		{
+-		  val[1] |= ((HOST_WIDE_INT) -1) << bitpos;
++		  val[1] |= (HOST_WIDE_INT_M1U << bitpos);
+ 		  val[0] = -1;
+ 		}
+ 	    }
+@@ -8109,7 +8109,7 @@
+ 	    }
+ 	  else if (val[0] & (((HOST_WIDE_INT) 1)
+ 			     << (bitpos - 1 - HOST_BITS_PER_WIDE_INT)))
+-	    val[0] |= ((HOST_WIDE_INT) -1)
++	    val[0] |= HOST_WIDE_INT_M1U
+ 		      << (bitpos - HOST_BITS_PER_WIDE_INT);
+ 	}
+ 
+diff -Naur gcc-4.9.4-pure/gcc/c-family/c-ada-spec.c gcc-4.9.4/gcc/c-family/c-ada-spec.c
+--- gcc-4.9.4-pure/gcc/c-family/c-ada-spec.c	2015-03-06 05:16:33.000000000 -0500
++++ gcc-4.9.4/gcc/c-family/c-ada-spec.c	2022-02-13 20:09:24.012369800 -0500
+@@ -88,7 +88,7 @@
+ 
+   if (macro->fun_like)
+     {
+-      param_len++;
++      (*param_len)++;
+       for (i = 0; i < macro->paramc; i++)
+ 	{
+ 	  cpp_hashnode *param = macro->params[i];
+@@ -1471,7 +1471,7 @@
+ {
+   tree arg;
+   const tree node = TREE_TYPE (func);
+-  char buf[16];
++  char buf[32];
+   int num = 0, num_args = 0, have_args = true, have_ellipsis = false;
+ 
+   /* Compute number of arguments.  */
+diff -Naur gcc-4.9.4-pure/gcc/c-family/c-common.c gcc-4.9.4/gcc/c-family/c-common.c
+--- gcc-4.9.4-pure/gcc/c-family/c-common.c	2016-07-07 17:45:11.000000000 -0400
++++ gcc-4.9.4/gcc/c-family/c-common.c	2022-02-13 20:09:24.701409200 -0500
+@@ -9438,8 +9438,8 @@
+ int
+ field_decl_cmp (const void *x_p, const void *y_p)
+ {
+-  const tree *const x = (const tree *const) x_p;
+-  const tree *const y = (const tree *const) y_p;
++  const tree *const x = (const tree *) x_p;
++  const tree *const y = (const tree *) y_p;
+ 
+   if (DECL_NAME (*x) == DECL_NAME (*y))
+     /* A nontype is "greater" than a type.  */
+@@ -9464,8 +9464,8 @@
+ static int
+ resort_field_decl_cmp (const void *x_p, const void *y_p)
+ {
+-  const tree *const x = (const tree *const) x_p;
+-  const tree *const y = (const tree *const) y_p;
++  const tree *const x = (const tree *) x_p;
++  const tree *const y = (const tree *) y_p;
+ 
+   if (DECL_NAME (*x) == DECL_NAME (*y))
+     /* A nontype is "greater" than a type.  */
+@@ -11338,7 +11338,7 @@
+           if (bits < TYPE_PRECISION (result_type)
+               && bits < HOST_BITS_PER_LONG && unsignedp)
+             {
+-              mask = (~ (HOST_WIDE_INT) 0) << bits;
++              mask = (~ (unsigned HOST_WIDE_INT) 0) << bits;
+               if ((mask & constant) != mask)
+ 		{
+ 		  if (constant == 0)
+diff -Naur gcc-4.9.4-pure/gcc/c-family/c-common.h gcc-4.9.4/gcc/c-family/c-common.h
+--- gcc-4.9.4-pure/gcc/c-family/c-common.h	2014-06-04 04:22:22.000000000 -0400
++++ gcc-4.9.4/gcc/c-family/c-common.h	2022-02-13 20:09:24.038371200 -0500
+@@ -327,26 +327,7 @@
+   const unsigned int disable   : 16;
+ };
+ 
+-/* Extra cpp_ttype values for C++.  */
+-
+-/* A token type for keywords, as opposed to ordinary identifiers.  */
+-#define CPP_KEYWORD ((enum cpp_ttype) (N_TTYPES + 1))
+-
+-/* A token type for template-ids.  If a template-id is processed while
+-   parsing tentatively, it is replaced with a CPP_TEMPLATE_ID token;
+-   the value of the CPP_TEMPLATE_ID is whatever was returned by
+-   cp_parser_template_id.  */
+-#define CPP_TEMPLATE_ID ((enum cpp_ttype) (CPP_KEYWORD + 1))
+-
+-/* A token type for nested-name-specifiers.  If a
+-   nested-name-specifier is processed while parsing tentatively, it is
+-   replaced with a CPP_NESTED_NAME_SPECIFIER token; the value of the
+-   CPP_NESTED_NAME_SPECIFIER is whatever was returned by
+-   cp_parser_nested_name_specifier_opt.  */
+-#define CPP_NESTED_NAME_SPECIFIER ((enum cpp_ttype) (CPP_TEMPLATE_ID + 1))
+-
+-/* A token type for pre-parsed C++0x decltype.  */
+-#define CPP_DECLTYPE ((enum cpp_ttype) (CPP_NESTED_NAME_SPECIFIER + 1))
++/* The extra cpp_ttype values for C++ have been moved into libcpp/cpplib.h  */
+ 
+ /* The number of token types, including C++-specific ones.  */
+ #define N_CP_TTYPES ((int) (CPP_DECLTYPE + 1))
+diff -Naur gcc-4.9.4-pure/gcc/c-family/c-cppbuiltin.c gcc-4.9.4/gcc/c-family/c-cppbuiltin.c
+--- gcc-4.9.4-pure/gcc/c-family/c-cppbuiltin.c	2016-07-05 14:01:47.000000000 -0400
++++ gcc-4.9.4/gcc/c-family/c-cppbuiltin.c	2022-02-13 20:09:24.047371800 -0500
+@@ -1219,7 +1219,7 @@
+ 				  const char *fp_cast)
+ {
+   REAL_VALUE_TYPE real;
+-  char dec_str[64], buf1[256], buf2[256];
++  char dec_str[64], buf[256], buf1[128], buf2[64];
+ 
+   /* This is very expensive, so if possible expand them lazily.  */
+   if (lazy_hex_fp_value_count < 12
+@@ -1262,11 +1262,11 @@
+ 
+   /* Assemble the macro in the following fashion
+      macro = fp_cast [dec_str fp_suffix] */
+-  sprintf (buf1, "%s%s", dec_str, fp_suffix);
+-  sprintf (buf2, fp_cast, buf1);
+-  sprintf (buf1, "%s=%s", macro, buf2);
++  sprintf (buf2, "%s%s", dec_str, fp_suffix);
++  sprintf (buf1, fp_cast, buf2);
++  sprintf (buf, "%s=%s", macro, buf1);
+ 
+-  cpp_define (parse_in, buf1);
++  cpp_define (parse_in, buf);
+ }
+ 
+ /* Return a string constant for the suffix for a value of type TYPE
+diff -Naur gcc-4.9.4-pure/gcc/cfg.c gcc-4.9.4/gcc/cfg.c
+--- gcc-4.9.4-pure/gcc/cfg.c	2014-01-02 17:23:26.000000000 -0500
++++ gcc-4.9.4/gcc/cfg.c	2022-02-13 20:09:24.390391400 -0500
+@@ -743,11 +743,10 @@
+ 	    fputs (", probably never executed", outf);
+ 	}
+       fputc ('\n', outf);
+-      if (TDF_DETAILS)
+-	check_bb_profile (bb, outf, indent, flags);
+ 
+       if (flags & TDF_DETAILS)
+ 	{
++	  check_bb_profile (bb, outf, indent, flags);
+ 	  if (flags & TDF_COMMENT)
+ 	    fputs (";; ", outf);
+ 	  fprintf (outf, "%s prev block ", s_indent);
+diff -Naur gcc-4.9.4-pure/gcc/cfgcleanup.c gcc-4.9.4/gcc/cfgcleanup.c
+--- gcc-4.9.4-pure/gcc/cfgcleanup.c	2014-10-16 09:46:39.000000000 -0400
++++ gcc-4.9.4/gcc/cfgcleanup.c	2022-02-13 20:09:24.058372400 -0500
+@@ -1000,7 +1000,7 @@
+           ? rtx_renumbered_equal_p (e1, e2) : rtx_equal_p (e1, e2))
+         continue;
+ 
+-        return false;
++      return false;
+     }
+ 
+   return true;
+diff -Naur gcc-4.9.4-pure/gcc/cgraph.c gcc-4.9.4/gcc/cgraph.c
+--- gcc-4.9.4-pure/gcc/cgraph.c	2016-01-08 07:34:34.000000000 -0500
++++ gcc-4.9.4/gcc/cgraph.c	2022-02-13 20:09:24.399391900 -0500
+@@ -1976,7 +1976,7 @@
+   fprintf (f, "  First run: %i\n", node->tp_first_run);
+   fprintf (f, "  Function flags:");
+   if (node->count)
+-    fprintf (f, " executed "HOST_WIDEST_INT_PRINT_DEC"x",
++    fprintf (f, " executed " HOST_WIDEST_INT_PRINT_DEC "x",
+ 	     (HOST_WIDEST_INT)node->count);
+   if (node->origin)
+     fprintf (f, " nested in: %s", node->origin->asm_name ());
+@@ -2028,7 +2028,7 @@
+       fprintf (f, "%s/%i ", edge->caller->asm_name (),
+ 	       edge->caller->order);
+       if (edge->count)
+-	fprintf (f, "("HOST_WIDEST_INT_PRINT_DEC"x) ",
++	fprintf (f, "(" HOST_WIDEST_INT_PRINT_DEC "x) ",
+ 		 (HOST_WIDEST_INT)edge->count);
+       if (edge->frequency)
+ 	fprintf (f, "(%.2f per call) ",
+@@ -2055,7 +2055,7 @@
+       if (edge->indirect_inlining_edge)
+ 	fprintf (f, "(indirect_inlining) ");
+       if (edge->count)
+-	fprintf (f, "("HOST_WIDEST_INT_PRINT_DEC"x) ",
++	fprintf (f, "(" HOST_WIDEST_INT_PRINT_DEC "x) ",
+ 		 (HOST_WIDEST_INT)edge->count);
+       if (edge->frequency)
+ 	fprintf (f, "(%.2f per call) ",
+@@ -2868,11 +2868,11 @@
+ 	  }
+ 	else
+ 	  ref_found = true;
+-	if (!ref_found)
+-	  {
+-	    error ("Analyzed alias has no reference");
+-	    error_found = true;
+-	  }
++      if (!ref_found)
++	{
++	  error ("Analyzed alias has no reference");
++	  error_found = true;
++	}
+     }
+   if (node->analyzed && node->thunk.thunk_p)
+     {
+diff -Naur gcc-4.9.4-pure/gcc/config/elfos.h gcc-4.9.4/gcc/config/elfos.h
+--- gcc-4.9.4-pure/gcc/config/elfos.h	2014-04-07 09:27:39.000000000 -0400
++++ gcc-4.9.4/gcc/config/elfos.h	2022-02-13 20:09:24.068373000 -0500
+@@ -99,7 +99,7 @@
+ 
+ #undef  ASM_OUTPUT_SKIP
+ #define ASM_OUTPUT_SKIP(FILE, SIZE) \
+-   fprintf ((FILE), "%s"HOST_WIDE_INT_PRINT_UNSIGNED"\n",\
++   fprintf ((FILE), "%s" HOST_WIDE_INT_PRINT_UNSIGNED "\n", \
+ 	    SKIP_ASM_OP, (SIZE))
+ 
+ /* This is how to store into the string LABEL
+@@ -167,7 +167,7 @@
+     {									\
+       fprintf ((FILE), "%s", COMMON_ASM_OP);				\
+       assemble_name ((FILE), (NAME));					\
+-      fprintf ((FILE), ","HOST_WIDE_INT_PRINT_UNSIGNED",%u\n",		\
++      fprintf ((FILE), "," HOST_WIDE_INT_PRINT_UNSIGNED ",%u\n",	\
+ 	       (SIZE), (ALIGN) / BITS_PER_UNIT);			\
+     }									\
+   while (0)
+diff -Naur gcc-4.9.4-pure/gcc/config/v850/v850.c gcc-4.9.4/gcc/config/v850/v850.c
+--- gcc-4.9.4-pure/gcc/config/v850/v850.c	2014-01-02 17:23:26.000000000 -0500
++++ gcc-4.9.4/gcc/config/v850/v850.c	2022-02-13 20:09:24.078373500 -0500
+@@ -46,6 +46,9 @@
+ #include "df.h"
+ #include "opts.h"
+ 
++/* Remove the warning about the unused value in CC_STATUS_INIT */
++#pragma GCC diagnostic ignored "-Wunused-value"
++
+ #ifndef streq
+ #define streq(a,b) (strcmp (a, b) == 0)
+ #endif
+diff -Naur gcc-4.9.4-pure/gcc/cp/cp-array-notation.c gcc-4.9.4/gcc/cp/cp-array-notation.c
+--- gcc-4.9.4-pure/gcc/cp/cp-array-notation.c	2014-08-22 05:40:13.000000000 -0400
++++ gcc-4.9.4/gcc/cp/cp-array-notation.c	2022-02-13 20:09:24.632405200 -0500
+@@ -1436,7 +1436,7 @@
+       error_at (loc, "stride of array notation triplet is not an integer");
+       return false;
+     }
+-  if (!TREE_CODE (type) == FUNCTION_TYPE)
++  if (TREE_CODE (type) == FUNCTION_TYPE)
+     {
+       error_at (loc, "array notation cannot be used with function type");
+       return false;
+diff -Naur gcc-4.9.4-pure/gcc/cp/init.c gcc-4.9.4/gcc/cp/init.c
+--- gcc-4.9.4-pure/gcc/cp/init.c	2016-02-10 14:35:35.000000000 -0500
++++ gcc-4.9.4/gcc/cp/init.c	2022-02-13 20:09:24.089374200 -0500
+@@ -78,7 +78,7 @@
+ 
+   stmt_expr = finish_stmt_expr (stmt_expr, true);
+ 
+-  gcc_assert (!building_stmt_list_p () == is_global);
++  gcc_assert (!(building_stmt_list_p () == is_global));
+ 
+   return stmt_expr;
+ }
+diff -Naur gcc-4.9.4-pure/gcc/cp/optimize.c gcc-4.9.4/gcc/cp/optimize.c
+--- gcc-4.9.4-pure/gcc/cp/optimize.c	2014-01-29 12:13:01.000000000 -0500
++++ gcc-4.9.4/gcc/cp/optimize.c	2022-02-13 20:09:24.099374700 -0500
+@@ -234,16 +234,18 @@
+   /* Look for the complete destructor which may be used to build the
+      delete destructor.  */
+   FOR_EACH_CLONE (clone, fn)
+-    if (DECL_NAME (clone) == complete_dtor_identifier
+-	|| DECL_NAME (clone) == complete_ctor_identifier)
+-      fns[1] = clone;
+-    else if (DECL_NAME (clone) == base_dtor_identifier
+-	     || DECL_NAME (clone) == base_ctor_identifier)
+-      fns[0] = clone;
+-    else if (DECL_NAME (clone) == deleting_dtor_identifier)
+-      fns[2] = clone;
+-    else
+-      gcc_unreachable ();
++    {
++      if (DECL_NAME (clone) == complete_dtor_identifier
++  	|| DECL_NAME (clone) == complete_ctor_identifier)
++        fns[1] = clone;
++      else if (DECL_NAME (clone) == base_dtor_identifier
++  	     || DECL_NAME (clone) == base_ctor_identifier)
++        fns[0] = clone;
++      else if (DECL_NAME (clone) == deleting_dtor_identifier)
++        fns[2] = clone;
++      else
++        gcc_unreachable ();
++    }
+ }
+ 
+ /* FN is a constructor or destructor, and there are FUNCTION_DECLs
+diff -Naur gcc-4.9.4-pure/gcc/cp/parser.c gcc-4.9.4/gcc/cp/parser.c
+--- gcc-4.9.4-pure/gcc/cp/parser.c	2016-07-20 10:32:46.000000000 -0400
++++ gcc-4.9.4/gcc/cp/parser.c	2022-02-13 20:09:24.718410100 -0500
+@@ -251,7 +251,7 @@
+ /* Variables.  */
+ 
+ /* The stream to which debugging output should be written.  */
+-static FILE *cp_lexer_debug_stream;
++FILE *cp_lexer_debug_stream = NULL;
+ 
+ /* Nonzero if we are parsing an unevaluated operand: an operand to
+    sizeof, typeof, or alignof.  */
+@@ -9999,7 +9999,7 @@
+ 	{
+ 	  tree pushed_scope;
+ 	  bool non_constant_p;
+-	  bool flags = LOOKUP_ONLYCONVERTING;
++	  int flags = LOOKUP_ONLYCONVERTING;
+ 
+ 	  /* Create the declaration.  */
+ 	  decl = start_decl (declarator, &type_specifiers,
+@@ -16351,8 +16351,8 @@
+ 	      && !goto_p)
+ 	    outputs = cp_parser_asm_operand_list (parser);
+ 
+-	    if (outputs == error_mark_node)
+-	      invalid_outputs_p = true;
++	  if (outputs == error_mark_node)
++	    invalid_outputs_p = true;
+ 	}
+       /* If the next token is `::', there are no outputs, and the
+ 	 next token is the beginning of the inputs.  */
+@@ -16375,8 +16375,8 @@
+ 					     CPP_CLOSE_PAREN))
+ 	    inputs = cp_parser_asm_operand_list (parser);
+ 
+-	    if (inputs == error_mark_node)
+-	      invalid_inputs_p = true;
++	  if (inputs == error_mark_node)
++	    invalid_inputs_p = true;
+ 	}
+       else if (cp_lexer_next_token_is (parser->lexer, CPP_SCOPE))
+ 	/* The clobbers are coming next.  */
+@@ -20902,7 +20902,7 @@
+   cp_parser_nested_name_specifier_opt (parser,
+ 				       /*typename_keyword_p=*/true,
+ 				       /*check_dependency_p=*/true,
+-				       typename_type,
++				       /*type_p=*/true,
+ 				       /*is_declaration=*/true);
+   /* If the base class is given by a qualified name, assume that names
+      we see are type names or templates, as appropriate.  */
+diff -Naur gcc-4.9.4-pure/gcc/cp/tree.c gcc-4.9.4/gcc/cp/tree.c
+--- gcc-4.9.4-pure/gcc/cp/tree.c	2015-08-18 10:43:38.000000000 -0400
++++ gcc-4.9.4/gcc/cp/tree.c	2022-02-13 20:09:24.409392500 -0500
+@@ -2353,6 +2353,8 @@
+ 	  case BUILT_IN_FILE:
+ 	  case BUILT_IN_LINE:
+ 	    SET_EXPR_LOCATION (*tp, input_location);
++	  default:
++	    break;
+ 	  }
+     }
+   return t;
+diff -Naur gcc-4.9.4-pure/gcc/cppbuiltin.c gcc-4.9.4/gcc/cppbuiltin.c
+--- gcc-4.9.4-pure/gcc/cppbuiltin.c	2014-01-24 18:13:49.000000000 -0500
++++ gcc-4.9.4/gcc/cppbuiltin.c	2022-02-13 20:09:24.413392700 -0500
+@@ -129,7 +129,7 @@
+ define_builtin_macros_for_type_sizes (cpp_reader *pfile)
+ {
+ #define define_type_sizeof(NAME, TYPE)                             \
+-    cpp_define_formatted (pfile, NAME"="HOST_WIDE_INT_PRINT_DEC,   \
++    cpp_define_formatted (pfile, NAME "=" HOST_WIDE_INT_PRINT_DEC,   \
+                           tree_to_uhwi (TYPE_SIZE_UNIT (TYPE)))
+ 
+   define_type_sizeof ("__SIZEOF_INT__", integer_type_node);
+diff -Naur gcc-4.9.4-pure/gcc/dwarf2cfi.c gcc-4.9.4/gcc/dwarf2cfi.c
+--- gcc-4.9.4-pure/gcc/dwarf2cfi.c	2014-01-02 17:23:26.000000000 -0500
++++ gcc-4.9.4/gcc/dwarf2cfi.c	2022-02-13 20:09:24.422393200 -0500
+@@ -3176,7 +3176,7 @@
+     case DW_CFA_offset_extended:
+     case DW_CFA_offset_extended_sf:
+       r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
+-      fprintf (f, "\t.cfi_offset %lu, "HOST_WIDE_INT_PRINT_DEC"\n",
++      fprintf (f, "\t.cfi_offset %lu, " HOST_WIDE_INT_PRINT_DEC "\n",
+ 	       r, cfi->dw_cfi_oprnd2.dw_cfi_offset);
+       break;
+ 
+@@ -3199,7 +3199,7 @@
+     case DW_CFA_def_cfa:
+     case DW_CFA_def_cfa_sf:
+       r = DWARF2_FRAME_REG_OUT (cfi->dw_cfi_oprnd1.dw_cfi_reg_num, 1);
+-      fprintf (f, "\t.cfi_def_cfa %lu, "HOST_WIDE_INT_PRINT_DEC"\n",
++      fprintf (f, "\t.cfi_def_cfa %lu, " HOST_WIDE_INT_PRINT_DEC "\n",
+ 	       r, cfi->dw_cfi_oprnd2.dw_cfi_offset);
+       break;
+ 
+@@ -3234,13 +3234,13 @@
+ 	  fprintf (f, "\t.cfi_escape %#x,", DW_CFA_GNU_args_size);
+ 	  dw2_asm_output_data_uleb128_raw (cfi->dw_cfi_oprnd1.dw_cfi_offset);
+ 	  if (flag_debug_asm)
+-	    fprintf (f, "\t%s args_size "HOST_WIDE_INT_PRINT_DEC,
++	    fprintf (f, "\t%s args_size " HOST_WIDE_INT_PRINT_DEC,
+ 		     ASM_COMMENT_START, cfi->dw_cfi_oprnd1.dw_cfi_offset);
+ 	  fputc ('\n', f);
+ 	}
+       else
+ 	{
+-	  fprintf (f, "\t.cfi_GNU_args_size "HOST_WIDE_INT_PRINT_DEC "\n",
++	  fprintf (f, "\t.cfi_GNU_args_size " HOST_WIDE_INT_PRINT_DEC "\n",
+ 		   cfi->dw_cfi_oprnd1.dw_cfi_offset);
+ 	}
+       break;
+diff -Naur gcc-4.9.4-pure/gcc/dwarf2out.c gcc-4.9.4/gcc/dwarf2out.c
+--- gcc-4.9.4-pure/gcc/dwarf2out.c	2016-07-07 07:46:08.000000000 -0400
++++ gcc-4.9.4/gcc/dwarf2out.c	2022-02-13 20:09:24.436394000 -0500
+@@ -5324,8 +5324,8 @@
+ 	  fprintf (outfile, HOST_WIDE_INT_PRINT_UNSIGNED, AT_unsigned (a));
+ 	  break;
+ 	case dw_val_class_const_double:
+-	  fprintf (outfile, "constant ("HOST_WIDE_INT_PRINT_DEC","\
+-			    HOST_WIDE_INT_PRINT_UNSIGNED")",
++	  fprintf (outfile, "constant (" HOST_WIDE_INT_PRINT_DEC ","\
++			    HOST_WIDE_INT_PRINT_UNSIGNED ")",
+ 		   a->dw_attr_val.v.val_double.high,
+ 		   a->dw_attr_val.v.val_double.low);
+ 	  break;
+@@ -15888,12 +15888,12 @@
+ 	  && !TREE_STATIC (decl)))
+     return false;
+ 
+-    if (TREE_READONLY (decl)
+-	&& ! TREE_THIS_VOLATILE (decl)
+-	&& DECL_INITIAL (decl))
+-      /* OK */;
+-    else
+-      return false;
++  if (TREE_READONLY (decl)
++      && ! TREE_THIS_VOLATILE (decl)
++      && DECL_INITIAL (decl))
++    /* OK */;
++  else
++    return false;
+ 
+   /* Don't add DW_AT_const_value if abstract origin already has one.  */
+   if (get_AT (var_die, DW_AT_const_value))
+diff -Naur gcc-4.9.4-pure/gcc/final.c gcc-4.9.4/gcc/final.c
+--- gcc-4.9.4-pure/gcc/final.c	2014-02-18 16:16:21.000000000 -0500
++++ gcc-4.9.4/gcc/final.c	2022-02-13 20:09:24.157378100 -0500
+@@ -96,6 +96,9 @@
+ #include "sdbout.h"
+ #endif
+ 
++/* Remove the warning about the unused value in CC_STATUS_INIT */
++#pragma GCC diagnostic ignored "-Wunused-value"
++
+ /* Most ports that aren't using cc0 don't need to define CC_STATUS_INIT.
+    So define a null default for it to save conditionalization later.  */
+ #ifndef CC_STATUS_INIT
+diff -Naur gcc-4.9.4-pure/gcc/fold-const.c gcc-4.9.4/gcc/fold-const.c
+--- gcc-4.9.4-pure/gcc/fold-const.c	2016-07-08 16:22:22.000000000 -0400
++++ gcc-4.9.4/gcc/fold-const.c	2022-02-13 20:09:24.451394900 -0500
+@@ -1115,7 +1115,7 @@
+           && op2.is_minus_one () 
+ 	  && op1.high == (HOST_WIDE_INT) -1
+ 	  && (HOST_WIDE_INT) op1.low 
+-	  == (((HOST_WIDE_INT)-1) << (TYPE_PRECISION (type) - 1)))
++	  == (HOST_WIDE_INT) (HOST_WIDE_INT_M1U << (TYPE_PRECISION (type) - 1)))
+ 	{
+ 	  overflow = 1;
+ 	  res = double_int_zero;
+diff -Naur gcc-4.9.4-pure/gcc/gengtype-lex.c gcc-4.9.4/gcc/gengtype-lex.c
+--- gcc-4.9.4-pure/gcc/gengtype-lex.c	2022-02-13 19:54:06.862184900 -0500
++++ gcc-4.9.4/gcc/gengtype-lex.c	2022-02-13 20:09:24.166378600 -0500
+@@ -2142,7 +2142,7 @@
+ 
+ 		/* Read in more data. */
+ 		YY_INPUT( (&YY_CURRENT_BUFFER_LVALUE->yy_ch_buf[number_to_move]),
+-			(yy_n_chars), (size_t) num_to_read );
++			(yy_n_chars), num_to_read );
+ 
+ 		YY_CURRENT_BUFFER_LVALUE->yy_n_chars = (yy_n_chars);
+ 		}
+diff -Naur gcc-4.9.4-pure/gcc/gensupport.c gcc-4.9.4/gcc/gensupport.c
+--- gcc-4.9.4-pure/gcc/gensupport.c	2014-01-02 17:23:26.000000000 -0500
++++ gcc-4.9.4/gcc/gensupport.c	2022-02-13 20:09:24.462395500 -0500
+@@ -1429,7 +1429,7 @@
+ 	case SET_ATTR:
+ 	  if (strchr (XSTR (sub, 1), ',') != NULL)
+ 	    XSTR (sub, 1) = duplicate_alternatives (XSTR (sub, 1), n_dup);
+-	    break;
++	  break;
+ 
+ 	case SET_ATTR_ALTERNATIVE:
+ 	case SET:
+@@ -2227,11 +2227,12 @@
+ 	if (strcmp (XSTR (elem->data, 0), XSTR (elem_attr->data, 1)) == 0)
+ 	    goto found;
+ 
+-	error_with_line (elem->lineno,
+-			 "%s: `define_subst' must have at least one "
+-			 "corresponding `define_subst_attr'",
+-			 XSTR (elem->data, 0));
+-	return;
++      error_with_line (elem->lineno,
++		"%s: `define_subst' must have at least one "
++		"corresponding `define_subst_attr'",
++		XSTR (elem->data, 0));
++      return;
++
+       found:
+ 	continue;
+     }
+diff -Naur gcc-4.9.4-pure/gcc/gimplify.c gcc-4.9.4/gcc/gimplify.c
+--- gcc-4.9.4-pure/gcc/gimplify.c	2016-02-11 04:23:58.000000000 -0500
++++ gcc-4.9.4/gcc/gimplify.c	2022-02-13 20:09:24.178379300 -0500
+@@ -4942,7 +4942,7 @@
+ 	     flexibility, split it into separate input and output
+  	     operands.  */
+ 	  tree input;
+-	  char buf[10];
++	  char buf[16];
+ 
+ 	  /* Turn the in/out constraint into an output constraint.  */
+ 	  char *p = xstrdup (constraint);
+diff -Naur gcc-4.9.4-pure/gcc/ipa-devirt.c gcc-4.9.4/gcc/ipa-devirt.c
+--- gcc-4.9.4-pure/gcc/ipa-devirt.c	2014-10-04 22:50:01.000000000 -0400
++++ gcc-4.9.4/gcc/ipa-devirt.c	2022-02-13 20:09:24.641405700 -0500
+@@ -967,8 +967,9 @@
+ 	  tree subtype = TREE_TYPE (type);
+ 
+ 	  /* Give up if we don't know array size.  */
++	  /* Google bugfix "Fix tree-optimization/62091".  */
+ 	  if (!tree_fits_shwi_p (TYPE_SIZE (subtype))
+-	      || !tree_to_shwi (TYPE_SIZE (subtype)) <= 0)
++	      || tree_to_shwi (TYPE_SIZE (subtype)) <= 0)
+ 	    goto give_up;
+ 	  offset = offset % tree_to_shwi (TYPE_SIZE (subtype));
+ 	  type = subtype;
+@@ -1634,7 +1635,7 @@
+     {
+       fprintf (f, "    Contained in type:");
+       print_generic_expr (f, ctx.outer_type, TDF_SLIM);
+-      fprintf (f, " at offset "HOST_WIDE_INT_PRINT_DEC"\n",
++      fprintf (f, " at offset " HOST_WIDE_INT_PRINT_DEC "\n",
+ 	       ctx.offset);
+     }
+ 
+diff -Naur gcc-4.9.4-pure/gcc/ipa-inline.c gcc-4.9.4/gcc/ipa-inline.c
+--- gcc-4.9.4-pure/gcc/ipa-inline.c	2014-05-21 01:40:09.000000000 -0400
++++ gcc-4.9.4/gcc/ipa-inline.c	2022-02-13 20:09:24.481396600 -0500
+@@ -1727,7 +1727,7 @@
+ 		   badness,
+ 		   edge->frequency / (double)CGRAPH_FREQ_BASE);
+ 	  if (edge->count)
+-	    fprintf (dump_file," Called "HOST_WIDEST_INT_PRINT_DEC"x\n",
++	    fprintf (dump_file," Called " HOST_WIDEST_INT_PRINT_DEC "x\n",
+ 		     edge->count);
+ 	  if (dump_flags & TDF_DETAILS)
+ 	    edge_badness (edge, true);
+diff -Naur gcc-4.9.4-pure/gcc/ipa-profile.c gcc-4.9.4/gcc/ipa-profile.c
+--- gcc-4.9.4-pure/gcc/ipa-profile.c	2014-01-02 17:23:26.000000000 -0500
++++ gcc-4.9.4/gcc/ipa-profile.c	2022-02-13 20:09:24.489397000 -0500
+@@ -163,7 +163,7 @@
+     {
+       cumulated_time += histogram[i]->count * histogram[i]->time;
+       cumulated_size += histogram[i]->size;
+-      fprintf (file, "  "HOST_WIDEST_INT_PRINT_DEC": time:%i (%2.2f) size:%i (%2.2f)\n",
++      fprintf (file, "  " HOST_WIDEST_INT_PRINT_DEC ": time:%i (%2.2f) size:%i (%2.2f)\n",
+ 	       (HOST_WIDEST_INT) histogram[i]->count,
+ 	       histogram[i]->time,
+ 	       cumulated_time * 100.0 / overall_time,
+@@ -516,7 +516,7 @@
+ 	{
+ 	  gcov_type min, cumulated_time = 0, cumulated_size = 0;
+ 
+-	  fprintf (dump_file, "Overall time: "HOST_WIDEST_INT_PRINT_DEC"\n", 
++	  fprintf (dump_file, "Overall time: " HOST_WIDEST_INT_PRINT_DEC "\n", 
+ 		   (HOST_WIDEST_INT)overall_time);
+ 	  min = get_hot_bb_threshold ();
+           for (i = 0; i < (int)histogram.length () && histogram[i]->count >= min;
+@@ -525,7 +525,7 @@
+ 	      cumulated_time += histogram[i]->count * histogram[i]->time;
+ 	      cumulated_size += histogram[i]->size;
+ 	    }
+-	  fprintf (dump_file, "GCOV min count: "HOST_WIDEST_INT_PRINT_DEC
++	  fprintf (dump_file, "GCOV min count: " HOST_WIDEST_INT_PRINT_DEC
+ 		   " Time:%3.2f%% Size:%3.2f%%\n", 
+ 		   (HOST_WIDEST_INT)min,
+ 		   cumulated_time * 100.0 / overall_time,
+@@ -551,7 +551,7 @@
+ 	      cumulated_time += histogram[i]->count * histogram[i]->time;
+ 	      cumulated_size += histogram[i]->size;
+ 	    }
+-	  fprintf (dump_file, "Determined min count: "HOST_WIDEST_INT_PRINT_DEC
++	  fprintf (dump_file, "Determined min count: " HOST_WIDEST_INT_PRINT_DEC
+ 		   " Time:%3.2f%% Size:%3.2f%%\n", 
+ 		   (HOST_WIDEST_INT)threshold,
+ 		   cumulated_time * 100.0 / overall_time,
+diff -Naur gcc-4.9.4-pure/gcc/ipa-prop.c gcc-4.9.4/gcc/ipa-prop.c
+--- gcc-4.9.4-pure/gcc/ipa-prop.c	2016-05-19 11:19:59.000000000 -0400
++++ gcc-4.9.4/gcc/ipa-prop.c	2022-02-13 20:09:24.499397600 -0500
+@@ -244,7 +244,7 @@
+ 	{
+ 	  fprintf (f, "KNOWN TYPE: base  ");
+ 	  print_generic_expr (f, jump_func->value.known_type.base_type, 0);
+-	  fprintf (f, ", offset "HOST_WIDE_INT_PRINT_DEC", component ",
++	  fprintf (f, ", offset " HOST_WIDE_INT_PRINT_DEC ", component ",
+ 		   jump_func->value.known_type.offset);
+ 	  print_generic_expr (f, jump_func->value.known_type.component_type, 0);
+ 	  fprintf (f, "\n");
+@@ -284,7 +284,7 @@
+       else if (type == IPA_JF_ANCESTOR)
+ 	{
+ 	  fprintf (f, "ANCESTOR: ");
+-	  fprintf (f, "%d, offset "HOST_WIDE_INT_PRINT_DEC", ",
++	  fprintf (f, "%d, offset " HOST_WIDE_INT_PRINT_DEC ", ",
+ 		   jump_func->value.ancestor.formal_id,
+ 		   jump_func->value.ancestor.offset);
+ 	  print_generic_expr (f, jump_func->value.ancestor.type, 0);
+diff -Naur gcc-4.9.4-pure/gcc/ipa-pure-const.c gcc-4.9.4/gcc/ipa-pure-const.c
+--- gcc-4.9.4-pure/gcc/ipa-pure-const.c	2014-11-12 18:18:47.000000000 -0500
++++ gcc-4.9.4/gcc/ipa-pure-const.c	2022-02-13 20:09:24.190379900 -0500
+@@ -452,6 +452,8 @@
+ 	  *looping = true;
+ 	  *state = IPA_CONST;
+ 	  return true;
++	default:
++	  break;
+       }
+   return false;
+ }
+@@ -1285,6 +1287,7 @@
+ 		    fprintf (dump_file, "    global var write\n");
+ 		  break;
+ 		case IPA_REF_ADDR:
++		case IPA_REF_ALIAS:
+ 		  break;
+ 		}
+ 	      better_state (&ref_state, &ref_looping,
+diff -Naur gcc-4.9.4-pure/gcc/ipa-reference.c gcc-4.9.4/gcc/ipa-reference.c
+--- gcc-4.9.4-pure/gcc/ipa-reference.c	2014-01-02 17:23:26.000000000 -0500
++++ gcc-4.9.4/gcc/ipa-reference.c	2022-02-13 20:09:24.649406200 -0500
+@@ -483,6 +483,8 @@
+ 	  break;
+ 	case IPA_REF_ADDR:
+ 	  break;
++	default:
++	  gcc_unreachable ();
+ 	}
+     }
+ 
+diff -Naur gcc-4.9.4-pure/gcc/ipa.c gcc-4.9.4/gcc/ipa.c
+--- gcc-4.9.4-pure/gcc/ipa.c	2015-02-04 18:36:22.000000000 -0500
++++ gcc-4.9.4/gcc/ipa.c	2022-02-13 20:09:24.199380500 -0500
+@@ -672,6 +672,8 @@
+ 	    case IPA_REF_STORE:
+ 	      written = true;
+ 	      break;
++	    case IPA_REF_ALIAS:
++	      break;
+ 	    }
+ 	if (TREE_ADDRESSABLE (vnode->decl) && !address_taken)
+ 	  {
+diff -Naur gcc-4.9.4-pure/gcc/ira-color.c gcc-4.9.4/gcc/ira-color.c
+--- gcc-4.9.4-pure/gcc/ira-color.c	2014-03-26 02:46:27.000000000 -0400
++++ gcc-4.9.4/gcc/ira-color.c	2022-02-13 20:09:24.209381000 -0500
+@@ -3851,7 +3851,7 @@
+   slot_num2 = -ALLOCNO_HARD_REGNO (a2);
+   if ((diff = slot_num1 - slot_num2) != 0)
+     return (frame_pointer_needed
+-	    || !FRAME_GROWS_DOWNWARD == STACK_GROWS_DOWNWARD ? diff : -diff);
++	    || (!FRAME_GROWS_DOWNWARD) == STACK_GROWS_DOWNWARD ? diff : -diff);
+   total_size1 = MAX (PSEUDO_REGNO_BYTES (regno1),
+ 		     regno_max_ref_width[regno1]);
+   total_size2 = MAX (PSEUDO_REGNO_BYTES (regno2),
+diff -Naur gcc-4.9.4-pure/gcc/loop-iv.c gcc-4.9.4/gcc/loop-iv.c
+--- gcc-4.9.4-pure/gcc/loop-iv.c	2014-01-17 05:47:59.000000000 -0500
++++ gcc-4.9.4/gcc/loop-iv.c	2022-02-13 20:09:24.508398100 -0500
+@@ -2297,7 +2297,7 @@
+   if (andmax)
+     nmax = MIN (nmax, andmax);
+   if (dump_file)
+-    fprintf (dump_file, ";; Determined upper bound "HOST_WIDEST_INT_PRINT_DEC".\n",
++    fprintf (dump_file, ";; Determined upper bound " HOST_WIDEST_INT_PRINT_DEC ".\n",
+ 	     nmax);
+   return nmax;
+ }
+diff -Naur gcc-4.9.4-pure/gcc/lra-constraints.c gcc-4.9.4/gcc/lra-constraints.c
+--- gcc-4.9.4-pure/gcc/lra-constraints.c	2015-11-26 17:13:36.000000000 -0500
++++ gcc-4.9.4/gcc/lra-constraints.c	2022-02-13 20:09:24.659406800 -0500
+@@ -3967,12 +3967,12 @@
+   if (regno < FIRST_PSEUDO_REGISTER)
+     return false;
+ 
+-    EXECUTE_IF_SET_IN_BITMAP (&lra_reg_info[regno].insn_bitmap, 0, uid, bi)
+-      if (bb == NULL)
+-	bb = BLOCK_FOR_INSN (lra_insn_recog_data[uid]->insn);
+-      else if (BLOCK_FOR_INSN (lra_insn_recog_data[uid]->insn) != bb)
+-	return true;
+-    return false;
++  EXECUTE_IF_SET_IN_BITMAP (&lra_reg_info[regno].insn_bitmap, 0, uid, bi)
++    if (bb == NULL)
++      bb = BLOCK_FOR_INSN (lra_insn_recog_data[uid]->insn);
++    else if (BLOCK_FOR_INSN (lra_insn_recog_data[uid]->insn) != bb)
++      return true;
++  return false;
+ }
+ 
+ /* Return true if LIST contains a deleted insn.  */
+diff -Naur gcc-4.9.4-pure/gcc/lra-spills.c gcc-4.9.4/gcc/lra-spills.c
+--- gcc-4.9.4-pure/gcc/lra-spills.c	2014-01-02 17:23:26.000000000 -0500
++++ gcc-4.9.4/gcc/lra-spills.c	2022-02-13 20:09:24.669407300 -0500
+@@ -237,7 +237,7 @@
+   slot_num2 = pseudo_slots[regno2].slot_num;
+   if ((diff = slot_num1 - slot_num2) != 0)
+     return (frame_pointer_needed
+-	    || !FRAME_GROWS_DOWNWARD == STACK_GROWS_DOWNWARD ? diff : -diff);
++	    || (!FRAME_GROWS_DOWNWARD) == STACK_GROWS_DOWNWARD ? diff : -diff);
+   total_size1 = GET_MODE_SIZE (lra_reg_info[regno1].biggest_mode);
+   total_size2 = GET_MODE_SIZE (lra_reg_info[regno2].biggest_mode);
+   if ((diff = total_size2 - total_size1) != 0)
+diff -Naur gcc-4.9.4-pure/gcc/lto-streamer-in.c gcc-4.9.4/gcc/lto-streamer-in.c
+--- gcc-4.9.4-pure/gcc/lto-streamer-in.c	2014-04-03 10:27:02.000000000 -0400
++++ gcc-4.9.4/gcc/lto-streamer-in.c	2022-02-13 20:09:24.732410900 -0500
+@@ -103,7 +103,7 @@
+ lto_input_data_block (struct lto_input_block *ib, void *addr, size_t length)
+ {
+   size_t i;
+-  unsigned char *const buffer = (unsigned char *const) addr;
++  unsigned char *const buffer = (unsigned char *) addr;
+ 
+   for (i = 0; i < length; i++)
+     buffer[i] = streamer_read_uchar (ib);
+diff -Naur gcc-4.9.4-pure/gcc/omp-low.c gcc-4.9.4/gcc/omp-low.c
+--- gcc-4.9.4-pure/gcc/omp-low.c	2016-07-19 05:14:03.000000000 -0400
++++ gcc-4.9.4/gcc/omp-low.c	2022-02-13 20:09:24.222381800 -0500
+@@ -1826,18 +1826,20 @@
+ 
+   if (scan_array_reductions)
+     for (c = clauses; c; c = OMP_CLAUSE_CHAIN (c))
+-      if (OMP_CLAUSE_CODE (c) == OMP_CLAUSE_REDUCTION
+-	  && OMP_CLAUSE_REDUCTION_PLACEHOLDER (c))
+-	{
+-	  scan_omp (&OMP_CLAUSE_REDUCTION_GIMPLE_INIT (c), ctx);
+-	  scan_omp (&OMP_CLAUSE_REDUCTION_GIMPLE_MERGE (c), ctx);
+-	}
+-      else if (OMP_CLAUSE_CODE (c) == OMP_CLAUSE_LASTPRIVATE
+-	       && OMP_CLAUSE_LASTPRIVATE_GIMPLE_SEQ (c))
+-	scan_omp (&OMP_CLAUSE_LASTPRIVATE_GIMPLE_SEQ (c), ctx);
+-      else if (OMP_CLAUSE_CODE (c) == OMP_CLAUSE_LINEAR
+-	       && OMP_CLAUSE_LINEAR_GIMPLE_SEQ (c))
+-	scan_omp (&OMP_CLAUSE_LINEAR_GIMPLE_SEQ (c), ctx);
++      {
++        if (OMP_CLAUSE_CODE (c) == OMP_CLAUSE_REDUCTION
++            && OMP_CLAUSE_REDUCTION_PLACEHOLDER (c))
++          {
++            scan_omp (&OMP_CLAUSE_REDUCTION_GIMPLE_INIT (c), ctx);
++            scan_omp (&OMP_CLAUSE_REDUCTION_GIMPLE_MERGE (c), ctx);
++          }
++        else if (OMP_CLAUSE_CODE (c) == OMP_CLAUSE_LASTPRIVATE
++                 && OMP_CLAUSE_LASTPRIVATE_GIMPLE_SEQ (c))
++          scan_omp (&OMP_CLAUSE_LASTPRIVATE_GIMPLE_SEQ (c), ctx);
++        else if (OMP_CLAUSE_CODE (c) == OMP_CLAUSE_LINEAR
++                 && OMP_CLAUSE_LINEAR_GIMPLE_SEQ (c))
++          scan_omp (&OMP_CLAUSE_LINEAR_GIMPLE_SEQ (c), ctx);
++      }
+ }
+ 
+ /* Create a new name for omp child function.  Returns an identifier.  */
+diff -Naur gcc-4.9.4-pure/gcc/passes.c gcc-4.9.4/gcc/passes.c
+--- gcc-4.9.4-pure/gcc/passes.c	2016-03-21 13:17:16.000000000 -0400
++++ gcc-4.9.4/gcc/passes.c	2022-02-13 20:09:24.235382500 -0500
+@@ -654,7 +654,7 @@
+ {
+   char *dot_name, *flag_name, *glob_name;
+   const char *name, *full_name, *prefix;
+-  char num[10];
++  char num[16];
+   int flags, id;
+   int optgroup_flags = OPTGROUP_NONE;
+   gcc::dump_manager *dumps = m_ctxt->get_dumps ();
+diff -Naur gcc-4.9.4-pure/gcc/predict.c gcc-4.9.4/gcc/predict.c
+--- gcc-4.9.4-pure/gcc/predict.c	2014-03-18 07:31:04.000000000 -0400
++++ gcc-4.9.4/gcc/predict.c	2022-02-13 20:09:24.245383100 -0500
+@@ -1923,6 +1923,8 @@
+ 		if (predictor)
+ 		  *predictor = PRED_COMPARE_AND_SWAP;
+ 		return boolean_true_node;
++	      default:
++		break;
+ 	    }
+ 	}
+ 
+diff -Naur gcc-4.9.4-pure/gcc/print-tree.c gcc-4.9.4/gcc/print-tree.c
+--- gcc-4.9.4-pure/gcc/print-tree.c	2014-01-02 17:23:26.000000000 -0500
++++ gcc-4.9.4/gcc/print-tree.c	2022-02-13 20:09:24.254383600 -0500
+@@ -712,7 +712,7 @@
+ 	  i = 0;
+ 	  FOR_EACH_CALL_EXPR_ARG (arg, iter, node)
+ 	    {
+-	      char temp[10];
++	      char temp[32];
+ 	      sprintf (temp, "arg %d", i);
+ 	      print_node (file, temp, arg, indent + 4);
+ 	      i++;
+@@ -724,7 +724,7 @@
+ 
+ 	  for (i = 0; i < len; i++)
+ 	    {
+-	      char temp[10];
++	      char temp[32];
+ 
+ 	      sprintf (temp, "arg %d", i);
+ 	      print_node (file, temp, TREE_OPERAND (node, i), indent + 4);
+@@ -793,7 +793,7 @@
+ 
+ 	case VECTOR_CST:
+ 	  {
+-	    char buf[10];
++	    char buf[32];
+ 	    unsigned i;
+ 
+ 	    for (i = 0; i < VECTOR_CST_NELTS (node); ++i)
+@@ -841,7 +841,7 @@
+ 	  for (i = 0; i < len; i++)
+ 	    if (TREE_VEC_ELT (node, i))
+ 	      {
+-		char temp[10];
++		char temp[32];
+ 		sprintf (temp, "elt %d", i);
+ 		print_node (file, temp, TREE_VEC_ELT (node, i), indent + 4);
+ 	      }
+diff -Naur gcc-4.9.4-pure/gcc/profile.c gcc-4.9.4/gcc/profile.c
+--- gcc-4.9.4-pure/gcc/profile.c	2014-02-01 03:40:31.000000000 -0500
++++ gcc-4.9.4/gcc/profile.c	2022-02-13 20:09:24.517398600 -0500
+@@ -318,7 +318,7 @@
+ 	      if (dump_file)
+ 		{
+ 		  fprintf (dump_file,
+-		  	   "Edge %i->%i is inconsistent, count"HOST_WIDEST_INT_PRINT_DEC,
++		  	   "Edge %i->%i is inconsistent, count" HOST_WIDEST_INT_PRINT_DEC,
+ 			   e->src->index, e->dest->index, e->count);
+ 		  dump_bb (dump_file, e->src, 0, TDF_DETAILS);
+ 		  dump_bb (dump_file, e->dest, 0, TDF_DETAILS);
+diff -Naur gcc-4.9.4-pure/gcc/sched-int.h gcc-4.9.4/gcc/sched-int.h
+--- gcc-4.9.4-pure/gcc/sched-int.h	2014-02-18 00:41:29.000000000 -0500
++++ gcc-4.9.4/gcc/sched-int.h	2022-02-13 20:09:24.525399100 -0500
+@@ -245,7 +245,7 @@
+   int cost:20;
+ };
+ 
+-#define UNKNOWN_DEP_COST (-1<<19)
++#define UNKNOWN_DEP_COST ((int) ((unsigned int) -1 << 19))
+ 
+ typedef struct _dep dep_def;
+ typedef dep_def *dep_t;
+diff -Naur gcc-4.9.4-pure/gcc/sel-sched-ir.c gcc-4.9.4/gcc/sel-sched-ir.c
+--- gcc-4.9.4-pure/gcc/sel-sched-ir.c	2014-06-03 06:08:58.000000000 -0400
++++ gcc-4.9.4/gcc/sel-sched-ir.c	2022-02-13 20:09:24.264384200 -0500
+@@ -704,89 +704,89 @@
+ 	  FENCE_ISSUE_MORE (f) = issue_rate;
+         }
+       else
+-        if (candidate->src == BLOCK_FOR_INSN (last_scheduled_insn))
+-          {
+-            /* Would be weird if same insn is successor of several fallthrough
+-               edges.  */
+-            gcc_assert (BLOCK_FOR_INSN (insn)->prev_bb
+-                        != BLOCK_FOR_INSN (last_scheduled_insn_old));
+-
+-            state_free (FENCE_STATE (f));
+-            FENCE_STATE (f) = state;
+-
+-            delete_target_context (FENCE_TC (f));
+-            FENCE_TC (f) = tc;
+-
+-            FENCE_LAST_SCHEDULED_INSN (f) = last_scheduled_insn;
+-	    FENCE_ISSUE_MORE (f) = issue_more;
+-          }
+-        else
+-          {
+-            /* Leave STATE, TC and LAST_SCHEDULED_INSN fields untouched.  */
+-            state_free (state);
+-            delete_target_context (tc);
+-
+-            gcc_assert (BLOCK_FOR_INSN (insn)->prev_bb
+-                        != BLOCK_FOR_INSN (last_scheduled_insn));
+-          }
+-
+-        /* Find edge of first predecessor (last_scheduled_insn_old->insn).  */
+-        FOR_EACH_SUCC_1 (succ, si, last_scheduled_insn_old,
+-                         SUCCS_NORMAL | SUCCS_SKIP_TO_LOOP_EXITS)
+-          {
+-            if (succ == insn)
+-              {
+-                /* No same successor allowed from several edges.  */
+-                gcc_assert (!edge_old);
+-                edge_old = si.e1;
+-              }
+-          }
+-        /* Find edge of second predecessor (last_scheduled_insn->insn).  */
+-        FOR_EACH_SUCC_1 (succ, si, last_scheduled_insn,
+-                         SUCCS_NORMAL | SUCCS_SKIP_TO_LOOP_EXITS)
+-          {
+-            if (succ == insn)
+-              {
+-                /* No same successor allowed from several edges.  */
+-                gcc_assert (!edge_new);
+-                edge_new = si.e1;
+-              }
+-          }
+-
+-        /* Check if we can choose most probable predecessor.  */
+-        if (edge_old == NULL || edge_new == NULL)
+-          {
+-            reset_deps_context (FENCE_DC (f));
+-            delete_deps_context (dc);
+-            vec_free (executing_insns);
+-            free (ready_ticks);
+-
+-            FENCE_CYCLE (f) = MAX (FENCE_CYCLE (f), cycle);
+-            if (FENCE_EXECUTING_INSNS (f))
+-              FENCE_EXECUTING_INSNS (f)->block_remove (0,
+-                                FENCE_EXECUTING_INSNS (f)->length ());
+-            if (FENCE_READY_TICKS (f))
+-              memset (FENCE_READY_TICKS (f), 0, FENCE_READY_TICKS_SIZE (f));
+-          }
+-        else
+-          if (edge_new->probability > edge_old->probability)
++      if (candidate->src == BLOCK_FOR_INSN (last_scheduled_insn))
++        {
++          /* Would be weird if same insn is successor of several fallthrough
++             edges.  */
++          gcc_assert (BLOCK_FOR_INSN (insn)->prev_bb
++                      != BLOCK_FOR_INSN (last_scheduled_insn_old));
++
++          state_free (FENCE_STATE (f));
++          FENCE_STATE (f) = state;
++
++          delete_target_context (FENCE_TC (f));
++          FENCE_TC (f) = tc;
++
++          FENCE_LAST_SCHEDULED_INSN (f) = last_scheduled_insn;
++          FENCE_ISSUE_MORE (f) = issue_more;
++        }
++      else
++        {
++          /* Leave STATE, TC and LAST_SCHEDULED_INSN fields untouched.  */
++          state_free (state);
++          delete_target_context (tc);
++
++          gcc_assert (BLOCK_FOR_INSN (insn)->prev_bb
++                      != BLOCK_FOR_INSN (last_scheduled_insn));
++        }
++
++      /* Find edge of first predecessor (last_scheduled_insn_old->insn).  */
++      FOR_EACH_SUCC_1 (succ, si, last_scheduled_insn_old,
++                       SUCCS_NORMAL | SUCCS_SKIP_TO_LOOP_EXITS)
++        {
++          if (succ == insn)
+             {
+-              delete_deps_context (FENCE_DC (f));
+-              FENCE_DC (f) = dc;
+-              vec_free (FENCE_EXECUTING_INSNS (f));
+-              FENCE_EXECUTING_INSNS (f) = executing_insns;
+-              free (FENCE_READY_TICKS (f));
+-              FENCE_READY_TICKS (f) = ready_ticks;
+-              FENCE_READY_TICKS_SIZE (f) = ready_ticks_size;
+-              FENCE_CYCLE (f) = cycle;
++              /* No same successor allowed from several edges.  */
++              gcc_assert (!edge_old);
++              edge_old = si.e1;
+             }
+-          else
++        }
++      /* Find edge of second predecessor (last_scheduled_insn->insn).  */
++      FOR_EACH_SUCC_1 (succ, si, last_scheduled_insn,
++                       SUCCS_NORMAL | SUCCS_SKIP_TO_LOOP_EXITS)
++        {
++          if (succ == insn)
+             {
+-              /* Leave DC and CYCLE untouched.  */
+-              delete_deps_context (dc);
+-              vec_free (executing_insns);
+-              free (ready_ticks);
++              /* No same successor allowed from several edges.  */
++              gcc_assert (!edge_new);
++              edge_new = si.e1;
+             }
++        }
++
++      /* Check if we can choose most probable predecessor.  */
++      if (edge_old == NULL || edge_new == NULL)
++        {
++          reset_deps_context (FENCE_DC (f));
++          delete_deps_context (dc);
++          vec_free (executing_insns);
++          free (ready_ticks);
++
++          FENCE_CYCLE (f) = MAX (FENCE_CYCLE (f), cycle);
++          if (FENCE_EXECUTING_INSNS (f))
++            FENCE_EXECUTING_INSNS (f)->block_remove (0,
++                              FENCE_EXECUTING_INSNS (f)->length ());
++          if (FENCE_READY_TICKS (f))
++            memset (FENCE_READY_TICKS (f), 0, FENCE_READY_TICKS_SIZE (f));
++        }
++      else
++      if (edge_new->probability > edge_old->probability)
++        {
++          delete_deps_context (FENCE_DC (f));
++          FENCE_DC (f) = dc;
++          vec_free (FENCE_EXECUTING_INSNS (f));
++          FENCE_EXECUTING_INSNS (f) = executing_insns;
++          free (FENCE_READY_TICKS (f));
++          FENCE_READY_TICKS (f) = ready_ticks;
++          FENCE_READY_TICKS_SIZE (f) = ready_ticks_size;
++          FENCE_CYCLE (f) = cycle;
++        }
++      else
++        {
++          /* Leave DC and CYCLE untouched.  */
++          delete_deps_context (dc);
++          vec_free (executing_insns);
++          free (ready_ticks);
++        }
+     }
+ 
+   /* Fill remaining invariant fields.  */
+diff -Naur gcc-4.9.4-pure/gcc/stor-layout.c gcc-4.9.4/gcc/stor-layout.c
+--- gcc-4.9.4-pure/gcc/stor-layout.c	2014-10-15 06:27:26.000000000 -0400
++++ gcc-4.9.4/gcc/stor-layout.c	2022-02-13 20:09:24.534399600 -0500
+@@ -236,7 +236,7 @@
+   fntype = build_function_type (return_type, param_type_list);
+ 
+   /* Build the function declaration.  */
+-  sprintf (buf, "SZ"HOST_WIDE_INT_PRINT_UNSIGNED, fnno++);
++  sprintf (buf, "SZ" HOST_WIDE_INT_PRINT_UNSIGNED, fnno++);
+   fnname = get_file_function_name (buf);
+   fndecl = build_decl (input_location, FUNCTION_DECL, fnname, fntype);
+   for (t = param_decl_list; t; t = DECL_CHAIN (t))
+@@ -2530,7 +2530,7 @@
+ 			      (precision - HOST_BITS_PER_WIDE_INT > 0
+ 			       ? 0
+ 			       : HOST_WIDE_INT_M1U << (precision - 1)),
+-			      (((HOST_WIDE_INT) (-1)
++			      ((HOST_WIDE_INT_M1U
+ 				<< (precision - HOST_BITS_PER_WIDE_INT - 1 > 0
+ 				    ? precision - HOST_BITS_PER_WIDE_INT - 1
+ 				    : 0))));
+diff -Naur gcc-4.9.4-pure/gcc/system.h gcc-4.9.4/gcc/system.h
+--- gcc-4.9.4-pure/gcc/system.h	2014-01-02 17:23:26.000000000 -0500
++++ gcc-4.9.4/gcc/system.h	2022-02-13 20:11:54.809548300 -0500
+@@ -292,7 +292,7 @@
+ /* The outer cast is needed to work around a bug in Cray C 5.0.3.0.
+    It is necessary at least when t == time_t.  */
+ #define INTTYPE_MINIMUM(t) ((t) (INTTYPE_SIGNED (t) \
+-                             ? ~ (t) 0 << (sizeof (t) * CHAR_BIT - 1) : (t) 0))
++			    ? (t) 1 << (sizeof (t) * CHAR_BIT - 1) : (t) 0))
+ #define INTTYPE_MAXIMUM(t) ((t) (~ (t) 0 - INTTYPE_MINIMUM (t)))
+ 
+ /* Use that infrastructure to provide a few constants.  */
+diff -Naur gcc-4.9.4-pure/gcc/toplev.c gcc-4.9.4/gcc/toplev.c
+--- gcc-4.9.4-pure/gcc/toplev.c	2014-10-16 09:49:11.000000000 -0400
++++ gcc-4.9.4/gcc/toplev.c	2022-02-13 20:09:24.562401200 -0500
+@@ -1041,7 +1041,7 @@
+ 	}
+ 
+       fprintf (stack_usage_file,
+-	       "%s:%d:%d:%s\t"HOST_WIDE_INT_PRINT_DEC"\t%s\n",
++	       "%s:%d:%d:%s\t" HOST_WIDE_INT_PRINT_DEC "\t%s\n",
+ 	       lbasename (loc.file),
+ 	       loc.line,
+ 	       loc.column,
+diff -Naur gcc-4.9.4-pure/gcc/tree-parloops.c gcc-4.9.4/gcc/tree-parloops.c
+--- gcc-4.9.4-pure/gcc/tree-parloops.c	2014-01-02 17:23:26.000000000 -0500
++++ gcc-4.9.4/gcc/tree-parloops.c	2022-02-13 20:09:24.274384700 -0500
+@@ -765,14 +765,16 @@
+ 
+   FOR_EACH_VEC_ELT (body, i, bb)
+     if (bb != entry_bb && bb != exit_bb)
+-      for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
+-	if (is_gimple_debug (gsi_stmt (gsi)))
+-	  {
+-	    if (gimple_debug_bind_p (gsi_stmt (gsi)))
+-	      has_debug_stmt = true;
+-	  }
+-	else
+-	  eliminate_local_variables_stmt (entry, &gsi, decl_address);
++      {
++        for (gsi = gsi_start_bb (bb); !gsi_end_p (gsi); gsi_next (&gsi))
++	  if (is_gimple_debug (gsi_stmt (gsi)))
++	    {
++	      if (gimple_debug_bind_p (gsi_stmt (gsi)))
++	        has_debug_stmt = true;
++	    }
++	  else
++	    eliminate_local_variables_stmt (entry, &gsi, decl_address);
++      }
+ 
+   if (has_debug_stmt)
+     FOR_EACH_VEC_ELT (body, i, bb)
+diff -Naur gcc-4.9.4-pure/gcc/tree-ssa-forwprop.c gcc-4.9.4/gcc/tree-ssa-forwprop.c
+--- gcc-4.9.4-pure/gcc/tree-ssa-forwprop.c	2015-06-18 10:03:50.000000000 -0400
++++ gcc-4.9.4/gcc/tree-ssa-forwprop.c	2022-02-13 20:09:24.678407900 -0500
+@@ -1858,9 +1858,9 @@
+ 	}
+     }
+   else if (grhs_class == GIMPLE_TERNARY_RHS
+-	   || GIMPLE_BINARY_RHS
+-	   || GIMPLE_UNARY_RHS
+-	   || GIMPLE_SINGLE_RHS)
++	   || grhs_class == GIMPLE_BINARY_RHS
++	   || grhs_class == GIMPLE_UNARY_RHS
++	   || grhs_class == GIMPLE_SINGLE_RHS)
+     extract_ops_from_tree_1 (name, &code1, &arg11, &arg21, &arg31);
+ 
+   *code = code1;
+diff -Naur gcc-4.9.4-pure/gcc/tree-ssa-reassoc.c gcc-4.9.4/gcc/tree-ssa-reassoc.c
+--- gcc-4.9.4-pure/gcc/tree-ssa-reassoc.c	2016-07-07 17:46:16.000000000 -0400
++++ gcc-4.9.4/gcc/tree-ssa-reassoc.c	2022-02-13 20:09:24.572401800 -0500
+@@ -4245,7 +4245,7 @@
+ 		      if (elt < vec_len - 1)
+ 			fputs (" * ", dump_file);
+ 		    }
+-		  fprintf (dump_file, ")^"HOST_WIDE_INT_PRINT_DEC"\n",
++		  fprintf (dump_file, ")^" HOST_WIDE_INT_PRINT_DEC "\n",
+ 			   power);
+ 		}
+ 	    }
+@@ -4279,7 +4279,7 @@
+ 		  if (elt < vec_len - 1)
+ 		    fputs (" * ", dump_file);
+ 		}
+-	      fprintf (dump_file, ")^"HOST_WIDE_INT_PRINT_DEC"\n", power);
++	      fprintf (dump_file, ")^" HOST_WIDE_INT_PRINT_DEC "\n", power);
+ 	    }
+ 
+ 	  reassociate_stats.pows_created++;
+diff -Naur gcc-4.9.4-pure/gcc/tree-ssa-tail-merge.c gcc-4.9.4/gcc/tree-ssa-tail-merge.c
+--- gcc-4.9.4-pure/gcc/tree-ssa-tail-merge.c	2016-01-25 09:21:03.000000000 -0500
++++ gcc-4.9.4/gcc/tree-ssa-tail-merge.c	2022-02-13 20:09:24.581402300 -0500
+@@ -360,7 +360,7 @@
+       stmt = gsi_stmt (*gsi);
+       if (!stmt_local_def (stmt))
+ 	return;
+-	gsi_next_nondebug (gsi);
++      gsi_next_nondebug (gsi);
+     }
+ }
+ 
+diff -Naur gcc-4.9.4-pure/gcc/tree-vect-loop.c gcc-4.9.4/gcc/tree-vect-loop.c
+--- gcc-4.9.4-pure/gcc/tree-vect-loop.c	2015-11-10 09:40:43.000000000 -0500
++++ gcc-4.9.4/gcc/tree-vect-loop.c	2022-02-13 20:09:24.284385300 -0500
+@@ -4985,7 +4985,7 @@
+ 	    dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
+ 			     "unsupported condition in reduction\n");
+ 
+-            return false;
++          return false;
+         }
+     }
+   else
+diff -Naur gcc-4.9.4-pure/gcc/tree-vect-stmts.c gcc-4.9.4/gcc/tree-vect-stmts.c
+--- gcc-4.9.4-pure/gcc/tree-vect-stmts.c	2015-06-16 10:56:50.000000000 -0400
++++ gcc-4.9.4/gcc/tree-vect-stmts.c	2022-02-13 20:09:24.591402900 -0500
+@@ -4392,7 +4392,7 @@
+                         dump_printf_loc (MSG_MISSED_OPTIMIZATION, vect_location,
+                                          "unusable type for last operand in"
+                                          " vector/vector shift/rotate.\n");
+-			return false;
++		      return false;
+ 		    }
+ 		  if (vec_stmt && !slp_node)
+ 		    {
+diff -Naur gcc-4.9.4-pure/gcc/tree-vrp.c gcc-4.9.4/gcc/tree-vrp.c
+--- gcc-4.9.4-pure/gcc/tree-vrp.c	2016-02-11 04:22:21.000000000 -0500
++++ gcc-4.9.4/gcc/tree-vrp.c	2022-02-13 20:09:24.604403600 -0500
+@@ -9750,13 +9750,13 @@
+ 	  || (vr_value[i]->type == VR_UNDEFINED))
+ 	continue;
+ 
+-	if ((TREE_CODE (vr_value[i]->min) == INTEGER_CST)
+-	    && (TREE_CODE (vr_value[i]->max) == INTEGER_CST)
+-	    && (vr_value[i]->type == VR_RANGE
+-		|| vr_value[i]->type == VR_ANTI_RANGE))
+-	  set_range_info (name, vr_value[i]->type,
+-			  tree_to_double_int (vr_value[i]->min),
+-			  tree_to_double_int (vr_value[i]->max));
++      if ((TREE_CODE (vr_value[i]->min) == INTEGER_CST)
++	  && (TREE_CODE (vr_value[i]->max) == INTEGER_CST)
++	  && (vr_value[i]->type == VR_RANGE
++	      || vr_value[i]->type == VR_ANTI_RANGE))
++	set_range_info (name, vr_value[i]->type,
++			tree_to_double_int (vr_value[i]->min),
++			tree_to_double_int (vr_value[i]->max));
+       }
+ 
+   /* Free allocated memory.  */
+diff -Naur gcc-4.9.4-pure/gcc/tree.c gcc-4.9.4/gcc/tree.c
+--- gcc-4.9.4-pure/gcc/tree.c	2015-10-27 12:58:19.000000000 -0400
++++ gcc-4.9.4/gcc/tree.c	2022-02-13 20:09:24.297386100 -0500
+@@ -8829,7 +8829,7 @@
+ 	    if (TREE_CODE (type) == QUAL_UNION_TYPE)
+ 	      RETURN_TRUE_IF_VAR (DECL_QUALIFIER (t));
+ 	  }
+-	break;
++      break;
+ 
+     case ARRAY_TYPE:
+       /* Do not call ourselves to avoid infinite recursion.  This is
+diff -Naur gcc-4.9.4-pure/gcc/value-prof.c gcc-4.9.4/gcc/value-prof.c
+--- gcc-4.9.4-pure/gcc/value-prof.c	2014-01-02 17:23:26.000000000 -0500
++++ gcc-4.9.4/gcc/value-prof.c	2022-02-13 20:09:24.614404200 -0500
+@@ -266,10 +266,10 @@
+ 	   unsigned int i;
+ 	   fprintf (dump_file, " [");
+            for (i = 0; i < hist->hdata.intvl.steps; i++)
+-	     fprintf (dump_file, " %d:"HOST_WIDEST_INT_PRINT_DEC,
++	     fprintf (dump_file, " %d:" HOST_WIDEST_INT_PRINT_DEC,
+ 		      hist->hdata.intvl.int_start + i,
+ 		      (HOST_WIDEST_INT) hist->hvalue.counters[i]);
+-	   fprintf (dump_file, " ] outside range:"HOST_WIDEST_INT_PRINT_DEC,
++	   fprintf (dump_file, " ] outside range:" HOST_WIDEST_INT_PRINT_DEC,
+ 		    (HOST_WIDEST_INT) hist->hvalue.counters[i]);
+ 	}
+       fprintf (dump_file, ".\n");
+@@ -279,8 +279,8 @@
+       fprintf (dump_file, "Pow2 counter ");
+       if (hist->hvalue.counters)
+ 	{
+-	   fprintf (dump_file, "pow2:"HOST_WIDEST_INT_PRINT_DEC
+-		    " nonpow2:"HOST_WIDEST_INT_PRINT_DEC,
++	   fprintf (dump_file, "pow2:" HOST_WIDEST_INT_PRINT_DEC
++		    " nonpow2:" HOST_WIDEST_INT_PRINT_DEC,
+ 		    (HOST_WIDEST_INT) hist->hvalue.counters[0],
+ 		    (HOST_WIDEST_INT) hist->hvalue.counters[1]);
+ 	}
+@@ -291,9 +291,9 @@
+       fprintf (dump_file, "Single value ");
+       if (hist->hvalue.counters)
+ 	{
+-	   fprintf (dump_file, "value:"HOST_WIDEST_INT_PRINT_DEC
+-		    " match:"HOST_WIDEST_INT_PRINT_DEC
+-		    " wrong:"HOST_WIDEST_INT_PRINT_DEC,
++	   fprintf (dump_file, "value:" HOST_WIDEST_INT_PRINT_DEC
++		    " match:" HOST_WIDEST_INT_PRINT_DEC
++		    " wrong:" HOST_WIDEST_INT_PRINT_DEC,
+ 		    (HOST_WIDEST_INT) hist->hvalue.counters[0],
+ 		    (HOST_WIDEST_INT) hist->hvalue.counters[1],
+ 		    (HOST_WIDEST_INT) hist->hvalue.counters[2]);
+@@ -305,8 +305,8 @@
+       fprintf (dump_file, "Average value ");
+       if (hist->hvalue.counters)
+ 	{
+-	   fprintf (dump_file, "sum:"HOST_WIDEST_INT_PRINT_DEC
+-		    " times:"HOST_WIDEST_INT_PRINT_DEC,
++	   fprintf (dump_file, "sum:" HOST_WIDEST_INT_PRINT_DEC
++		    " times:" HOST_WIDEST_INT_PRINT_DEC,
+ 		    (HOST_WIDEST_INT) hist->hvalue.counters[0],
+ 		    (HOST_WIDEST_INT) hist->hvalue.counters[1]);
+ 	}
+@@ -317,7 +317,7 @@
+       fprintf (dump_file, "IOR value ");
+       if (hist->hvalue.counters)
+ 	{
+-	   fprintf (dump_file, "ior:"HOST_WIDEST_INT_PRINT_DEC,
++	   fprintf (dump_file, "ior:" HOST_WIDEST_INT_PRINT_DEC,
+ 		    (HOST_WIDEST_INT) hist->hvalue.counters[0]);
+ 	}
+       fprintf (dump_file, ".\n");
+@@ -327,9 +327,9 @@
+       fprintf (dump_file, "Constant delta ");
+       if (hist->hvalue.counters)
+ 	{
+-	   fprintf (dump_file, "value:"HOST_WIDEST_INT_PRINT_DEC
+-		    " match:"HOST_WIDEST_INT_PRINT_DEC
+-		    " wrong:"HOST_WIDEST_INT_PRINT_DEC,
++	   fprintf (dump_file, "value:" HOST_WIDEST_INT_PRINT_DEC
++		    " match:" HOST_WIDEST_INT_PRINT_DEC
++		    " wrong:" HOST_WIDEST_INT_PRINT_DEC,
+ 		    (HOST_WIDEST_INT) hist->hvalue.counters[0],
+ 		    (HOST_WIDEST_INT) hist->hvalue.counters[1],
+ 		    (HOST_WIDEST_INT) hist->hvalue.counters[2]);
+@@ -340,9 +340,9 @@
+       fprintf (dump_file, "Indirect call ");
+       if (hist->hvalue.counters)
+ 	{
+-	   fprintf (dump_file, "value:"HOST_WIDEST_INT_PRINT_DEC
+-		    " match:"HOST_WIDEST_INT_PRINT_DEC
+-		    " all:"HOST_WIDEST_INT_PRINT_DEC,
++	   fprintf (dump_file, "value:" HOST_WIDEST_INT_PRINT_DEC
++		    " match:" HOST_WIDEST_INT_PRINT_DEC
++		    " all:" HOST_WIDEST_INT_PRINT_DEC,
+ 		    (HOST_WIDEST_INT) hist->hvalue.counters[0],
+ 		    (HOST_WIDEST_INT) hist->hvalue.counters[1],
+ 		    (HOST_WIDEST_INT) hist->hvalue.counters[2]);
+@@ -353,7 +353,7 @@
+       fprintf (dump_file, "Time profile ");
+       if (hist->hvalue.counters)
+       {
+-        fprintf (dump_file, "time:"HOST_WIDEST_INT_PRINT_DEC,
++        fprintf (dump_file, "time:" HOST_WIDEST_INT_PRINT_DEC,
+                  (HOST_WIDEST_INT) hist->hvalue.counters[0]);
+       }
+       fprintf (dump_file, ".\n");
+@@ -1533,8 +1533,8 @@
+       print_generic_expr (dump_file, direct_call->decl, TDF_SLIM);
+       fprintf (dump_file, " transformation on insn postponned to ipa-profile");
+       print_gimple_stmt (dump_file, stmt, 0, TDF_SLIM);
+-      fprintf (dump_file, "hist->count "HOST_WIDEST_INT_PRINT_DEC
+-	       " hist->all "HOST_WIDEST_INT_PRINT_DEC"\n", count, all);
++      fprintf (dump_file, "hist->count " HOST_WIDEST_INT_PRINT_DEC
++	       " hist->all " HOST_WIDEST_INT_PRINT_DEC "\n", count, all);
+     }
+ 
+   return true;
+@@ -1801,7 +1801,7 @@
+       count = histogram->hvalue.counters[0];
+       alignment = 1;
+       while (!(count & alignment)
+-	     && (alignment * 2 * BITS_PER_UNIT))
++	     && ((alignment * 2 * BITS_PER_UNIT) != 0))
+ 	alignment <<= 1;
+       *expected_align = alignment * BITS_PER_UNIT;
+       gimple_remove_histogram_value (cfun, stmt, histogram);
+diff -Naur gcc-4.9.4-pure/include/libiberty.h gcc-4.9.4/include/libiberty.h
+--- gcc-4.9.4-pure/include/libiberty.h	2014-01-21 10:09:10.000000000 -0500
++++ gcc-4.9.4/include/libiberty.h	2022-02-13 20:09:24.623404700 -0500
+@@ -660,7 +660,7 @@
+ # define ASTRDUP(X) \
+   (__extension__ ({ const char *const libiberty_optr = (X); \
+    const unsigned long libiberty_len = strlen (libiberty_optr) + 1; \
+-   char *const libiberty_nptr = (char *const) alloca (libiberty_len); \
++   char *const libiberty_nptr = (char *) alloca (libiberty_len); \
+    (char *) memcpy (libiberty_nptr, libiberty_optr, libiberty_len); }))
+ #else
+ # define alloca(x) C_alloca(x)
+diff -Naur gcc-4.9.4-pure/libcpp/include/cpplib.h gcc-4.9.4/libcpp/include/cpplib.h
+--- gcc-4.9.4-pure/libcpp/include/cpplib.h	2016-02-11 04:03:34.000000000 -0500
++++ gcc-4.9.4/libcpp/include/cpplib.h	2022-02-13 20:09:24.318387300 -0500
+@@ -153,6 +153,25 @@
+   TTYPE_TABLE
+   N_TTYPES,
+ 
++  /* A token type for keywords, as opposed to ordinary identifiers.  */
++  CPP_KEYWORD,
++
++  /* A token type for template-ids.  If a template-id is processed while
++     parsing tentatively, it is replaced with a CPP_TEMPLATE_ID token;
++     the value of the CPP_TEMPLATE_ID is whatever was returned by
++     cp_parser_template_id.  */
++  CPP_TEMPLATE_ID = (CPP_KEYWORD + 1),
++
++  /* A token type for nested-name-specifiers.  If a
++     nested-name-specifier is processed while parsing tentatively, it is
++     replaced with a CPP_NESTED_NAME_SPECIFIER token; the value of the
++     CPP_NESTED_NAME_SPECIFIER is whatever was returned by
++     cp_parser_nested_name_specifier_opt.  */
++  CPP_NESTED_NAME_SPECIFIER = (CPP_TEMPLATE_ID + 1),
++
++  /* A token type for pre-parsed C++0x decltype.  */
++  CPP_DECLTYPE = (CPP_NESTED_NAME_SPECIFIER + 1),
++
+   /* Positions in the table.  */
+   CPP_LAST_EQ        = CPP_LSHIFT,
+   CPP_FIRST_DIGRAPH  = CPP_HASH,
+diff -Naur gcc-4.9.4-pure/libcpp/pch.c gcc-4.9.4/libcpp/pch.c
+--- gcc-4.9.4-pure/libcpp/pch.c	2014-10-08 07:05:43.000000000 -0400
++++ gcc-4.9.4/libcpp/pch.c	2022-02-13 20:09:24.326387700 -0500
+@@ -713,7 +713,7 @@
+ 	cpp_warning_syshdr (r, CPP_W_INVALID_PCH,
+ 		            "%s: not used because `__COUNTER__' is invalid",
+ 		            name);
+-	goto fail;
++      goto fail;
+     }
+ 
+   /* We win!  */
+diff -Naur gcc-4.9.4-pure/libcpp/system.h gcc-4.9.4/libcpp/system.h
+--- gcc-4.9.4-pure/libcpp/system.h	2014-01-02 17:24:45.000000000 -0500
++++ gcc-4.9.4/libcpp/system.h	2022-02-13 20:09:24.334388200 -0500
+@@ -230,7 +230,7 @@
+ /* The outer cast is needed to work around a bug in Cray C 5.0.3.0.
+    It is necessary at least when t == time_t.  */
+ #define INTTYPE_MINIMUM(t) ((t) (INTTYPE_SIGNED (t) \
+-                             ? ~ (t) 0 << (sizeof(t) * CHAR_BIT - 1) : (t) 0))
++			    ? (t) 1 << (sizeof (t) * CHAR_BIT - 1) : (t) 0))
+ #define INTTYPE_MAXIMUM(t) ((t) (~ (t) 0 - INTTYPE_MINIMUM (t)))
+ 
+ /* Use that infrastructure to provide a few constants.  */
+diff -Naur gcc-4.9.4-pure/libgcc/libgcc2.c gcc-4.9.4/libgcc/libgcc2.c
+--- gcc-4.9.4-pure/libgcc/libgcc2.c	2014-01-02 17:25:22.000000000 -0500
++++ gcc-4.9.4/libgcc/libgcc2.c	2022-02-13 20:09:24.343388700 -0500
+@@ -2033,7 +2033,7 @@
+      are nonzero/zero, infinite/finite, and finite/infinite.  */
+   if (isnan (x) && isnan (y))
+     {
+-      if (c == 0.0 && d == 0.0 && (!isnan (a) || !isnan (b)))
++      if (c == 0.0f && d == 0.0f && (!isnan (a) || !isnan (b)))
+ 	{
+ 	  x = COPYSIGN (INFINITY, c) * a;
+ 	  y = COPYSIGN (INFINITY, c) * b;
+@@ -2049,8 +2049,8 @@
+ 	{
+ 	  c = COPYSIGN (isinf (c) ? 1 : 0, c);
+ 	  d = COPYSIGN (isinf (d) ? 1 : 0, d);
+-	  x = 0.0 * (a * c + b * d);
+-	  y = 0.0 * (b * c - a * d);
++	  x = 0.0f * (a * c + b * d);
++	  y = 0.0f * (b * c - a * d);
+ 	}
+     }
+ 
+diff -Naur gcc-4.9.4-pure/libiberty/pex-win32.c gcc-4.9.4/libiberty/pex-win32.c
+--- gcc-4.9.4-pure/libiberty/pex-win32.c	2012-07-26 19:18:47.000000000 -0400
++++ gcc-4.9.4/libiberty/pex-win32.c	2022-02-13 20:09:24.352389200 -0500
+@@ -738,7 +738,7 @@
+   OSVERSIONINFO version_info;
+   STARTUPINFO si;
+   PROCESS_INFORMATION pi;
+-  int orig_out, orig_in, orig_err;
++  int orig_out, orig_in, orig_err = 0;
+   BOOL separate_stderr = !(flags & PEX_STDERR_TO_STDOUT);
+ 
+   /* Ensure we have inheritable descriptors to pass to the child.  */
+diff -Naur gcc-4.9.4-pure/libiberty/strerror.c gcc-4.9.4/libiberty/strerror.c
+--- gcc-4.9.4-pure/libiberty/strerror.c	2005-03-27 20:28:01.000000000 -0500
++++ gcc-4.9.4/libiberty/strerror.c	2022-02-13 20:09:24.360389700 -0500
+@@ -469,8 +469,13 @@
+ 
+ #else
+ 
++
++#ifndef sys_nerr
+ extern int sys_nerr;
++#endif
++#ifndef sys_errlist
+ extern char *sys_errlist[];
++#endif
+ 
+ #endif
+ 
+diff -Naur gcc-4.9.4-pure/libiberty/waitpid.c gcc-4.9.4/libiberty/waitpid.c
+--- gcc-4.9.4-pure/libiberty/waitpid.c	2005-04-02 14:57:12.000000000 -0500
++++ gcc-4.9.4/libiberty/waitpid.c	2022-02-13 20:09:24.363389800 -0500
+@@ -23,6 +23,11 @@
+ #include <sys/wait.h>
+ #endif
+ 
++#ifdef __MINGW32__
++#include <process.h>
++#define wait(s)  _cwait(s,pid,_WAIT_CHILD)
++#endif
++
+ pid_t
+ waitpid (pid_t pid, int *stat_loc, int options ATTRIBUTE_UNUSED)
+ {
