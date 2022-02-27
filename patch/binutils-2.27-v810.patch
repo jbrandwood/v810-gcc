@@ -1360,8 +1360,8 @@ diff -Naur binutils-2.27-pure/bfd/elf32-v810.c binutils-2.27/bfd/elf32-v810.c
 +    case R_V810_ZDA_16_16_OFFSET:
 +      if (sym_sec == NULL)
 +	return bfd_reloc_undefined;
-+
-+      value -= sym_sec->output_section->vma;
++      /* Not on the V810, the PC-FX link script is correct! */
++      /* value -= sym_sec->output_section->vma; */
 +      break;
 +
 +    case R_V810_SDA_16_16_OFFSET:
@@ -6270,27 +6270,23 @@ diff -Naur binutils-2.27-pure/ld/configure.tgt binutils-2.27/ld/configure.tgt
 diff -Naur binutils-2.27-pure/ld/emulparams/v810.sh binutils-2.27/ld/emulparams/v810.sh
 --- binutils-2.27-pure/ld/emulparams/v810.sh	1969-12-31 19:00:00.000000000 -0500
 +++ binutils-2.27/ld/emulparams/v810.sh	2022-02-10 13:50:26.010375400 -0500
-@@ -0,0 +1,16 @@
+@@ -0,0 +1,12 @@
 +MACHINE=
 +SCRIPT_NAME=v810
 +EXTRA_EM_FILE=v810elf
 +OUTPUT_FORMAT="elf32-v810"
-+TEXT_START_ADDR=0x8000
-+ZDATA_START_ADDR=0x0
-+ROZDATA_START_ADDR="ALIGN (4)"
-+SDATA_START_ADDR="ALIGN (8)"
-+ROSDATA_START_ADDR="ALIGN (4)"
-+TDATA_START_ADDR="ALIGN (8)"
 +ARCH=v810
 +MAXPAGESIZE=256
 +ENTRY=_start
 +EMBEDDED=yes
 +TEMPLATE_NAME=elf32
-+PCFX_FSYS_SDA_RESERVED=0x58
++PCFX_FSYS_SDA_RESERVED=0x54
++PCFX_ISOLINK_RESERVED=0x7C00
++PCFX_FIRMWARE_RESERVED=0x7E00
 diff -Naur binutils-2.27-pure/ld/emultempl/v810elf.em binutils-2.27/ld/emultempl/v810elf.em
 --- binutils-2.27-pure/ld/emultempl/v810elf.em	1969-12-31 19:00:00.000000000 -0500
 +++ binutils-2.27/ld/emultempl/v810elf.em	2022-02-10 13:50:26.017375800 -0500
-@@ -0,0 +1,30 @@
+@@ -0,0 +1,28 @@
 +# This shell script emits a C file. -*- C -*-
 +#   Copyright (C) 2013-2016 Free Software Foundation, Inc.
 +#
@@ -6316,39 +6312,55 @@ diff -Naur binutils-2.27-pure/ld/emultempl/v810elf.em binutils-2.27/ld/emultempl
 +# features.
 +#
 +fragment <<EOF
-+/* #include "ldctor.h" */
-+
 +/* No cpu specific features on the V810!  */
 +
 +EOF
 diff -Naur binutils-2.27-pure/ld/scripttempl/v810.sc binutils-2.27/ld/scripttempl/v810.sc
 --- binutils-2.27-pure/ld/scripttempl/v810.sc	1969-12-31 19:00:00.000000000 -0500
 +++ binutils-2.27/ld/scripttempl/v810.sc	2022-02-10 13:50:26.025376200 -0500
-@@ -0,0 +1,228 @@
+@@ -0,0 +1,256 @@
 +# Copyright (C) 2014-2016 Free Software Foundation, Inc.
++# Copyright (C) 2016-2022 John Brandwood <john@telzey.com>
 +# 
 +# Copying and distribution of this file, with or without modification,
 +# are permitted in any medium without royalty provided the copyright
 +# notice and this notice are preserved.
++# 
++# This is the default linker script for using liberis on the PC-FX.
 +
 +cat << EOF
 +/* Copyright (C) 2014-2016 Free Software Foundation, Inc.
++   Copyright (C) 2016-2022 John Brandwood <john@telzey.com>
 +
 +   Copying and distribution of this script, with or without modification,
 +   are permitted in any medium without royalty provided the copyright
-+   notice and this notice are preserved.  */
++   notice and this notice are preserved.
++
++   This is the default linker script for using liberis on the PC-FX.
++
++   Various parameters can be passed to v810-ld to customize the link ...
++
++   --defsym __load=0x8000         : Set program load/start address.
++
++   --defsym __zdadata=0x0000      : Set start of ZDA region used.
++   --defsym __zdalimit=0x7C00     : Set end of ZDA region used.
++
++   --defsym __stack=0             : Set specific value, or 0 to leave unchanged.
++   --defsym __stack_size=0x8000   : If set, put the stack before the heap.  */
 +
 +OUTPUT_FORMAT("elf32-v810", "elf32-v810", "elf32-v810")
 +OUTPUT_ARCH(v810)
 +${RELOCATING+ENTRY(_start)}
 +SEARCH_DIR(.);
-+EXTERN(__gp __tp __tpend __zpdat __zpbss __zpend);
++
 +SECTIONS
 +{
-+  /* Read-only sections, merged into text segment.  */
-+  . = 0x8000;
++  /* Allow the user to change the load address.  */
++  ${RELOCATING+PROVIDE (__load = 0x8000);}
++  ${RELOCATING+. = __load;}
 +
-+  .text		ALIGN (4) :
++  /* Read-only sections, merged into text segment.  */
++  .text ALIGN (4) :
 +  {
 +    *(.text)
 +    ${RELOCATING+*(.text.*)}
@@ -6358,13 +6370,12 @@ diff -Naur binutils-2.27-pure/ld/scripttempl/v810.sc binutils-2.27/ld/scripttemp
 +    *(.gnu.linkonce.t*)
 +  } =0
 +
-+  ${RELOCATING+_etext = .;}
-+  ${RELOCATING+PROVIDE (etext = .);}
++  ${RELOCATING+__etext = .;}
 +
-+  .init		: { KEEP (*(.init)) } =0
-+  .fini		: { KEEP (*(.fini)) } =0
++  .init : { KEEP (*(.init)) } =0
++  .fini : { KEEP (*(.fini)) } =0
 +
-+  .rodata	ALIGN (4) :
++  .rodata ALIGN (4) :
 +  {
 +    *(.rodata)
 +    ${RELOCATING+*(.rodata.*)}
@@ -6372,7 +6383,7 @@ diff -Naur binutils-2.27-pure/ld/scripttempl/v810.sc binutils-2.27/ld/scripttemp
 +  }
 +  .rodata1	: { *(.rodata1) }
 +
-+  .data         ALIGN (4) :
++  .data ALIGN (4) :
 +  {
 +    *(.data)
 +    ${RELOCATING+*(.data.*)}
@@ -6381,7 +6392,7 @@ diff -Naur binutils-2.27-pure/ld/scripttempl/v810.sc binutils-2.27/ld/scripttemp
 +  }
 +  .data1	: { *(.data1) }
 +
-+  .ctors	ALIGN (4) :
++  .ctors ALIGN (4) :
 +  {
 +    ${CONSTRUCTING+___ctors = .;}
 +    KEEP (*(EXCLUDE_FILE (*crtend.o) .ctors))
@@ -6392,7 +6403,7 @@ diff -Naur binutils-2.27-pure/ld/scripttempl/v810.sc binutils-2.27/ld/scripttemp
 +
 +  /* Discard these sections on PC-FX & VirtualBoy.  */
 +
-+  /DISCARD/     :
++  /DISCARD/ :
 +  {
 +    *(.dtors)
 +    *(.dtors.*)
@@ -6402,23 +6413,25 @@ diff -Naur binutils-2.27-pure/ld/scripttempl/v810.sc binutils-2.27/ld/scripttemp
 +  /* Extra section for 32KB/64KB of tp (aka R5) relative addressing.
 +     This could for thread-local variables instead if we get fancy.  */
 +
-+  .tdata        ALIGN (8) :
++  .tdata ALIGN (8) :
 +  {
-+	${RELOCATING+PROVIDE (__tp = .);}
++	${RELOCATING+__tp = .;}
 +	*(.tbyte)
 +	*(.tcommon_byte)
 +	*(.tdata)
 +	*(.tbss)
 +	*(.tcommon)
 +	${RELOCATING+. = ALIGN (8);}
-+	${RELOCATING+PROVIDE (__tpend = .);}
++	${RELOCATING+__tpend = .;}
 +  }
 +
 +  /* We want the small data sections together, so single-instruction offsets
 +     can access them all, and initialized data all before uninitialized, so
-+     we can shorten the on-disk segment size.  */
++     we can shorten the on-disk segment size.
++     The PC-FX firmware "_fsys_" functions use the first 0x54 bytes of the SDA
++     region and that memory is reserved here so that they can be used.  */
 +     
-+  .sdata        ALIGN (8) :
++  .sdata ALIGN (4) :
 +  {
 +	${RELOCATING+PROVIDE (__gp = . + 0x8000);}
 +	${RELOCATING+. = ${PCFX_FSYS_SDA_RESERVED};}
@@ -6431,7 +6444,7 @@ diff -Naur binutils-2.27-pure/ld/scripttempl/v810.sc binutils-2.27/ld/scripttemp
 +     section.  Specifically it prevents the sdata
 +     section from being marked READONLY.  */
 +
-+  .rosdata      ALIGN (4) :
++  .rosdata ALIGN (4) :
 +  {
 +	*(.rosdata)
 +  }
@@ -6439,64 +6452,80 @@ diff -Naur binutils-2.27-pure/ld/scripttempl/v810.sc binutils-2.27/ld/scripttemp
 +  /* We place the .sbss data section AFTER the .rosdata section, so that
 +     it can directly preceed the .bss section.  This allows runtime startup
 +     code to initialise all the zero-data sections by simply taking the
-+     value of '_edata' and zeroing until it reaches '_end'.  */
++     value of '__edata' and zeroing until it reaches '__end'.  */
 +
 +  /* 8-byte align these sections to speed up clearing them in crt0.S  */
 +
 +  ${RELOCATING+. = ALIGN (8);}
++  ${RELOCATING+__edata = .;}
 +
-+  .sbss         ALIGN (4) :
++  .sbss ALIGN (4) (NOLOAD) :
 +  {
 +	${RELOCATING+__sbss_start = .;}
 +	*(.sbss)
 +	*(.scommon)
 +  }
 +
-+  ${RELOCATING+_edata  = DEFINED (__sbss_start) ? __sbss_start : . ;}
-+  ${RELOCATING+PROVIDE (edata = _edata);}
-+
-+  .bss          ALIGN (4) :
++  .bss ALIGN (4) (NOLOAD) :
 +  {
-+	${RELOCATING+__bss_start = DEFINED (__sbss_start) ? __sbss_start : . ;}
-+	${RELOCATING+__real_bss_start = . ;}
++	${RELOCATING+__bss_start = .;}
 +	*(.dynbss)
 +	*(.bss)
 +	*(COMMON)
 +  }
 +
-+  ${RELOCATING+. = ALIGN (8);}
-+  ${RELOCATING+_end = . ;}
-+  ${RELOCATING+PROVIDE (end = .);}
++  ${RELOCATING+. = ALIGN (16);}
++  ${RELOCATING+__end = . ;}
++
++  ${RELOCATING+. += DEFINED (__stack_size) ? __stack_size : 0 ;}
++
++  ${RELOCATING+. = ALIGN (16);}
 +  ${RELOCATING+PROVIDE (_heap_start = .);}
++  ${RELOCATING+PROVIDE (_heap_end = DEFINED (__stack_size) ? 0x200000 : 0);}
 +
 +  /* Put all initialized R0-relative data at the end of the output file on
 +     top of the .sbss/.bss sections so that it can be copied into place at
 +     startup and then wiped to zero for use as the .sbss/.bss  */
 +
-+  . = 0x0000;
++  ${RELOCATING+PROVIDE (__zdadata = 0x0000);}
++  ${RELOCATING+. = __zdadata;}
 +
-+  /* 8-byte align these sections to speed up relocating them in crt0.S  */
-+
-+  ${RELOCATING+. = ALIGN (8)};
-+  ${RELOCATING+PROVIDE (__zpdat = .);}
-+
-+  .zdata : AT ( _edata )
++  .zdata : AT ( __edata )
 +  {
 +	*(.rozdata)
 +	*(.zdata)
 +        ${RELOCATING+. = ALIGN (8)};
 +  }
 +
-+  ${RELOCATING+PROVIDE (__zpbss = .);}
++  ${RELOCATING+PROVIDE (__zdabss = .);}
 +
-+  .zbss : AT ( ADDR (.zdata) + SIZEOF (.zdata) )
++  .zbss (NOLOAD) :
 +  {
 +	*(.zbss)
 +	*(.zcommon)
 +        ${RELOCATING+. = ALIGN (8)};
 +  }
 +
-+  ${RELOCATING+PROVIDE (__zpend = .);}
++  ${RELOCATING+PROVIDE (__zdaend = .);}
++
++  /* The PC-FX firmware reserves 0x7E00-0x7FFF, and the liberis startup copies
++     the CD-ROM directory information into 0x7C00-0x7DFF.  */
++
++  ${RELOCATING+PROVIDE (__zdalimit = ${PCFX_ISOLINK_RESERVED});}
++
++  /* If "__stack_size" is set, then an area for the stack is reserved after
++     the .bss section and before "_heap_start", and "__stack" is set to it,
++     unless "__stack" already has a value, then that value is used instead.
++     If "__stack" is set to 0, then then the liberis startup code does not
++     change it so that a PC-FX program can return to whoever called it.  */
++
++  ${RELOCATING+PROVIDE (__stack = DEFINED (__stack_size) ? _heap_start : 0x200000);}
++  ${RELOCATING+. = __stack;}
++
++  .stack (NOLOAD) :
++  {
++	*(.stack)
++  }
 +
 +  /* Stabs debugging sections.  */
 +  .stab 0		: { *(.stab) }
@@ -6544,13 +6573,6 @@ diff -Naur binutils-2.27-pure/ld/scripttempl/v810.sc binutils-2.27/ld/scripttemp
 +
 +  /* DWARF Extension.  */
 +  .debug_macro    0 : { *(.debug_macro) } 
-+
-+  /* User stack.  */
-+  .stack 0x200000	:
-+  {
-+	${RELOCATING+__stack = .;}
-+	*(.stack)
-+  }
 +}
 +EOF
 diff -Naur binutils-2.27-pure/opcodes/Makefile.am binutils-2.27/opcodes/Makefile.am
