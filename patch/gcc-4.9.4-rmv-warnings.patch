@@ -10,6 +10,18 @@ diff -Naur gcc-4.9.4-pure/config/warnings.m4 gcc-4.9.4/config/warnings.m4
  ])
  AS_VAR_POPDEF([acx_Pedantic])dnl
  m4_popdef([acx_Woptions])dnl
+diff -Naur gcc-4.9.4-pure/cloog/Makefile.in gcc-4.9.4/cloog/Makefile.in
+--- gcc-4.9.4-pure/cloog/Makefile.in	2017-04-26 13:54:07.000000000 -0400
++++ gcc-4.9.4/cloog/Makefile.in	2022-03-01 13:17:03.483298400 -0500
+@@ -352,7 +352,7 @@
+ CCDEPMODE = @CCDEPMODE@
+ CD = @CD@
+ CFLAGS = @CFLAGS@
+-CFLAGS_WARN = @CFLAGS_WARN@
++CFLAGS_WARN = @CFLAGS_WARN@ -Wno-return-type -Wno-deprecated-declarations
+ CLOOG_INT_CONFIGURE = @CLOOG_INT_CONFIGURE@
+ CPP = @CPP@
+ CPPFLAGS = @CPPFLAGS@
 diff -Naur gcc-4.9.4-pure/gcc/configure gcc-4.9.4/gcc/configure
 --- gcc-4.9.4-pure/gcc/configure	2022-02-13 19:41:22.970155000 -0500
 +++ gcc-4.9.4/gcc/configure	2022-02-13 20:18:45.383547900 -0500
