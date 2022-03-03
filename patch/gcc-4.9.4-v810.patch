@@ -1,6 +1,6 @@
 diff -Naur gcc-4.9.4-pure/config.sub gcc-4.9.4/config.sub
 --- gcc-4.9.4-pure/config.sub	2013-10-01 12:50:56.000000000 -0400
-+++ gcc-4.9.4/config.sub	2022-02-13 20:27:54.707877900 -0500
++++ gcc-4.9.4/config.sub	2022-02-27 14:57:28.730565500 -0500
 @@ -310,7 +310,7 @@
  	| spu \
  	| tahoe | tic4x | tic54x | tic55x | tic6x | tic80 | tron \
@@ -32,7 +32,7 @@ diff -Naur gcc-4.9.4-pure/config.sub gcc-4.9.4/config.sub
  		os=-sysv
 diff -Naur gcc-4.9.4-pure/gcc/common/config/v810/v810-common.c gcc-4.9.4/gcc/common/config/v810/v810-common.c
 --- gcc-4.9.4-pure/gcc/common/config/v810/v810-common.c	1969-12-31 19:00:00.000000000 -0500
-+++ gcc-4.9.4/gcc/common/config/v810/v810-common.c	2022-02-13 20:27:54.717878000 -0500
++++ gcc-4.9.4/gcc/common/config/v810/v810-common.c	2022-02-27 14:57:28.740566100 -0500
 @@ -0,0 +1,106 @@
 +/* Common hooks for NEC V810 series.
 +   Copyright (C) 1996-2014 Free Software Foundation, Inc.
@@ -142,8 +142,8 @@ diff -Naur gcc-4.9.4-pure/gcc/common/config/v810/v810-common.c gcc-4.9.4/gcc/com
 +struct gcc_targetm_common targetm_common = TARGETM_COMMON_INITIALIZER;
 diff -Naur gcc-4.9.4-pure/gcc/config/v810/constraints.md gcc-4.9.4/gcc/config/v810/constraints.md
 --- gcc-4.9.4-pure/gcc/config/v810/constraints.md	1969-12-31 19:00:00.000000000 -0500
-+++ gcc-4.9.4/gcc/config/v810/constraints.md	2022-02-13 20:27:54.725378100 -0500
-@@ -0,0 +1,101 @@
++++ gcc-4.9.4/gcc/config/v810/constraints.md	2022-03-03 10:57:25.637422600 -0500
+@@ -0,0 +1,90 @@
 +;; Constraint definitions for V810.
 +;; Copyright (C) 2011-2014 Free Software Foundation, Inc.
 +;;
@@ -163,7 +163,22 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/constraints.md gcc-4.9.4/gcc/config/v8
 +;; along with GCC; see the file COPYING3.  If not see
 +;; <http://www.gnu.org/licenses/>.
 +
++;; Floating-point constraints.
++
++(define_constraint "G"
++  "A zero of some form."
++  (and (match_code "const_double")
++       (ior (match_test "GET_MODE_CLASS (mode) == MODE_FLOAT")
++	    (match_test "GET_MODE_CLASS (mode) == MODE_INT"))
++       (match_test "op == CONST0_RTX (mode)")))
++
++(define_constraint "H"
++  "@internal"
++  (and (match_code "const_double")
++       (match_test "0")))
++
 +;; Integer constraints.
++
 +(define_constraint "I"
 +  "Integer constant 0."
 +  (and (match_code "const_int")
@@ -195,34 +210,12 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/constraints.md gcc-4.9.4/gcc/config/v8
 +  (and (match_code "const_int")
 +       (match_test "ival >= 0 && ival <= 31")))
 +
-+(define_constraint "O"
-+  "A signed 9-bit immediate for word multiply instructions."
-+  (and (match_code "const_int")
-+       (match_test "0")))
++;; (define_constraint "P"
++;;   "@internal"
++;;   (and (match_code "const_int")
++;;        (match_test "0")))
 +
-+(define_constraint "P"
-+  "@internal"
-+  (and (match_code "const_int")
-+       (match_test "0")))
-+
-+;; Floating-point constraints.
-+(define_constraint "G"
-+  "A zero of some form."
-+  (and (match_code "const_double")
-+       (ior (match_test "GET_MODE_CLASS (mode) == MODE_FLOAT")
-+	    (match_test "GET_MODE_CLASS (mode) == MODE_INT"))
-+       (match_test "op == CONST0_RTX (mode)")))
-+
-+(define_constraint "H"
-+  "@internal"
-+  (and (match_code "const_double")
-+       (match_test "0")))
-+
-+;;; Extra constraints.
-+(define_memory_constraint "Q"
-+  "A memory address that does not contain a symbol address."
-+  (and (match_code "mem")
-+       (match_test "0")))
++;; Extra constraints.
 +
 +(define_constraint "R"
 +  "@internal"
@@ -235,10 +228,6 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/constraints.md gcc-4.9.4/gcc/config/v8
 +
 +(define_constraint "T"
 +  "@internal"
-+  (match_test "0"))
-+
-+(define_constraint "U"
-+  "@internal"
 +  (ior (and (match_code "symbol_ref")
 +	    (match_test "SYMBOL_REF_ZDA_P (op)"))
 +       (and (match_code "const")
@@ -247,8 +236,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/constraints.md gcc-4.9.4/gcc/config/v8
 +	    (match_test "SYMBOL_REF_ZDA_P (XEXP (XEXP (op, 0), 0))"))))
 diff -Naur gcc-4.9.4-pure/gcc/config/v810/predicates.md gcc-4.9.4/gcc/config/v810/predicates.md
 --- gcc-4.9.4-pure/gcc/config/v810/predicates.md	1969-12-31 19:00:00.000000000 -0500
-+++ gcc-4.9.4/gcc/config/v810/predicates.md	2022-02-13 20:27:54.740378400 -0500
-@@ -0,0 +1,294 @@
++++ gcc-4.9.4/gcc/config/v810/predicates.md	2022-02-27 14:57:28.755566900 -0500
+@@ -0,0 +1,244 @@
 +;; Predicate definitions for NEC V810.
 +;; Copyright (C) 2005-2014 Free Software Foundation, Inc.
 +;;
@@ -296,17 +285,6 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/predicates.md gcc-4.9.4/gcc/config/v81
 +    return register_operand (op, mode);
 +})
 +
-+;; Return true if OP is either a register or a const integer.
-+
-+;;	(define_predicate "reg_or_const_operand"
-+;;	  (match_code "reg,const_int")
-+;;	{
-+;;	  if (GET_CODE (op) == CONST_INT)
-+;;	    return TRUE;
-+;;	
-+;;	  return register_operand (op, mode);
-+;;	})
-+
 +;; Return true if OP is a valid call operand.
 +
 +(define_predicate "call_address_operand"
@@ -349,20 +327,6 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/predicates.md gcc-4.9.4/gcc/config/v81
 +
 +  return FALSE;
 +})
-+
-+;; Return true if OP is a valid operand for bit related operations
-+;; containing only single 1 in its binary representation.
-+
-+;;	(define_predicate "power_of_two_operand"
-+;;	  (match_code "const_int")
-+;;	{
-+;;	  if (GET_CODE (op) != CONST_INT)
-+;;	    return 0;
-+;;	
-+;;	  if (exact_log2 (INTVAL (op)) == -1)
-+;;	    return 0;
-+;;	  return 1;
-+;;	})
 +
 +;; Return nonzero if the given RTX is suitable for collapsing into a
 +;; jump to a function prologue.
@@ -518,34 +482,9 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/predicates.md gcc-4.9.4/gcc/config/v81
 +          && ((REGNO (op) == 1) || (REGNO (op) == 2)
 +              || (REGNO (op) >= 20 && REGNO (op) <= 31)));
 +})
-+
-+;; Return true if OP is a valid operand for bit related operations
-+;; containing only single 0 in its binary representation.
-+
-+;;	(define_predicate "not_power_of_two_operand"
-+;;	  (match_code "const_int")
-+;;	{
-+;;	  unsigned int mask;
-+;;	
-+;;	  if (mode == QImode)
-+;;	    mask = 0xff;
-+;;	  else if (mode == HImode)
-+;;	    mask = 0xffff;
-+;;	  else if (mode == SImode)
-+;;	    mask = 0xffffffff;
-+;;	  else
-+;;	    return 0;
-+;;	
-+;;	  if (GET_CODE (op) != CONST_INT)
-+;;	    return 0;
-+;;	
-+;;	  if (exact_log2 (~INTVAL (op) & mask) == -1)
-+;;	    return 0;
-+;;	  return 1;
-+;;	})
 diff -Naur gcc-4.9.4-pure/gcc/config/v810/rtems.h gcc-4.9.4/gcc/config/v810/rtems.h
 --- gcc-4.9.4-pure/gcc/config/v810/rtems.h	1969-12-31 19:00:00.000000000 -0500
-+++ gcc-4.9.4/gcc/config/v810/rtems.h	2022-02-13 20:27:54.747878500 -0500
++++ gcc-4.9.4/gcc/config/v810/rtems.h	2022-02-27 14:57:28.764567500 -0500
 @@ -0,0 +1,30 @@
 +/* Definitions for rtems targeting a v810 using ELF.
 +   Copyright (C) 2012-2014 Free Software Foundation, Inc.
@@ -579,7 +518,7 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/rtems.h gcc-4.9.4/gcc/config/v810/rtem
 +} while (0)
 diff -Naur gcc-4.9.4-pure/gcc/config/v810/t-rtems gcc-4.9.4/gcc/config/v810/t-rtems
 --- gcc-4.9.4-pure/gcc/config/v810/t-rtems	1969-12-31 19:00:00.000000000 -0500
-+++ gcc-4.9.4/gcc/config/v810/t-rtems	2022-02-13 20:27:54.752878600 -0500
++++ gcc-4.9.4/gcc/config/v810/t-rtems	2022-02-27 14:57:28.776568100 -0500
 @@ -0,0 +1,4 @@
 +# Custom multilibs for RTEMS
 +
@@ -587,7 +526,7 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/t-rtems gcc-4.9.4/gcc/config/v810/t-rt
 +MULTILIB_DIRNAMES = v810
 diff -Naur gcc-4.9.4-pure/gcc/config/v810/t-v810 gcc-4.9.4/gcc/config/v810/t-v810
 --- gcc-4.9.4-pure/gcc/config/v810/t-v810	1969-12-31 19:00:00.000000000 -0500
-+++ gcc-4.9.4/gcc/config/v810/t-v810	2022-02-13 20:27:54.757878600 -0500
++++ gcc-4.9.4/gcc/config/v810/t-v810	2022-02-27 14:57:28.779568300 -0500
 @@ -0,0 +1,32 @@
 +# Copyright (C) 1997-2014 Free Software Foundation, Inc.
 +#
@@ -623,7 +562,7 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/t-v810 gcc-4.9.4/gcc/config/v810/t-v81
 +# End:
 diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810-c.c gcc-4.9.4/gcc/config/v810/v810-c.c
 --- gcc-4.9.4-pure/gcc/config/v810/v810-c.c	1969-12-31 19:00:00.000000000 -0500
-+++ gcc-4.9.4/gcc/config/v810/v810-c.c	2022-02-13 20:27:54.760378700 -0500
++++ gcc-4.9.4/gcc/config/v810/v810-c.c	2022-02-27 14:57:28.785568700 -0500
 @@ -0,0 +1,274 @@
 +/* v810 specific, C compiler specific functions.
 +   Copyright (C) 2000-2014 Free Software Foundation, Inc.
@@ -901,7 +840,7 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810-c.c gcc-4.9.4/gcc/config/v810/v81
 +}
 diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810-modes.def gcc-4.9.4/gcc/config/v810/v810-modes.def
 --- gcc-4.9.4-pure/gcc/config/v810/v810-modes.def	1969-12-31 19:00:00.000000000 -0500
-+++ gcc-4.9.4/gcc/config/v810/v810-modes.def	2022-02-13 20:27:54.765378700 -0500
++++ gcc-4.9.4/gcc/config/v810/v810-modes.def	2022-02-27 14:57:28.791569000 -0500
 @@ -0,0 +1,19 @@
 +/* Definitions of target machine for GNU compiler. NEC V810 series
 +   Copyright (C) 2005-2014 Free Software Foundation, Inc.
@@ -924,7 +863,7 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810-modes.def gcc-4.9.4/gcc/config/v8
 +   <http://www.gnu.org/licenses/>.  */
 diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810-opts.h gcc-4.9.4/gcc/config/v810/v810-opts.h
 --- gcc-4.9.4-pure/gcc/config/v810/v810-opts.h	1969-12-31 19:00:00.000000000 -0500
-+++ gcc-4.9.4/gcc/config/v810/v810-opts.h	2022-02-13 20:27:54.770378800 -0500
++++ gcc-4.9.4/gcc/config/v810/v810-opts.h	2022-02-27 14:57:28.798569400 -0500
 @@ -0,0 +1,38 @@
 +/* Definitions for option handling for NEC V810 series.
 +   Copyright (C) 1996-2014 Free Software Foundation, Inc.
@@ -966,7 +905,7 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810-opts.h gcc-4.9.4/gcc/config/v810/
 +#endif
 diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810-protos.h gcc-4.9.4/gcc/config/v810/v810-protos.h
 --- gcc-4.9.4-pure/gcc/config/v810/v810-protos.h	1969-12-31 19:00:00.000000000 -0500
-+++ gcc-4.9.4/gcc/config/v810/v810-protos.h	2022-02-13 20:27:54.772878900 -0500
++++ gcc-4.9.4/gcc/config/v810/v810-protos.h	2022-02-27 14:57:28.808570000 -0500
 @@ -0,0 +1,67 @@
 +/* Prototypes for v810.c functions used in the md file & elsewhere.
 +   Copyright (C) 1999-2014 Free Software Foundation, Inc.
@@ -1037,8 +976,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810-protos.h gcc-4.9.4/gcc/config/v81
 +#endif /* ! GCC_V810_PROTOS_H */
 diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.c gcc-4.9.4/gcc/config/v810/v810.c
 --- gcc-4.9.4-pure/gcc/config/v810/v810.c	1969-12-31 19:00:00.000000000 -0500
-+++ gcc-4.9.4/gcc/config/v810/v810.c	2022-02-13 20:27:54.787879100 -0500
-@@ -0,0 +1,2449 @@
++++ gcc-4.9.4/gcc/config/v810/v810.c	2022-02-27 14:57:28.821570700 -0500
+@@ -0,0 +1,2401 @@
 +/* Subroutines for insn-output.c for NEC V810 series
 +   Copyright (C) 1996-2014 Free Software Foundation, Inc.
 +   Contributed by Jeff Law (law@cygnus.com).
@@ -1168,17 +1107,6 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.c gcc-4.9.4/gcc/config/v810/v810.
 +
 +  return size > 8;
 +}
-+
-+#if 0
-+// JCB 2022 - V850 has removed this.
-+/* Implementing the Varargs Macros.  */
-+
-+static bool
-+v810_strict_argument_naming (cumulative_args_t ca ATTRIBUTE_UNUSED)
-+{
-+  return true;
-+}
-+#endif
 +
 +/* Return an RTX to represent where an argument with mode MODE
 +   and type TYPE will be passed to a function.  If the result
@@ -1577,11 +1505,6 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.c gcc-4.9.4/gcc/config/v810/v810.
 +            fprintf (file, "[r0]");
 +          break;
 +          
-+#if 0
-+// JCB 2022 - from V850 ...
-+        default:
-+          break;
-+#endif
 +	case CONST_INT:
 +	  {
 +	    unsigned HOST_WIDE_INT v = INTVAL (x);
@@ -1629,11 +1552,6 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.c gcc-4.9.4/gcc/config/v810/v810.
 +      fputs (reg_names[0], file);
 +      break;
 +    case 'z':                   /* Reg or zero.  */
-+#if 0
-+// JCB 2022
-+
-+      if (GET_CODE (x) == REG)
-+#endif
 +      if (REG_P (x))
 +	fputs (reg_names[REGNO (x)], file);
 +      else if ((GET_MODE(x) == SImode
@@ -3224,18 +3142,6 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.c gcc-4.9.4/gcc/config/v810/v810.
 +}
 +
 +
-+/* Worker function for TARGET_SETUP_INCOMING_VARARGS.  */
-+
-+static void
-+v810_setup_incoming_varargs (cumulative_args_t ca,
-+                             enum machine_mode mode ATTRIBUTE_UNUSED,
-+                             tree type ATTRIBUTE_UNUSED,
-+                             int *pretend_arg_size ATTRIBUTE_UNUSED,
-+                             int second_time ATTRIBUTE_UNUSED)
-+{
-+  get_cumulative_args (ca)->anonymous_args = 1;
-+}
-+
 +/* Worker function for TARGET_FRAME_POINTER_REQUIRED.  */
 +
 +static bool
@@ -3327,12 +3233,6 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.c gcc-4.9.4/gcc/config/v810/v810.
 +  emit_move_insn (mem, chain_value);
 +  mem = adjust_address (m_tramp, SImode, 24);
 +  emit_move_insn (mem, fnaddr);
-+}
-+
-+static int
-+v810_issue_rate (void)
-+{
-+  return (1);
 +}
 +
 +/* Implement TARGET_LEGITIMATE_CONSTANT_P.  */
@@ -3430,9 +3330,6 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.c gcc-4.9.4/gcc/config/v810/v810.
 +#undef  TARGET_ADDRESS_COST
 +#define TARGET_ADDRESS_COST hook_int_rtx_mode_as_bool_0
 +
-+#undef  TARGET_SCHED_ISSUE_RATE
-+#define TARGET_SCHED_ISSUE_RATE v810_issue_rate
-+
 +#undef  TARGET_FUNCTION_VALUE_REGNO_P
 +#define TARGET_FUNCTION_VALUE_REGNO_P v810_function_value_regno_p
 +#undef  TARGET_FUNCTION_VALUE
@@ -3476,12 +3373,6 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.c gcc-4.9.4/gcc/config/v810/v810.
 +#undef  TARGET_TRAMPOLINE_INIT
 +#define TARGET_TRAMPOLINE_INIT v810_trampoline_init
 +
-+#if 0
-+// JCB 2022 - Removed in V810
-+#undef  TARGET_STRICT_ARGUMENT_NAMING
-+#define TARGET_STRICT_ARGUMENT_NAMING v810_strict_argument_naming
-+#endif
-+
 +#undef  TARGET_LEGITIMATE_CONSTANT_P
 +#define TARGET_LEGITIMATE_CONSTANT_P v810_legitimate_constant_p
 +
@@ -3490,8 +3381,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.c gcc-4.9.4/gcc/config/v810/v810.
 +#include "gt-v810.h"
 diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.h gcc-4.9.4/gcc/config/v810/v810.h
 --- gcc-4.9.4-pure/gcc/config/v810/v810.h	1969-12-31 19:00:00.000000000 -0500
-+++ gcc-4.9.4/gcc/config/v810/v810.h	2022-02-13 20:27:54.800379300 -0500
-@@ -0,0 +1,889 @@
++++ gcc-4.9.4/gcc/config/v810/v810.h	2022-03-03 10:28:51.191740300 -0500
+@@ -0,0 +1,877 @@
 +/* Definitions of target machine for GNU compiler. NEC V810 series
 +   Copyright (C) 1996-2014 Free Software Foundation, Inc.
 +   Contributed by Jeff Law (law@cygnus.com).
@@ -3532,7 +3423,6 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.h gcc-4.9.4/gcc/config/v810/v810.
 +#undef ASM_SPEC
 +
 +#define TARGET_CPU_generic 	1
-+
 +
 +#ifndef TARGET_CPU_DEFAULT
 +#define TARGET_CPU_DEFAULT	TARGET_CPU_generic
@@ -3815,8 +3705,6 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.h gcc-4.9.4/gcc/config/v810/v810.
 +  insn_const_int_ok_for_constraint (VALUE, CONSTRAINT_M)
 +#define CONST_OK_FOR_N(VALUE) \
 +  insn_const_int_ok_for_constraint (VALUE, CONSTRAINT_N)
-+#define CONST_OK_FOR_O(VALUE) \
-+  insn_const_int_ok_for_constraint (VALUE, CONSTRAINT_O)
 +
 +
 +/* Stack layout; function entry, exit and calling.  */
@@ -3966,11 +3854,6 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.h gcc-4.9.4/gcc/config/v810/v810.
 +   No definition is equivalent to always zero.  */
 +
 +#define EXIT_IGNORE_STACK 1
-+
-+/* EXIT_IGNORE_STACK should be nonzero if, when returning from a function,
-+   the stack pointer does not matter.  The value is tested only in
-+   functions that have frame pointers.
-+   No definition is equivalent to always zero.  */
 +
 +/* Define this macro as a C expression that is nonzero for registers
 +   used by the epilogue or the `return' pattern.  */
@@ -4359,10 +4242,6 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.h gcc-4.9.4/gcc/config/v810/v810.
 +
 +#define FILE_ASM_OP "\t.file\n"
 +
-+/* Enable the register move pass to improve code.  */
-+// JCB 2022 removed from V850 ...
-+#define ENABLE_REGMOVE_PASS
-+
 +/* Implement ZDA and SDA */
 +
 +#define SYMBOL_FLAG_ZDA		(SYMBOL_FLAG_MACH_DEP << 0)
@@ -4383,8 +4262,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.h gcc-4.9.4/gcc/config/v810/v810.
 +#endif /* ! GCC_V810_H */
 diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810.md
 --- gcc-4.9.4-pure/gcc/config/v810/v810.md	1969-12-31 19:00:00.000000000 -0500
-+++ gcc-4.9.4/gcc/config/v810/v810.md	2022-02-13 20:27:54.815379500 -0500
-@@ -0,0 +1,1086 @@
++++ gcc-4.9.4/gcc/config/v810/v810.md	2022-03-03 12:00:33.660440400 -0500
+@@ -0,0 +1,1207 @@
 +;; GCC machine description for NEC V810
 +;; Copyright (C) 1996-2014 Free Software Foundation, Inc.
 +;; Contributed by Jeff Law (law@cygnus.com).
@@ -4418,10 +4297,10 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +;;
 +(define_constants
 +  [(ZERO_REGNUM  0) ; constant zero
-+   (FP_REGNUM    2) ; Frame Pointer
++   (FP_REGNUM    2) ; Frame Pointer  (was unused Handler Stack Pointer)
 +   (SP_REGNUM    3) ; Stack Pointer
 +   (GP_REGNUM    4) ; GP Pointer
-+   (TP_REGNUM    5) ; Text Pointer
++   (TP_REGNUM    5) ; Thread Pointer (was unused Text Pointer)
 +   (LP_REGNUM   31) ; Return address register
 +   (CC_REGNUM   32) ; Condition code pseudo register
 +   (AP_PSEUDO   33) ; Argument Pointer pseudo register
@@ -4432,8 +4311,17 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  (const_int 4))
 +
 +;; Types of instructions (for scheduling purposes).
++;;
++;; "other" = unconditional branch, preserves cc.
++;; "move"  = move, preserves cc.
++;; "load"  = load from memory, preserves cc.
++;; "store" = save into memory, preserves cc.
++;; "usecc" = conditional branch and setf, preserves cc.
++;; "setcc" = integer math, sets cc.
++;; "cmpcc" = compare and set cc.
++;; "float" = floating point, sets cc.
 +
-+(define_attr "type" "load,store,mult,div,udiv,other"
++(define_attr "type" "other,move,load,store,usecc,setcc,cmpcc,float"
 +  (const_string "other"))
 +
 +(define_attr "cpu" "none,v810"
@@ -4450,31 +4338,88 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +;; set_zn  - sets z,n to usable values; v,c is unknown.
 +;; compare - compare instruction
 +;; clobber - value of cc is unknown
++
 +(define_attr "cc" "none,none_0hit,set_z,set_zn,set_znv,compare,clobber"
 +  (const_string "clobber"))
 +
-+;; Function units for the V810.  As best as I can tell, there's
-+;; a traditional memory load/use stall as well as a stall if
-+;; the result of a multiply is used too early.
-+
-+;; // JCB - Old-Style pipeline description
++;; // JCB - Old-Style pipeline description from Japanese GCC 2.95 ...
++;; // ... for V850 ...
 +;; // -(define_function_unit "memory" 1 0 (eq_attr "type" "load") 2 0)
 +;; // -(define_function_unit "mult"   1 0 (eq_attr "type" "mult") 2 0)
++;; // ... for V810 ...
 +;; // +(define_function_unit "mem" 1 0 (eq_attr "type" "load") 2 0)
 +;; // +(define_function_unit "mem" 1 0 (eq_attr "type" "store") 1 2 [(eq_attr "type" "load")])
 +;; // +(define_function_unit "ex" 1 0 (eq_attr "type" "mul") 12 12)
 +;; // +(define_function_unit "ex" 1 0 (eq_attr "type" "div") 37 37)
 +;; // +(define_function_unit "ex" 1 0 (eq_attr "type" "udiv") 35 35)
 +
-+(define_insn_reservation "v810_other" 1
-+			 (eq_attr "type" "other")
-+			 "nothing")
-+(define_insn_reservation "v810_mult" 2
-+			 (eq_attr "type" "mult")
-+			 "nothing")
-+(define_insn_reservation "v810_memory" 2
-+			 (eq_attr "type" "load")
-+			 "nothing")
++;; JCB 2022-02-15: Pipeline description for the instruction scheduler.
++;;
++;; The V810 pipeline hazards are very different to the V850 hazards!
++;;
++;; The V810 Architecture Manual does not describe the CPU's pipeline
++;; operation, but the V830 Architecture Manual has a full description
++;; of its pipeline, which includes similar hazards to those described
++;; in NEC's Seminar to VirtualBoy developers.
++;;
++;; Importantly, there is no hazard for using a using a register that
++;; was modified in the previous instruction, except as the base addr
++;; in a load/store!
++;;
++;; There are hazards for ...
++;;
++;; a) Changing a register and then using it as the base in a load/store.
++;; b) Changing the CC and then doing a SETF or Bcond.
++;; c) ST follow by an LD is very bad!
++;; d) LD/LD is very good, but ST/ST has a 2-deep write buffer and benefits
++;;    from distance between the ST instructions.
++;;
++;; Testing indicates that the "default_latency" values given *seems* to
++;; signify the number of instructions to add before an instruction that
++;; uses the result.
++;;
++;; Thus a value of "0" seems to indicate that no delay is needed.
++;;
++;; Note that we *cannot* separate setcc from usecc while still using cc0
++;; which the v850 also still does!
++;;
++;; See https://gcc.gnu.org/wiki/CC0Transition
++;; See https://gcc.gnu.org/onlinedocs/gcc-4.9.4/gccint/CC0-Condition-Codes.html
++
++(define_insn_reservation "v810_other" 0
++  (eq_attr "type" "other")
++  "nothing")
++
++(define_insn_reservation "v810_usecc" 0
++  (eq_attr "type" "usecc")
++  "nothing")
++
++(define_insn_reservation "v810_setcc" 0
++  (eq_attr "type" "setcc,cmpcc,float")
++  "nothing")
++
++(define_insn_reservation "v810_move" 0
++  (eq_attr "type" "move")
++  "nothing")
++
++(define_insn_reservation "v810_load" 0
++  (eq_attr "type" "load")
++  "nothing")
++
++(define_insn_reservation "v810_store" 0
++  (eq_attr "type" "store")
++  "nothing")
++
++;; Attempt to separate setting and using a base address.
++
++(define_bypass 0 "v810_setcc,v810_move,v810_load" "v810_load,v810_store" "store_data_bypass_p")
++(define_bypass 3 "v810_setcc,v810_move,v810_load" "v810_load,v810_store")
++
++;; Attempt to separate setting and using condition codes.
++;;
++;; Will never work while still using CC0!
++;;
++;; (define_bypass 3 "v810_setcc" "v810_usecc")
 +
 +(include "predicates.md")
 +(include "constraints.md")
@@ -4482,6 +4427,7 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +;; ----------------------------------------------------------------------
 +;; MOVE INSTRUCTIONS
 +;; ----------------------------------------------------------------------
++
 +(define_expand "movqi"
 +  [(set (match_operand:QI 0 "general_operand" "")
 +	(match_operand:QI 1 "general_operand" ""))]
@@ -4494,16 +4440,16 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  })
 +
 +(define_insn "*movqi_internal"
-+  [(set (match_operand:QI 0 "nonimmediate_operand" "=r,r,r,Q,r,m,m")
-+	(match_operand:QI 1 "general_operand" "Jr,n,Q,Ir,m,r,I"))]
++  [(set (match_operand:QI 0 "nonimmediate_operand" "=r,r,r,m,m")
++	(match_operand:QI 1 "general_operand" "Jr,n,m,r,I"))]
 +  "register_operand (operands[0], QImode)
 +   || reg_or_0_operand (operands[1], QImode)"
 +{
 +  return output_move_single (operands);
 +}
-+  [(set_attr "length" "2,4,2,2,4,4,4")
-+   (set_attr "cc" "none_0hit,none_0hit,none_0hit,none_0hit,none_0hit,none_0hit,none_0hit")
-+   (set_attr "type" "other,other,load,other,load,store,store")])
++  [(set_attr "length" "2,4,4,4,4")
++   (set_attr "cc" "none_0hit,none_0hit,none_0hit,none_0hit,none_0hit")
++   (set_attr "type" "move,move,load,store,store")])
 +
 +;; movhi
 +
@@ -4519,16 +4465,16 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +})
 +
 +(define_insn "*movhi_internal"
-+  [(set (match_operand:HI 0 "nonimmediate_operand" "=r,r,r,Q,r,m,m")
-+	(match_operand:HI 1 "general_operand" "Jr,n,Q,Ir,m,r,I"))]
++  [(set (match_operand:HI 0 "nonimmediate_operand" "=r,r,r,m,m")
++	(match_operand:HI 1 "general_operand" "Jr,n,m,r,I"))]
 +  "register_operand (operands[0], HImode)
 +   || reg_or_0_operand (operands[1], HImode)"
 +{
 +  return output_move_single (operands);
 +}
-+  [(set_attr "length" "2,4,2,2,4,4,4")
-+   (set_attr "cc" "none_0hit,none_0hit,none_0hit,none_0hit,none_0hit,none_0hit,none_0hit")
-+   (set_attr "type" "other,other,load,other,load,store,store")])
++  [(set_attr "length" "2,4,4,4,4")
++   (set_attr "cc" "none_0hit,none_0hit,none_0hit,none_0hit,none_0hit")
++   (set_attr "type" "move,move,load,store,store")])
 +
 +;; movsi and helpers
 +
@@ -4539,7 +4485,7 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  "movhi hi(%1),%.,%0"
 +  [(set_attr "length" "4")
 +   (set_attr "cc" "none_0hit")
-+   (set_attr "type" "other")])
++   (set_attr "type" "move")])
 +
 +(define_insn "*movsi_lo"
 +  [(set (match_operand:SI 0 "register_operand" "=r")
@@ -4549,7 +4495,7 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  "movea lo(%2),%1,%0"
 +  [(set_attr "length" "4")
 +   (set_attr "cc" "none_0hit")
-+   (set_attr "type" "other")])
++   (set_attr "type" "move")])
 +
 +(define_expand "movsi"
 +  [(set (match_operand:SI 0 "general_operand" "")
@@ -4586,53 +4532,50 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +      }
 +  })
 +
-+;; This is the same as the following pattern, except that it includes
-+;; support for arbitrary 32-bit immediates.
-+
 +;; ??? This always loads addresses using hilo.  If the only use of this address
 +;; was in a load/store, then we would get smaller code if we only loaded the
 +;; upper part with hi, and then put the lower part in the load/store insn.
 +
 +(define_insn "*movsi_internal"
-+  [(set (match_operand:SI 0 "nonimmediate_operand" "=r,r,r,r,Q,r,r,m,m")
-+	(match_operand:SI 1 "movsi_source_operand" "Jr,K,L,Q,Ir,m,R,r,I"))]
++  [(set (match_operand:SI 0 "nonimmediate_operand" "=r,r,r,r,r,m,m")
++	(match_operand:SI 1 "movsi_source_operand" "Jr,K,L,m,R,r,I"))]
 +  "register_operand (operands[0], SImode)
 +   || reg_or_0_operand (operands[1], SImode)"
 +{
 +  return output_move_single (operands);
 +}
-+  [(set_attr "length" "2,4,4,2,2,4,4,4,4")
-+   (set_attr "cc" "none_0hit,none_0hit,none_0hit,none_0hit,none_0hit,none_0hit,none_0hit,none_0hit,none_0hit")
-+   (set_attr "type" "other,other,other,load,other,load,store,store,other")])
++  [(set_attr "length" "2,4,4,4,4,4,4")
++   (set_attr "cc" "none_0hit,none_0hit,none_0hit,none_0hit,none_0hit,none_0hit,none_0hit")
++   (set_attr "type" "move,move,move,load,move,store,store")])
 +
 +(define_insn "*movsf_internal"
-+  [(set (match_operand:SF 0 "nonimmediate_operand" "=r,r,r,r,r,Q,r,m,m,r")
-+	(match_operand:SF 1 "general_operand" "Jr,K,L,n,Q,Ir,m,r,IG,iF"))]
++  [(set (match_operand:SF 0 "nonimmediate_operand" "=r,r,r,r,r,m,m,r")
++	(match_operand:SF 1 "general_operand" "Jr,K,L,n,m,r,IG,iF"))]
 +  "register_operand (operands[0], SFmode)
 +   || reg_or_0_operand (operands[1], SFmode)"
 +{
 +  return output_move_single (operands);
 +}
-+  [(set_attr "length" "2,4,4,8,2,2,4,4,4,8")
-+   (set_attr "cc" "none_0hit,none_0hit,none_0hit,none_0hit,none_0hit,none_0hit,none_0hit,none_0hit,none_0hit,none_0hit")
-+   (set_attr "type" "other,other,other,other,load,other,load,store,store,other")])
++  [(set_attr "length" "2,4,4,8,4,4,4,8")
++   (set_attr "cc" "none_0hit,none_0hit,none_0hit,none_0hit,none_0hit,none_0hit,none_0hit,none_0hit")
++   (set_attr "type" "move,move,move,move,load,store,store,move")])
 +
 +;; ----------------------------------------------------------------------
 +;; TEST INSTRUCTIONS
 +;; ----------------------------------------------------------------------
 +
-+(define_split
-+  [(set (match_operand:SI 0 "register_operand" "")
-+	(compare (zero_extract:SI (match_operand:QI 1 "memory_operand" "")
-+				  (const_int 1)
-+				  (match_operand 2 "const_int_operand" ""))
-+		 (const_int 0)))]
-+  ""
-+  [(set (cc0) (compare (zero_extract:SI (match_dup 1)
-+				        (const_int 1)
-+				        (match_dup 2))
-+		       (const_int 0)))
-+   (set (match_dup 0) (ne:SI (cc0) (const_int 0)))])
++;; (define_split
++;;   [(set (match_operand:SI 0 "register_operand" "")
++;; 	(compare (zero_extract:SI (match_operand:QI 1 "memory_operand" "")
++;; 				  (const_int 1)
++;; 				  (match_operand 2 "const_int_operand" ""))
++;; 		 (const_int 0)))]
++;;   ""
++;;   [(set (cc0) (compare (zero_extract:SI (match_dup 1)
++;; 				        (const_int 1)
++;; 				        (match_dup 2))
++;; 		       (const_int 0)))
++;;    (set (match_dup 0) (ne:SI (cc0) (const_int 0)))])
 +
 +(define_expand "cbranchsi4"
 +  [(set (cc0)
@@ -4675,7 +4618,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  cmp %1,%0
 +  cmp %1,%0"
 +  [(set_attr "length" "2,2")
-+   (set_attr "cc" "compare")])
++   (set_attr "cc" "compare,compare")
++   (set_attr "type" "cmpcc,cmpcc")])
 +
 +(define_expand "cmpsf"
 +  [(set (cc0)
@@ -4695,7 +4639,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  "TARGET_V810"
 +  "cmpf.s %1,%0"
 +  [(set_attr "length" "4")
-+   (set_attr "cc" "compare")])
++   (set_attr "cc" "compare")
++   (set_attr "type" "cmpcc")])
 +
 +;; ----------------------------------------------------------------------
 +;; ADD INSTRUCTIONS
@@ -4704,7 +4649,7 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +(define_insn "addsi3"
 +  [(set (match_operand:SI 0 "register_operand" "=r,r,r")
 +	(plus:SI (match_operand:SI 1 "register_operand" "%0,r,r")
-+		 (match_operand:SI 2 "nonmemory_operand" "rJ,K,U")))
++		 (match_operand:SI 2 "nonmemory_operand" "rJ,K,T")))
 +   (clobber (reg:CC CC_REGNUM))]
 +
 +  ""
@@ -4713,7 +4658,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +   addi %2,%1,%0
 +   addi %O2(%P2),%1,%0"
 +  [(set_attr "length" "2,4,4")
-+   (set_attr "cc" "set_zn,set_zn,set_zn")])
++   (set_attr "cc" "set_zn,set_zn,set_zn")
++   (set_attr "type" "setcc,setcc,setcc")])
 +
 +;; ----------------------------------------------------------------------
 +;; SUBTRACT INSTRUCTIONS
@@ -4727,7 +4673,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  ""
 +  "sub %2,%0"
 +  [(set_attr "length" "2")
-+   (set_attr "cc" "set_zn")])
++   (set_attr "cc" "set_zn")
++   (set_attr "type" "setcc")])
 +
 +(define_insn "negsi2"
 +  [(set (match_operand:SI 0 "register_operand" "=r")
@@ -4736,7 +4683,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  ""
 +  "not %1,%0 ; add 1,%0"
 +  [(set_attr "length" "4")
-+   (set_attr "cc" "set_zn")])
++   (set_attr "cc" "set_zn")
++   (set_attr "type" "setcc")])
 +
 +;; ----------------------------------------------------------------------
 +;; MULTIPLY INSTRUCTIONS
@@ -4746,12 +4694,13 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  [(set (match_operand:SI 0 "register_operand" "=r")
 +	(mult:SI (match_operand:SI 1 "register_operand" "%0")
 +		 (match_operand:SI 2 "nonmemory_operand" "r")))
-+   (clobber (reg:SI 30))]
++   (clobber (reg:SI 30))
++   (clobber (reg:CC CC_REGNUM))]
 +  ""
 +  "mul %2,%0"
 +  [(set_attr "length" "2")
 +   (set_attr "cc" "set_zn")
-+   (set_attr "type" "mult")])
++   (set_attr "type" "setcc")])
 +
 +;; ----------------------------------------------------------------------
 +;; DIVIDE INSTRUCTIONS
@@ -4764,22 +4713,25 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +   (set (match_operand:SI 3 "register_operand" "=r")
 +	(mod:SI (match_dup 1)
 +		(match_dup 2)))
-+   (clobber (reg:SI 30))]
++   (clobber (reg:SI 30))
++   (clobber (reg:CC CC_REGNUM))]
 +  ""
 +  "div %2,%0\;mov r30,%3"
 +  [(set_attr "length" "4")
-+   (set_attr "cc" "set_zn")])
++   (set_attr "cc" "set_zn")
++   (set_attr "type" "setcc")])
 +
 +(define_insn "divsi3"
 +  [(set (match_operand:SI 0 "register_operand" "=r")
 +	(div:SI (match_operand:SI 1 "register_operand" "0")
 +		(match_operand:SI 2 "register_operand" "r")))
-+   (clobber (reg:SI 30))]
++   (clobber (reg:SI 30))
++   (clobber (reg:CC CC_REGNUM))]
 +  ""
 +  "div %2,%0"
 +  [(set_attr "length" "2")
 +   (set_attr "cc" "set_zn")
-+   (set_attr "type" "div")])
++   (set_attr "type" "setcc")])
 +
 +(define_insn "udivmodsi4"
 +  [(set (match_operand:SI 0 "register_operand" "=r")
@@ -4788,22 +4740,25 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +   (set (match_operand:SI 3 "register_operand" "=r")
 +	(umod:SI (match_dup 1)
 +		(match_dup 2)))
-+   (clobber (reg:SI 30))]
++   (clobber (reg:SI 30))
++   (clobber (reg:CC CC_REGNUM))]
 +  ""
 +  "divu %2,%0\;mov r30,%3"
 +  [(set_attr "length" "4")
-+   (set_attr "cc" "set_zn")])
++   (set_attr "cc" "set_zn")
++   (set_attr "type" "setcc")])
 +
 +(define_insn "udivsi3"
 +  [(set (match_operand:SI 0 "register_operand" "=r")
 +	(udiv:SI (match_operand:SI 1 "register_operand" "0")
 +		(match_operand:SI 2 "register_operand" "r")))
-+   (clobber (reg:SI 30))]
++   (clobber (reg:SI 30))
++   (clobber (reg:CC CC_REGNUM))]
 +  ""
 +  "divu %2,%0"
 +  [(set_attr "length" "2")
 +   (set_attr "cc" "set_zn")
-+   (set_attr "type" "udiv")])
++   (set_attr "type" "setcc")])
 +
 +
 +;; ----------------------------------------------------------------------
@@ -4821,7 +4776,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  and %.,%0
 +  andi %2,%1,%0"
 +  [(set_attr "length" "2,2,4")
-+   (set_attr "cc" "set_zn")])
++   (set_attr "cc" "set_zn,set_zn,set_zn")
++   (set_attr "type" "setcc,setcc,setcc")])
 +
 +;; ----------------------------------------------------------------------
 +;; OR INSTRUCTIONS
@@ -4838,7 +4794,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  or %.,%0
 +  ori %2,%1,%0"
 +  [(set_attr "length" "2,2,4")
-+   (set_attr "cc" "set_zn")])
++   (set_attr "cc" "set_zn,set_zn,set_zn")
++   (set_attr "type" "setcc,setcc,setcc")])
 +
 +;; ----------------------------------------------------------------------
 +;; XOR INSTRUCTIONS
@@ -4855,7 +4812,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  xor %.,%0
 +  xori %2,%1,%0"
 +  [(set_attr "length" "2,2,4")
-+   (set_attr "cc" "set_zn")])
++   (set_attr "cc" "set_zn,set_zn,set_zn")
++   (set_attr "type" "setcc,setcc,setcc")])
 +
 +;; ----------------------------------------------------------------------
 +;; NOT INSTRUCTIONS
@@ -4868,7 +4826,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  ""
 +  "not %1,%0"
 +  [(set_attr "length" "2")
-+   (set_attr "cc" "set_zn")])
++   (set_attr "cc" "set_zn")
++   (set_attr "type" "setcc")])
 +
 +;; -----------------------------------------------------------------
 +;; BIT FIELDS
@@ -4904,7 +4863,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  return \"setf %c1,%0\";
 +}
 +  [(set_attr "length" "4")
-+   (set_attr "cc" "none_0hit")])
++   (set_attr "cc" "none_0hit")
++   (set_attr "type" "usecc")])
 +
 +(define_insn "setf_insn"
 +  [(set (match_operand:SI 0 "register_operand" "=r")
@@ -4913,7 +4873,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  ""
 +  "setf %b1,%0"
 +  [(set_attr "length" "4")
-+   (set_attr "cc" "none_0hit")])
++   (set_attr "cc" "none_0hit")
++   (set_attr "type" "usecc")])
 +
 +;; ----------------------------------------------------------------------
 +;; CONDITIONAL MOVE INSTRUCTIONS
@@ -4949,12 +4910,13 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  else
 +    return \"b%B1 .+6 ; jr %l0\";
 +}
-+ [(set (attr "length")
++  [(set (attr "length")
 +    (if_then_else (lt (abs (minus (match_dup 0) (pc)))
 +		      (const_int 256))
 +		  (const_int 2)
 +		  (const_int 6)))
-+  (set_attr "cc" "none")])
++   (set_attr "cc" "none")
++   (set_attr "type" "usecc")])
 +
 +(define_insn "*branch_invert"
 +  [(set (pc)
@@ -4976,12 +4938,13 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  else
 +    return \"b%b1 .+6 ; jr %l0\";
 +}
-+ [(set (attr "length")
++  [(set (attr "length")
 +    (if_then_else (lt (abs (minus (match_dup 0) (pc)))
 +		      (const_int 256))
 +		  (const_int 2)
 +		  (const_int 6)))
-+  (set_attr "cc" "none")])
++   (set_attr "cc" "none")
++   (set_attr "type" "usecc")])
 +
 +;; Unconditional and other jump instructions.
 +
@@ -4995,19 +4958,21 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  else
 +    return \"jr %0\";
 +}
-+ [(set (attr "length")
++  [(set (attr "length")
 +    (if_then_else (lt (abs (minus (match_dup 0) (pc)))
 +		      (const_int 256))
 +		  (const_int 2)
 +		  (const_int 4)))
-+  (set_attr "cc" "none")])
++   (set_attr "cc" "none")
++   (set_attr "type" "other")])
 +
 +(define_insn "indirect_jump"
 +  [(set (pc) (match_operand:SI 0 "register_operand" "r"))]
 +  ""
 +  "jmp %0"
 +  [(set_attr "length" "2")
-+   (set_attr "cc" "none")])
++   (set_attr "cc" "none")
++   (set_attr "type" "other")])
 +
 +(define_insn "tablejump"
 +  [(set (pc) (match_operand:SI 0 "register_operand" "r"))
@@ -5015,7 +4980,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  ""
 +  "jmp  %0"
 +  [(set_attr "length" "2")
-+   (set_attr "cc" "none")])
++   (set_attr "cc" "none")
++   (set_attr "type" "other")])
 +
 +(define_expand "casesi"
 +  [(match_operand:SI 0 "register_operand" "")
@@ -5084,7 +5050,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  jal %0
 +  jal .+4 ; add 4,r31 ; jmp %0"
 +  [(set_attr "length" "4,8")
-+   (set_attr "cc" "clobber,clobber")]
++   (set_attr "cc" "clobber,clobber")
++   (set_attr "type" "other,other")]
 +)
 +
 +;; Call subroutine, returning value in operand 0
@@ -5114,7 +5081,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  jal %1
 +  jal .+4 ; add 4,r31 ; jmp %1"
 +  [(set_attr "length" "4,8")
-+   (set_attr "cc" "clobber,clobber")]
++   (set_attr "cc" "clobber,clobber")
++   (set_attr "type" "other,other")]
 +)
 +
 +(define_insn "nop"
@@ -5122,7 +5090,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  ""
 +  "nop"
 +  [(set_attr "length" "2")
-+   (set_attr "cc" "none")])
++   (set_attr "cc" "none")
++   (set_attr "type" "other")])
 +
 +;; ----------------------------------------------------------------------
 +;; EXTEND INSTRUCTIONS
@@ -5157,7 +5126,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  ""
 +  "andi 255,%1,%0"
 +  [(set_attr "length" "4")
-+   (set_attr "cc" "set_zn")])
++   (set_attr "cc" "set_zn")
++   (set_attr "type" "setcc")])
 +
 +(define_expand "zero_extendqisi2"
 +  [(parallel [(set (match_operand:SI 0 "register_operand")
@@ -5181,7 +5151,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +   shl 16,%0 ; sar 16,%0
 +   ld.h %1,%0"
 +  [(set_attr "length" "4,4")
-+   (set_attr "cc" "set_zn,none_0hit")])
++   (set_attr "cc" "set_zn,none_0hit")
++   (set_attr "type" "setcc,load")])
 +
 +(define_expand "extendhisi2"
 +  [(parallel [(set (match_dup 2)
@@ -5207,7 +5178,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +   shl 24,%0 ; sar 24,%0
 +   ld.b %1,%0"
 +  [(set_attr "length" "4,4")
-+   (set_attr "cc" "set_zn,none_0hit")])
++   (set_attr "cc" "set_zn,none_0hit")
++   (set_attr "type" "setcc,load")])
 +
 +(define_expand "extendqisi2"
 +  [(parallel [(set (match_dup 2)
@@ -5239,7 +5211,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  shl %2,%0
 +  shl %2,%0"
 +  [(set_attr "length" "4,2")
-+   (set_attr "cc" "set_zn")])
++   (set_attr "cc" "set_zn,set_zn")
++   (set_attr "type" "setcc,setcc")])
 +
 +(define_insn "lshrsi3"
 +  [(set (match_operand:SI 0 "register_operand" "=r,r")
@@ -5252,7 +5225,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  shr %2,%0
 +  shr %2,%0"
 +  [(set_attr "length" "4,2")
-+   (set_attr "cc" "set_zn")])
++   (set_attr "cc" "set_zn,set_zn")
++   (set_attr "type" "setcc,setcc")])
 +
 +(define_insn "ashrsi3"
 +  [(set (match_operand:SI 0 "register_operand" "=r,r")
@@ -5265,7 +5239,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  sar %2,%0
 +  sar %2,%0"
 +  [(set_attr "length" "4,2")
-+   (set_attr "cc" "set_zn, set_zn")])
++   (set_attr "cc" "set_zn,set_zn")
++   (set_attr "type" "setcc,setcc")])
 +
 +;; ----------------------------------------------------------------------
 +;; FIND FIRST BIT INSTRUCTION
@@ -5295,7 +5270,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  "reload_completed"
 +  "jmp [r31]"
 +  [(set_attr "length" "2")
-+   (set_attr "cc" "none")])
++   (set_attr "cc" "none")
++   (set_attr "type" "other")])
 +
 +(define_insn "return_internal"
 +  [(return)
@@ -5303,7 +5279,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  ""
 +  "jmp [r31]"
 +  [(set_attr "length" "2")
-+   (set_attr "cc" "none")])
++   (set_attr "cc" "none")
++   (set_attr "type" "other")])
 +
 +;; ----------------------------------------------------------------------
 +;; v810 floating-point hardware support
@@ -5312,77 +5289,72 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +(define_insn "addsf3"
 +  [(set (match_operand:SF 0 "register_operand" "=r")
 +	(plus:SF (match_operand:SF 1 "register_operand" "%0")
-+		 (match_operand:SF 2 "register_operand" "r")))]
++		 (match_operand:SF 2 "register_operand" "r")))
++   (clobber (reg:CC CC_REGNUM))]
 +  "TARGET_V810"
 +  "addf.s %2,%0"
 +  [(set_attr "length" "4")
-+   (set_attr "cc" "set_zn")])
++   (set_attr "cc" "set_zn")
++   (set_attr "type" "float")])
 +
 +(define_insn "subsf3"
 +  [(set (match_operand:SF 0 "register_operand" "=r")
 +	(minus:SF (match_operand:SF 1 "register_operand" "0")
-+		  (match_operand:SF 2 "register_operand" "r")))]
++		  (match_operand:SF 2 "register_operand" "r")))
++   (clobber (reg:CC CC_REGNUM))]
 +  "TARGET_V810"
 +  "subf.s %2,%0"
 +  [(set_attr "length" "4")
-+   (set_attr "cc" "set_zn")])
++   (set_attr "cc" "set_zn")
++   (set_attr "type" "float")])
 +
 +(define_insn "mulsf3"
 +  [(set (match_operand:SF 0 "register_operand" "=r")
 +	(mult:SF (match_operand:SF 1 "register_operand" "%0")
-+		 (match_operand:SF 2 "register_operand" "r")))]
++		 (match_operand:SF 2 "register_operand" "r")))
++   (clobber (reg:CC CC_REGNUM))]
 +  "TARGET_V810"
 +  "mulf.s %2,%0"
 +  [(set_attr "length" "4")
-+   (set_attr "cc" "set_zn")])
++   (set_attr "cc" "set_zn")
++   (set_attr "type" "float")])
 +
 +(define_insn "divsf3"
 +  [(set (match_operand:SF 0 "register_operand" "=r")
 +	(div:SF (match_operand:SF 1 "register_operand" "0")
-+		(match_operand:SF 2 "register_operand" "r")))]
++		(match_operand:SF 2 "register_operand" "r")))
++   (clobber (reg:CC CC_REGNUM))]
 +  "TARGET_V810"
 +  "divf.s %2,%0"
 +  [(set_attr "length" "4")
-+   (set_attr "cc" "set_zn")])
++   (set_attr "cc" "set_zn")
++   (set_attr "type" "float")])
 +
 +;; float -> int
 +(define_insn "fix_truncsfsi2"
 +  [(set (match_operand:SI 0 "register_operand" "=r")
-+	(fix:SI (match_operand:SF 1 "register_operand" "r")))]
++	(fix:SI (match_operand:SF 1 "register_operand" "r")))
++   (clobber (reg:CC CC_REGNUM))]
 +  "TARGET_V810"
 +  "cvt.sw %1,%0"
 +  [(set_attr "length" "4")
-+   (set_attr "cc" "set_zn")])
++   (set_attr "cc" "set_zn")
++   (set_attr "type" "float")])
 +
 +;; int -> float
 +(define_insn "floatsisf2"
 +  [(set (match_operand:SF 0 "register_operand" "=r")
-+	(float:SF (match_operand:SI 1 "register_operand" "r")))]
++	(float:SF (match_operand:SI 1 "register_operand" "r")))
++   (clobber (reg:CC CC_REGNUM))]
 +  "TARGET_V810"
 +  "cvt.ws %1,%0"
 +  [(set_attr "length" "4")
-+   (set_attr "cc" "set_zn")])
++   (set_attr "cc" "set_zn")
++   (set_attr "type" "float")])
 +
 +;; ----------------------------------------------------------------------
 +;; HELPER INSTRUCTIONS for saving the prologue and epilogue registers
 +;; ----------------------------------------------------------------------
-+
-+;; ;; This pattern will match a stack adjust RTX followed by any number of push
-+;; ;; RTXs.  These RTXs will then be turned into a suitable call to a worker
-+;; ;; function.
-+;; 
-+;; (define_insn ""
-+;;  [(match_parallel 0 "pattern_is_ok_for_prologue"
-+;;    [(set (reg:SI 3)
-+;; 	 (plus:SI (reg:SI 3) (match_operand:SI 1 "immediate_operand" "i")))
-+;;     (set (mem:SI (plus:SI (reg:SI 3)
-+;; 			   (match_operand:SI 2 "immediate_operand" "i")))
-+;; 	 (match_operand:SI 3 "register_is_ok_for_epilogue" "r"))])]
-+;;  "TARGET_PROLOG_FUNCTION"
-+;;  "* return construct_save_jal (operands[0]);
-+;;  "
-+;;  [(set_attr "length" "6")
-+;;   (set_attr "cc"     "clobber")])
 +
 +;; This pattern will match a frame pointer set, and a stack adjust RTX followed
 +;; by any number of push RTXs.  These RTXs will then be turned into a suitable
@@ -5405,25 +5377,6 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 + [(set_attr "length" "6")
 +  (set_attr "cc"     "clobber")])
 +
-+;; ;; This pattern will match a return RTX followed by any number of pop RTXs
-+;; ;; and possible a stack adjustment as well.  These RTXs will be turned into
-+;; ;; a suitable call to a worker function.
-+;; 
-+;; 
-+;; (define_insn ""
-+;; [(match_parallel 0 "pattern_is_ok_for_epilogue"
-+;;    [(return)
-+;;     (set (reg:SI 3)
-+;; 	 (plus:SI (reg:SI 3) (match_operand:SI 1 "immediate_operand" "i")))
-+;;     (set (match_operand:SI 2 "register_is_ok_for_epilogue" "=r")
-+;; 	 (mem:SI (plus:SI (reg:SI 3)
-+;; 			  (match_operand:SI 3 "immediate_operand" "i"))))])]
-+;;  "TARGET_PROLOG_FUNCTION"
-+;;  "* return construct_restore_jr (operands[0]);
-+;;  "
-+;;  [(set_attr "length" "4")
-+;;   (set_attr "cc"     "clobber")])
-+
 +;; This pattern will match a return RTX followed by any number of pop RTXs
 +;; and possible a stack adjustment as well.  These RTXs will be turned into
 +;; a suitable call to a worker function.
@@ -5445,6 +5398,7 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  (set_attr "cc"     "clobber")])
 +
 +;; Enter an interrupt function (saving a lot less on the V810 than the V850).
++
 +(define_insn "save_interrupt"
 +  [(set (reg:SI 3) (plus:SI (reg:SI 3) (const_int -4)))
 +   (set (mem:SI (plus:SI (reg:SI 3) (const_int  -4))) (reg:SI 1))]
@@ -5458,6 +5412,7 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +   (set_attr "cc" "clobber")])
 +
 +;; Leave an interrupt function (loading a lot less on the V810 than the V850).
++
 +(define_insn "return_interrupt"
 +  [(return)
 +   (set (reg:SI 3)  (plus:SI (reg:SI 3) (const_int 4)))
@@ -5471,9 +5426,54 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +}
 +  [(set_attr "length" "8")
 +   (set_attr "cc" "clobber")])
++
++;; ----------------------------------------------------------------------
++;; PEEPHOLE OPTIMIZATIONS
++;; ----------------------------------------------------------------------
++
++;; JCB 2022-02-18 (Thanks to the author of arm/arm.md!)
++;;
++;; GCC converts *some* frame-pointer address references into ...
++;;   ADDI $xxxx, fp, rDEST
++;;
++;; GCC converts *other* frame-pointer address references into ...
++;;   MOVEA $xxxx, r0, rDEST
++;;   ADD fp, rDEST
++;;
++;; These two peephole optimizations turn them both into ...
++;;   MOVEA lo($xxxx), fp, rDEST
++;;
++;; ... which avoids clobbering CC_REGNUM!
++;;
++;; Alternatively, we could just use this to shorten the 1st into ...
++;;   ADDI $xxxx, fp, rDEST
++;;
++;;   [(parallel [(set (match_dup 0)
++;; 		   (plus:SI (reg:SI FP_REGNUM) (match_dup 1)))
++;; 	      (clobber (reg:CC CC_REGNUM))])]
++
++(define_peephole2
++  [(parallel [(set (match_operand:SI 0 "register_operand" "")
++		   (plus:SI (reg:SI FP_REGNUM) (match_operand:SI 1 "const_int_operand" "")))
++	      (clobber (reg:CC CC_REGNUM))])]
++  "CONST_OK_FOR_K (INTVAL (operands[1]))"
++  [(set (match_dup 0) (lo_sum:SI (reg:SI FP_REGNUM) (match_dup 1)))]
++  ""
++)
++
++(define_peephole2
++  [(set (match_operand:SI 0 "register_operand" "")
++	(match_operand:SI 1 "const_int_operand" ""))
++   (parallel [(set (match_dup 0)
++		   (plus:SI (match_dup 0) (reg:SI FP_REGNUM)))
++	      (clobber (reg:CC CC_REGNUM))])]
++  "CONST_OK_FOR_K (INTVAL (operands[1]))"
++  [(set (match_dup 0) (lo_sum:SI (reg:SI FP_REGNUM) (match_dup 1)))]
++  ""
++)
 diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.opt gcc-4.9.4/gcc/config/v810/v810.opt
 --- gcc-4.9.4-pure/gcc/config/v810/v810.opt	1969-12-31 19:00:00.000000000 -0500
-+++ gcc-4.9.4/gcc/config/v810/v810.opt	2022-02-13 20:27:54.817879600 -0500
++++ gcc-4.9.4/gcc/config/v810/v810.opt	2022-02-27 14:57:28.841571900 -0500
 @@ -0,0 +1,63 @@
 +; Options for the NEC V810 port of the compiler.
 +
@@ -5540,7 +5540,7 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.opt gcc-4.9.4/gcc/config/v810/v81
 +Enable relaxing in the assembler
 diff -Naur gcc-4.9.4-pure/gcc/config.gcc gcc-4.9.4/gcc/config.gcc
 --- gcc-4.9.4-pure/gcc/config.gcc	2016-03-14 06:03:12.000000000 -0400
-+++ gcc-4.9.4/gcc/config.gcc	2022-02-13 20:27:54.832879800 -0500
++++ gcc-4.9.4/gcc/config.gcc	2022-02-27 14:57:28.850572400 -0500
 @@ -479,6 +479,9 @@
  	extra_options="${extra_options} fused-madd.opt"
  	extra_objs="${extra_objs} sh_treg_combine.o sh-mem.o sh_optimize_sett_clrt.o"
@@ -5586,8 +5586,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config.gcc gcc-4.9.4/gcc/config.gcc
  	tm_file="dbxelf.h elfos.h v850/v850.h"
 diff -Naur gcc-4.9.4-pure/libgcc/config/v810/lib1funcs.S gcc-4.9.4/libgcc/config/v810/lib1funcs.S
 --- gcc-4.9.4-pure/libgcc/config/v810/lib1funcs.S	1969-12-31 19:00:00.000000000 -0500
-+++ gcc-4.9.4/libgcc/config/v810/lib1funcs.S	2022-02-13 20:27:54.842879900 -0500
-@@ -0,0 +1,503 @@
++++ gcc-4.9.4/libgcc/config/v810/lib1funcs.S	2022-02-27 14:57:28.860573000 -0500
+@@ -0,0 +1,514 @@
 +/* libgcc routines for NEC V810.
 +   Copyright (C) 1996-2014 Free Software Foundation, Inc.
 +
@@ -5623,55 +5623,66 @@ diff -Naur gcc-4.9.4-pure/libgcc/config/v810/lib1funcs.S gcc-4.9.4/libgcc/config
 +
 +   *****************************
 +
-+   GCC 1999-ABI V850 STACK FRAME
++   GCC 1999-ABI V850 STACK FRAME (stack grows downwards)
 +
-+   CALLER
++   CALLER    incoming-arg? (to CALLEE)
++             ...
++             incoming-arg5
 +             incoming-arg4
-+   ap->      16-bytes-reserved
++   ap->      16-bytes-reserved arg0..arg3
 +
-+   CALLEE
-+             saved-lp
++   CALLEE    saved-lp
 +             saved-...
 +             saved-r27
 +             saved-r28
 +   fp->      saved-fp
 +             local-variables
-+             outgoing-arg?
++             outgoing-arg? (to next CALLEE)
++             ...
++             outgoing-arg5
 +             outgoing-arg4
-+   sp->      16-bytes-reserved
++   sp->      16-bytes-reserved for arg0..arg3
 +
 +   *****************************
 +
-+   GCC 2010-ABI V850 STACK FRAME
++   GCC 2010-ABI V850 STACK FRAME (stack grows downwards)
 +
-+   CALLER
++   CALLER    incoming-arg? (to CALLEE)
++             ...
++             incoming-arg5
 +   ap->      incoming-arg4
 +
-+   CALLEE
-+             saved-lp
++   CALLEE    saved-lp
 +             saved-...
 +             saved-r27
 +             saved-r28
 +   fp->      saved-fp
 +             local-variables
-+             outgoing-arg?
++             outgoing-arg? (to next CALLEE)
++             ...
++             outgoing-arg5
 +   sp->      outgoing-arg4
 +
 +   *****************************
 +
-+   GCC 2016-ABI V810 STACK FRAME
++   GCC 2016-ABI V810 STACK FRAME (stack grows downwards)
 +
-+   CALLER
++   This frame layout allows for easy in-app stack tracing!
++
++   CALLER    incoming-arg? (to CALLEE)
++             ...
++             incoming-arg5
 +   ap->      incoming-arg4
 +
-+   CALLEE
-+             saved-...
++   CALLEE    saved-...
 +             saved-r28
 +             saved-r29
 +             saved-lp
 +   fp->      saved-fp
 +             local-variables
-+             outgoing-arg?
++             outgoing-arg? (to next CALLEE)
++             ...
++             outgoing-arg5
 +   sp->      outgoing-arg4
 +*/
 +
@@ -6093,7 +6104,7 @@ diff -Naur gcc-4.9.4-pure/libgcc/config/v810/lib1funcs.S gcc-4.9.4/libgcc/config
 +#endif
 diff -Naur gcc-4.9.4-pure/libgcc/config/v810/t-v810 gcc-4.9.4/libgcc/config/v810/t-v810
 --- gcc-4.9.4-pure/libgcc/config/v810/t-v810	1969-12-31 19:00:00.000000000 -0500
-+++ gcc-4.9.4/libgcc/config/v810/t-v810	2022-02-13 20:27:54.847880000 -0500
++++ gcc-4.9.4/libgcc/config/v810/t-v810	2022-02-27 14:57:28.868573400 -0500
 @@ -0,0 +1,11 @@
 +LIB1ASMSRC = v810/lib1funcs.S
 +LIB1ASMFUNCS	= \
@@ -6108,7 +6119,7 @@ diff -Naur gcc-4.9.4-pure/libgcc/config/v810/t-v810 gcc-4.9.4/libgcc/config/v810
 +HOST_LIBGCC2_CFLAGS += -O2 -fomit-frame-pointer -mno-prolog-function
 diff -Naur gcc-4.9.4-pure/libgcc/config.host gcc-4.9.4/libgcc/config.host
 --- gcc-4.9.4-pure/libgcc/config.host	2016-05-17 02:22:28.000000000 -0400
-+++ gcc-4.9.4/libgcc/config.host	2022-02-13 20:27:54.857880200 -0500
++++ gcc-4.9.4/libgcc/config.host	2022-02-27 14:57:28.871573600 -0500
 @@ -192,6 +192,9 @@
  tilepro*-*-*)
  	cpu_type=tilepro
@@ -6130,8 +6141,8 @@ diff -Naur gcc-4.9.4-pure/libgcc/config.host gcc-4.9.4/libgcc/config.host
  	tmake_file="${tmake_file} v850/t-v850 t-fdpbit"
  	;;
 diff -Naur gcc-4.9.4-pure/libgcc/libgcc2.c gcc-4.9.4/libgcc/libgcc2.c
---- gcc-4.9.4-pure/libgcc/libgcc2.c	2022-02-13 20:16:20.138410400 -0500
-+++ gcc-4.9.4/libgcc/libgcc2.c	2022-02-13 20:27:54.865380300 -0500
+--- gcc-4.9.4-pure/libgcc/libgcc2.c	2022-02-27 14:51:03.232536400 -0500
++++ gcc-4.9.4/libgcc/libgcc2.c	2022-02-27 14:57:28.876573900 -0500
 @@ -1466,7 +1466,6 @@
  	 format, it would be significantly faster.  */
  
