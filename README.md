@@ -49,6 +49,11 @@ Install the "build-essential" package to get the compiler.
 sudo apt-get install build-essential
 ```
 
+Ubuntu systems will need to install additional packages needed for the build.
+```
+sudo apt-get install curl flex gperf bison texinfo
+```
+
 Install the static libraries that are needed to build GCC4.
 ```
 sudo apt-get install libgmp-dev libmpc-dev libmpfr-dev
