@@ -962,7 +962,7 @@ diff -Naur binutils-2.27-pure/bfd/elf32-v810.c binutils-2.27/bfd/elf32-v810.c
 +}
 +/* Note: It is REQUIRED that the 'type' value of each entry
 +   in this array match the index of the entry in the array.
-+   SeeAlso: RELOC_NUBMER in include/elf/v810.h  */
++   SeeAlso: RELOC_NUMBER in include/elf/v810.h  */
 +static reloc_howto_type v810_elf_howto_table[] =
 +{
 +  /* This reloc does nothing.  */

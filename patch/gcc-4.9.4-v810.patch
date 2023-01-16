@@ -142,8 +142,8 @@ diff -Naur gcc-4.9.4-pure/gcc/common/config/v810/v810-common.c gcc-4.9.4/gcc/com
 +struct gcc_targetm_common targetm_common = TARGETM_COMMON_INITIALIZER;
 diff -Naur gcc-4.9.4-pure/gcc/config/v810/constraints.md gcc-4.9.4/gcc/config/v810/constraints.md
 --- gcc-4.9.4-pure/gcc/config/v810/constraints.md	1969-12-31 19:00:00.000000000 -0500
-+++ gcc-4.9.4/gcc/config/v810/constraints.md	2022-03-03 10:57:25.637422600 -0500
-@@ -0,0 +1,90 @@
++++ gcc-4.9.4/gcc/config/v810/constraints.md	2022-03-04 10:44:21.256211800 -0500
+@@ -0,0 +1,93 @@
 +;; Constraint definitions for V810.
 +;; Copyright (C) 2011-2014 Free Software Foundation, Inc.
 +;;
@@ -210,10 +210,9 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/constraints.md gcc-4.9.4/gcc/config/v8
 +  (and (match_code "const_int")
 +       (match_test "ival >= 0 && ival <= 31")))
 +
-+;; (define_constraint "P"
-+;;   "@internal"
-+;;   (and (match_code "const_int")
-+;;        (match_test "0")))
++;; No constraint "O" on the v810.
++;; No constraint "P" on the v810.
++;; No constraint "Q" on the v810.
 +
 +;; Extra constraints.
 +
@@ -226,7 +225,9 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/constraints.md gcc-4.9.4/gcc/config/v8
 +  (and (match_code "symbol_ref")
 +       (match_test "!SYMBOL_REF_ZDA_P (op)")))
 +
-+(define_constraint "T"
++;; No constraint "T" on the v810.
++
++(define_constraint "U"
 +  "@internal"
 +  (ior (and (match_code "symbol_ref")
 +	    (match_test "SYMBOL_REF_ZDA_P (op)"))
@@ -234,10 +235,12 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/constraints.md gcc-4.9.4/gcc/config/v8
 +	    (match_test "GET_CODE (XEXP (op, 0)) == PLUS")
 +	    (match_test "GET_CODE (XEXP (XEXP (op, 0), 0)) == SYMBOL_REF")
 +	    (match_test "SYMBOL_REF_ZDA_P (XEXP (XEXP (op, 0), 0))"))))
++
++;; No constraint "W" on the v810.
 diff -Naur gcc-4.9.4-pure/gcc/config/v810/predicates.md gcc-4.9.4/gcc/config/v810/predicates.md
 --- gcc-4.9.4-pure/gcc/config/v810/predicates.md	1969-12-31 19:00:00.000000000 -0500
-+++ gcc-4.9.4/gcc/config/v810/predicates.md	2022-02-27 14:57:28.755566900 -0500
-@@ -0,0 +1,244 @@
++++ gcc-4.9.4/gcc/config/v810/predicates.md	2022-03-04 10:44:21.211211100 -0500
+@@ -0,0 +1,246 @@
 +;; Predicate definitions for NEC V810.
 +;; Copyright (C) 2005-2014 Free Software Foundation, Inc.
 +;;
@@ -330,6 +333,7 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/predicates.md gcc-4.9.4/gcc/config/v81
 +
 +;; Return nonzero if the given RTX is suitable for collapsing into a
 +;; jump to a function prologue.
++;;
 +;; N.B. Heavily modified from V850 for new V810 stack frame, and frame pointer.
 +
 +(define_predicate "pattern_is_ok_for_prologue"
@@ -402,6 +406,7 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/predicates.md gcc-4.9.4/gcc/config/v81
 +
 +;; Return nonzero if the given RTX is suitable for collapsing into
 +;; jump to a function epilogue.
++;;
 +;; N.B. Heavily modified from V850 for new V810 stack frame, and frame pointer.
 +
 +(define_predicate "pattern_is_ok_for_epilogue"
@@ -905,8 +910,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810-opts.h gcc-4.9.4/gcc/config/v810/
 +#endif
 diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810-protos.h gcc-4.9.4/gcc/config/v810/v810-protos.h
 --- gcc-4.9.4-pure/gcc/config/v810/v810-protos.h	1969-12-31 19:00:00.000000000 -0500
-+++ gcc-4.9.4/gcc/config/v810/v810-protos.h	2022-02-27 14:57:28.808570000 -0500
-@@ -0,0 +1,67 @@
++++ gcc-4.9.4/gcc/config/v810/v810-protos.h	2022-03-07 16:20:19.705840400 -0500
+@@ -0,0 +1,65 @@
 +/* Prototypes for v810.c functions used in the md file & elsewhere.
 +   Copyright (C) 1999-2014 Free Software Foundation, Inc.
 +
@@ -949,8 +954,6 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810-protos.h gcc-4.9.4/gcc/config/v81
 +extern char * construct_restore_jr          (rtx);
 +
 +#ifdef HAVE_MACHINE_MODES
-+extern rtx    v810_gen_compare              (enum rtx_code, enum machine_mode,
-+					     rtx, rtx);
 +// JCB 2018
 +// extern enum machine_mode  v810_select_cc_mode (RTX_CODE, rtx, rtx);
 +#endif
@@ -976,8 +979,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810-protos.h gcc-4.9.4/gcc/config/v81
 +#endif /* ! GCC_V810_PROTOS_H */
 diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.c gcc-4.9.4/gcc/config/v810/v810.c
 --- gcc-4.9.4-pure/gcc/config/v810/v810.c	1969-12-31 19:00:00.000000000 -0500
-+++ gcc-4.9.4/gcc/config/v810/v810.c	2022-02-27 14:57:28.821570700 -0500
-@@ -0,0 +1,2401 @@
++++ gcc-4.9.4/gcc/config/v810/v810.c	2022-03-07 17:11:16.856794200 -0500
+@@ -0,0 +1,2379 @@
 +/* Subroutines for insn-output.c for NEC V810 series
 +   Copyright (C) 1996-2014 Free Software Foundation, Inc.
 +   Contributed by Jeff Law (law@cygnus.com).
@@ -1837,22 +1840,6 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.c gcc-4.9.4/gcc/config/v810/v810.
 +  fatal_insn ("output_move_single:", gen_rtx_SET (VOIDmode, dst, src));
 +  return "";
 +}
-+
-+rtx
-+v810_gen_compare (enum rtx_code cond, enum machine_mode mode, rtx op0, rtx op1)
-+{
-+  if (GET_MODE_CLASS(GET_MODE (op0)) != MODE_FLOAT)
-+    {
-+      emit_insn (gen_cmpsi_insn (op0, op1));
-+      return gen_rtx_fmt_ee (cond, mode, gen_rtx_REG(CCmode, CC_REGNUM), const0_rtx);
-+    }
-+  else
-+    {
-+      emit_insn (gen_cmpsf_insn (op0, op1));
-+      return gen_rtx_fmt_ee (cond, mode, gen_rtx_REG(CCmode, CC_REGNUM), const0_rtx);
-+    }
-+}
-+
 +
 +/* # of registers saved by the interrupt handler (R1).  */
 +#define INTERRUPT_FIXED_NUM 1
@@ -3347,12 +3334,6 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.c gcc-4.9.4/gcc/config/v810/v810.
 +#undef  TARGET_CALLEE_COPIES
 +#define TARGET_CALLEE_COPIES hook_bool_CUMULATIVE_ARGS_mode_tree_bool_true
 +
-+#if 0
-+// JCB 2022 - Removed in V810
-+#undef  TARGET_SETUP_INCOMING_VARARGS
-+#define TARGET_SETUP_INCOMING_VARARGS v810_setup_incoming_varargs
-+#endif
-+
 +#undef  TARGET_ARG_PARTIAL_BYTES
 +#define TARGET_ARG_PARTIAL_BYTES v810_arg_partial_bytes
 +
@@ -4262,8 +4243,8 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.h gcc-4.9.4/gcc/config/v810/v810.
 +#endif /* ! GCC_V810_H */
 diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810.md
 --- gcc-4.9.4-pure/gcc/config/v810/v810.md	1969-12-31 19:00:00.000000000 -0500
-+++ gcc-4.9.4/gcc/config/v810/v810.md	2022-03-03 12:00:33.660440400 -0500
-@@ -0,0 +1,1207 @@
++++ gcc-4.9.4/gcc/config/v810/v810.md	2022-03-07 17:07:56.035551700 -0500
+@@ -0,0 +1,1195 @@
 +;; GCC machine description for NEC V810
 +;; Copyright (C) 1996-2014 Free Software Foundation, Inc.
 +;; Contributed by Jeff Law (law@cygnus.com).
@@ -4339,7 +4320,7 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +;; compare - compare instruction
 +;; clobber - value of cc is unknown
 +
-+(define_attr "cc" "none,none_0hit,set_z,set_zn,set_znv,compare,clobber"
++(define_attr "cc" "none,none_0hit,set_zn,set_znv,compare,clobber"
 +  (const_string "clobber"))
 +
 +;; // JCB - Old-Style pipeline description from Japanese GCC 2.95 ...
@@ -4381,7 +4362,10 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +;; Thus a value of "0" seems to indicate that no delay is needed.
 +;;
 +;; Note that we *cannot* separate setcc from usecc while still using cc0
-+;; which the v850 also still does!
++;; mode, which the v850 also continues to use until GCC9.
++;;
++;; Backporting the GCC9 CCmode changes works, but it breaks the detection
++;; of flags set by add/sub/and/not/... and so isn't worth it.
 +;;
 +;; See https://gcc.gnu.org/wiki/CC0Transition
 +;; See https://gcc.gnu.org/onlinedocs/gcc-4.9.4/gccint/CC0-Condition-Codes.html
@@ -4416,8 +4400,6 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +(define_bypass 3 "v810_setcc,v810_move,v810_load" "v810_load,v810_store")
 +
 +;; Attempt to separate setting and using condition codes.
-+;;
-+;; Will never work while still using CC0!
 +;;
 +;; (define_bypass 3 "v810_setcc" "v810_usecc")
 +
@@ -4564,19 +4546,6 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +;; TEST INSTRUCTIONS
 +;; ----------------------------------------------------------------------
 +
-+;; (define_split
-+;;   [(set (match_operand:SI 0 "register_operand" "")
-+;; 	(compare (zero_extract:SI (match_operand:QI 1 "memory_operand" "")
-+;; 				  (const_int 1)
-+;; 				  (match_operand 2 "const_int_operand" ""))
-+;; 		 (const_int 0)))]
-+;;   ""
-+;;   [(set (cc0) (compare (zero_extract:SI (match_dup 1)
-+;; 				        (const_int 1)
-+;; 				        (match_dup 2))
-+;; 		       (const_int 0)))
-+;;    (set (match_dup 0) (ne:SI (cc0) (const_int 0)))])
-+
 +(define_expand "cbranchsi4"
 +  [(set (cc0)
 +	(compare (match_operand:SI 1 "register_operand" "")
@@ -4649,7 +4618,7 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +(define_insn "addsi3"
 +  [(set (match_operand:SI 0 "register_operand" "=r,r,r")
 +	(plus:SI (match_operand:SI 1 "register_operand" "%0,r,r")
-+		 (match_operand:SI 2 "nonmemory_operand" "rJ,K,T")))
++		 (match_operand:SI 2 "nonmemory_operand" "rJ,K,U")))
 +   (clobber (reg:CC CC_REGNUM))]
 +
 +  ""
@@ -5210,7 +5179,7 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  "@
 +  shl %2,%0
 +  shl %2,%0"
-+  [(set_attr "length" "4,2")
++  [(set_attr "length" "2,2")
 +   (set_attr "cc" "set_zn,set_zn")
 +   (set_attr "type" "setcc,setcc")])
 +
@@ -5224,7 +5193,7 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  "@
 +  shr %2,%0
 +  shr %2,%0"
-+  [(set_attr "length" "4,2")
++  [(set_attr "length" "2,2")
 +   (set_attr "cc" "set_zn,set_zn")
 +   (set_attr "type" "setcc,setcc")])
 +
@@ -5238,7 +5207,7 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.md gcc-4.9.4/gcc/config/v810/v810
 +  "@
 +  sar %2,%0
 +  sar %2,%0"
-+  [(set_attr "length" "4,2")
++  [(set_attr "length" "2,2")
 +   (set_attr "cc" "set_zn,set_zn")
 +   (set_attr "type" "setcc,setcc")])
 +
