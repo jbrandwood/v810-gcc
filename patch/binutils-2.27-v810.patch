@@ -1,6 +1,6 @@
 diff -Naur binutils-2.27-pure/bfd/Makefile.am binutils-2.27/bfd/Makefile.am
 --- binutils-2.27-pure/bfd/Makefile.am	2016-08-03 03:36:50.000000000 -0400
-+++ binutils-2.27/bfd/Makefile.am	2022-02-10 13:50:25.334336700 -0500
++++ binutils-2.27/bfd/Makefile.am	2023-01-15 16:03:57.647129200 -0500
 @@ -162,6 +162,7 @@
  	cpu-tic80.lo \
  	cpu-tilegx.lo \
@@ -35,7 +35,7 @@ diff -Naur binutils-2.27-pure/bfd/Makefile.am binutils-2.27/bfd/Makefile.am
  	elf32-visium.c \
 diff -Naur binutils-2.27-pure/bfd/Makefile.in binutils-2.27/bfd/Makefile.in
 --- binutils-2.27-pure/bfd/Makefile.in	2016-08-03 04:06:27.000000000 -0400
-+++ binutils-2.27/bfd/Makefile.in	2022-02-10 13:50:25.354337900 -0500
++++ binutils-2.27/bfd/Makefile.in	2023-01-15 16:03:57.664629500 -0500
 @@ -494,6 +494,7 @@
  	cpu-tic80.lo \
  	cpu-tilegx.lo \
@@ -86,7 +86,7 @@ diff -Naur binutils-2.27-pure/bfd/Makefile.in binutils-2.27/bfd/Makefile.in
  @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/elf32-visium.Plo@am__quote@
 diff -Naur binutils-2.27-pure/bfd/archures.c binutils-2.27/bfd/archures.c
 --- binutils-2.27-pure/bfd/archures.c	2016-08-03 03:36:50.000000000 -0400
-+++ binutils-2.27/bfd/archures.c	2022-02-10 13:50:25.369338700 -0500
++++ binutils-2.27/bfd/archures.c	2023-01-15 16:03:57.679629700 -0500
 @@ -360,6 +360,8 @@
  .  bfd_arch_tic54x,    {* Texas Instruments TMS320C54X *}
  .  bfd_arch_tic6x,     {* Texas Instruments TMS320C6X *}
@@ -114,7 +114,7 @@ diff -Naur binutils-2.27-pure/bfd/archures.c binutils-2.27/bfd/archures.c
      &bfd_vax_arch,
 diff -Naur binutils-2.27-pure/bfd/bfd-in2.h binutils-2.27/bfd/bfd-in2.h
 --- binutils-2.27-pure/bfd/bfd-in2.h	2016-08-03 03:36:50.000000000 -0400
-+++ binutils-2.27/bfd/bfd-in2.h	2022-02-10 13:50:25.384339600 -0500
++++ binutils-2.27/bfd/bfd-in2.h	2023-01-15 16:03:57.694630000 -0500
 @@ -2171,6 +2171,8 @@
    bfd_arch_tic54x,    /* Texas Instruments TMS320C54X */
    bfd_arch_tic6x,     /* Texas Instruments TMS320C6X */
@@ -151,7 +151,7 @@ diff -Naur binutils-2.27-pure/bfd/bfd-in2.h binutils-2.27/bfd/bfd-in2.h
  /* This is a 22-bit reloc  */
 diff -Naur binutils-2.27-pure/bfd/config.bfd binutils-2.27/bfd/config.bfd
 --- binutils-2.27-pure/bfd/config.bfd	2016-08-03 03:36:50.000000000 -0400
-+++ binutils-2.27/bfd/config.bfd	2022-02-10 13:50:25.400340500 -0500
++++ binutils-2.27/bfd/config.bfd	2023-01-15 16:03:57.707130200 -0500
 @@ -129,6 +129,7 @@
  spu*)            targ_archs=bfd_spu_arch ;;
  tilegx*)	 targ_archs=bfd_tilegx_arch ;;
@@ -172,8 +172,8 @@ diff -Naur binutils-2.27-pure/bfd/config.bfd binutils-2.27/bfd/config.bfd
      targ_defvec=v850_elf32_vec
      targ_selvecs="v800_elf32_vec"
 diff -Naur binutils-2.27-pure/bfd/configure binutils-2.27/bfd/configure
---- binutils-2.27-pure/bfd/configure	2022-02-10 13:45:24.539678900 -0500
-+++ binutils-2.27/bfd/configure	2022-02-10 13:50:25.413341200 -0500
+--- binutils-2.27-pure/bfd/configure	2022-02-24 15:24:14.571372200 -0500
++++ binutils-2.27/bfd/configure	2023-01-15 16:03:57.719630300 -0500
 @@ -14513,6 +14513,7 @@
      tilegx_elf64_be_vec)	 tb="$tb elf64-tilegx.lo elfxx-tilegx.lo elf64.lo $elf" ; target_size=64 ;;
      tilegx_elf64_le_vec)	 tb="$tb elf64-tilegx.lo elfxx-tilegx.lo elf64.lo $elf" ; target_size=64 ;;
@@ -184,7 +184,7 @@ diff -Naur binutils-2.27-pure/bfd/configure binutils-2.27/bfd/configure
      vax_aout_1knbsd_vec)	 tb="$tb vax1knetbsd.lo aout32.lo" ;;
 diff -Naur binutils-2.27-pure/bfd/configure.ac binutils-2.27/bfd/configure.ac
 --- binutils-2.27-pure/bfd/configure.ac	2016-08-03 03:36:50.000000000 -0400
-+++ binutils-2.27/bfd/configure.ac	2022-02-10 13:50:25.429342100 -0500
++++ binutils-2.27/bfd/configure.ac	2023-01-15 16:03:57.734630600 -0500
 @@ -688,6 +688,7 @@
      tilegx_elf64_be_vec)	 tb="$tb elf64-tilegx.lo elfxx-tilegx.lo elf64.lo $elf" ; target_size=64 ;;
      tilegx_elf64_le_vec)	 tb="$tb elf64-tilegx.lo elfxx-tilegx.lo elf64.lo $elf" ; target_size=64 ;;
@@ -195,7 +195,7 @@ diff -Naur binutils-2.27-pure/bfd/configure.ac binutils-2.27/bfd/configure.ac
      vax_aout_1knbsd_vec)	 tb="$tb vax1knetbsd.lo aout32.lo" ;;
 diff -Naur binutils-2.27-pure/bfd/cpu-v810.c binutils-2.27/bfd/cpu-v810.c
 --- binutils-2.27-pure/bfd/cpu-v810.c	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/bfd/cpu-v810.c	2022-02-10 13:50:25.437342600 -0500
++++ binutils-2.27/bfd/cpu-v810.c	2023-01-15 16:03:57.744630700 -0500
 @@ -0,0 +1,31 @@
 +/* BFD support for the NEC V810 processor
 +   Copyright (C) 1996-2016 Free Software Foundation, Inc.
@@ -230,7 +230,7 @@ diff -Naur binutils-2.27-pure/bfd/cpu-v810.c binutils-2.27/bfd/cpu-v810.c
 +  N (bfd_mach_v810, "v810", TRUE, NULL);
 diff -Naur binutils-2.27-pure/bfd/doc/archures.texi binutils-2.27/bfd/doc/archures.texi
 --- binutils-2.27-pure/bfd/doc/archures.texi	2016-08-03 04:36:22.000000000 -0400
-+++ binutils-2.27/bfd/doc/archures.texi	2022-02-10 13:50:25.449343300 -0500
++++ binutils-2.27/bfd/doc/archures.texi	2023-01-15 16:03:57.757130900 -0500
 @@ -327,6 +327,8 @@
    bfd_arch_tic54x,    /* Texas Instruments TMS320C54X */
    bfd_arch_tic6x,     /* Texas Instruments TMS320C6X */
@@ -242,7 +242,7 @@ diff -Naur binutils-2.27-pure/bfd/doc/archures.texi binutils-2.27/bfd/doc/archur
  #define bfd_mach_v850          1
 diff -Naur binutils-2.27-pure/bfd/doc/bfd.info binutils-2.27/bfd/doc/bfd.info
 --- binutils-2.27-pure/bfd/doc/bfd.info	2016-08-03 04:36:22.000000000 -0400
-+++ binutils-2.27/bfd/doc/bfd.info	2022-02-10 13:50:25.467344300 -0500
++++ binutils-2.27/bfd/doc/bfd.info	2023-01-15 16:03:57.772131200 -0500
 @@ -5063,6 +5063,24 @@
   -- : BFD_RELOC_NDS32_TLS_LE_15S2
       For TLS.
@@ -279,7 +279,7 @@ diff -Naur binutils-2.27-pure/bfd/doc/bfd.info binutils-2.27/bfd/doc/bfd.info
       #define bfd_mach_v850          1
 diff -Naur binutils-2.27-pure/bfd/doc/reloc.texi binutils-2.27/bfd/doc/reloc.texi
 --- binutils-2.27-pure/bfd/doc/reloc.texi	2016-08-03 04:36:22.000000000 -0400
-+++ binutils-2.27/bfd/doc/reloc.texi	2022-02-10 13:50:25.484345300 -0500
++++ binutils-2.27/bfd/doc/reloc.texi	2023-01-15 16:03:57.789631400 -0500
 @@ -2061,6 +2061,24 @@
  @deffnx {} BFD_RELOC_NDS32_TLS_LE_15S2
  For TLS.
@@ -307,7 +307,7 @@ diff -Naur binutils-2.27-pure/bfd/doc/reloc.texi binutils-2.27/bfd/doc/reloc.tex
  @end deffn
 diff -Naur binutils-2.27-pure/bfd/elf32-v810.c binutils-2.27/bfd/elf32-v810.c
 --- binutils-2.27-pure/bfd/elf32-v810.c	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/bfd/elf32-v810.c	2022-02-10 13:50:25.498346100 -0500
++++ binutils-2.27/bfd/elf32-v810.c	2023-01-15 16:34:12.477748300 -0500
 @@ -0,0 +1,2096 @@
 +/* V810-specific support for 32-bit ELF
 +   Copyright (C) 1996-2016 Free Software Foundation, Inc.
@@ -1723,7 +1723,7 @@ diff -Naur binutils-2.27-pure/bfd/elf32-v810.c binutils-2.27/bfd/elf32-v810.c
 +/* V810 ELF uses four common sections.  One is the usual one, and the
 +   others are for (small) objects in one of the special data areas:
 +   small, thread and zero.  All the objects are kept together, and then
-+   referenced via the gp register, the ep register or the r0 register
++   referenced via the gp register, the tp register or the r0 register
 +   respectively, which yields smaller, faster assembler code.  This
 +   approach is copied from elf32-mips.c.  */
 +
@@ -2405,9 +2405,21 @@ diff -Naur binutils-2.27-pure/bfd/elf32-v810.c binutils-2.27/bfd/elf32-v810.c
 +#define elf32_bed elf32_v810_bed
 +
 +#include "elf32-target.h"
+diff -Naur binutils-2.27-pure/bfd/elflink.c binutils-2.27/bfd/elflink.c
+--- binutils-2.27-pure/bfd/elflink.c	2016-08-03 03:36:51.000000000 -0400
++++ binutils-2.27/bfd/elflink.c	2023-01-15 16:50:47.891103100 -0500
+@@ -4466,7 +4466,7 @@
+ 	{
+ 	  unsigned int align;
+ 
+-	  if (common)
++	  if (common || bfd_is_com_section (sec))
+ 	    align = bfd_log2 (isym->st_value);
+ 	  else
+ 	    {
 diff -Naur binutils-2.27-pure/bfd/libbfd.h binutils-2.27/bfd/libbfd.h
 --- binutils-2.27-pure/bfd/libbfd.h	2016-08-03 03:36:51.000000000 -0400
-+++ binutils-2.27/bfd/libbfd.h	2022-02-10 13:50:25.511346800 -0500
++++ binutils-2.27/bfd/libbfd.h	2023-01-15 16:03:57.817131800 -0500
 @@ -1974,6 +1974,12 @@
    "BFD_RELOC_NDS32_TLS_LE_15S0",
    "BFD_RELOC_NDS32_TLS_LE_15S1",
@@ -2423,7 +2435,7 @@ diff -Naur binutils-2.27-pure/bfd/libbfd.h binutils-2.27/bfd/libbfd.h
    "BFD_RELOC_V850_SDA_16_16_OFFSET",
 diff -Naur binutils-2.27-pure/bfd/reloc.c binutils-2.27/bfd/reloc.c
 --- binutils-2.27-pure/bfd/reloc.c	2016-08-03 03:36:51.000000000 -0400
-+++ binutils-2.27/bfd/reloc.c	2022-02-10 13:50:25.527347700 -0500
++++ binutils-2.27/bfd/reloc.c	2023-01-15 16:03:57.832132100 -0500
 @@ -4341,6 +4341,32 @@
  
  
@@ -2459,7 +2471,7 @@ diff -Naur binutils-2.27-pure/bfd/reloc.c binutils-2.27/bfd/reloc.c
    This is a 9-bit reloc
 diff -Naur binutils-2.27-pure/bfd/targets.c binutils-2.27/bfd/targets.c
 --- binutils-2.27-pure/bfd/targets.c	2016-08-03 03:36:51.000000000 -0400
-+++ binutils-2.27/bfd/targets.c	2022-02-10 13:50:25.541348500 -0500
++++ binutils-2.27/bfd/targets.c	2023-01-15 16:03:57.847132300 -0500
 @@ -881,6 +881,7 @@
  extern const bfd_target tilegx_elf64_be_vec;
  extern const bfd_target tilegx_elf64_le_vec;
@@ -2478,7 +2490,7 @@ diff -Naur binutils-2.27-pure/bfd/targets.c binutils-2.27/bfd/targets.c
  
 diff -Naur binutils-2.27-pure/binutils/dwarf.c binutils-2.27/binutils/dwarf.c
 --- binutils-2.27-pure/binutils/dwarf.c	2016-08-03 03:36:51.000000000 -0400
-+++ binutils-2.27/binutils/dwarf.c	2022-02-10 13:50:25.555349400 -0500
++++ binutils-2.27/binutils/dwarf.c	2023-01-15 16:03:57.862132500 -0500
 @@ -4524,7 +4524,7 @@
  
    while (1)
@@ -2490,7 +2502,7 @@ diff -Naur binutils-2.27-pure/binutils/dwarf.c binutils-2.27/binutils/dwarf.c
  	{
 diff -Naur binutils-2.27-pure/binutils/readelf.c binutils-2.27/binutils/readelf.c
 --- binutils-2.27-pure/binutils/readelf.c	2016-08-03 03:36:51.000000000 -0400
-+++ binutils-2.27/binutils/readelf.c	2022-02-10 13:50:25.575350500 -0500
++++ binutils-2.27/binutils/readelf.c	2023-01-15 16:03:57.879632800 -0500
 @@ -146,6 +146,7 @@
  #include "elf/tic6x.h"
  #include "elf/tilegx.h"
@@ -2536,7 +2548,7 @@ diff -Naur binutils-2.27-pure/binutils/readelf.c binutils-2.27/binutils/readelf.
        return reloc_type == 6; /* R_V850_ABS32.  */
 diff -Naur binutils-2.27-pure/config.sub binutils-2.27/config.sub
 --- binutils-2.27-pure/config.sub	2016-08-03 03:36:51.000000000 -0400
-+++ binutils-2.27/config.sub	2022-02-10 13:50:25.591351400 -0500
++++ binutils-2.27/config.sub	2023-01-15 16:03:57.897133100 -0500
 @@ -312,7 +312,7 @@
  	| spu \
  	| tahoe | tic4x | tic54x | tic55x | tic6x | tic80 | tron \
@@ -2568,7 +2580,7 @@ diff -Naur binutils-2.27-pure/config.sub binutils-2.27/config.sub
  		os=-sysv
 diff -Naur binutils-2.27-pure/configure binutils-2.27/configure
 --- binutils-2.27-pure/configure	2016-08-03 03:54:55.000000000 -0400
-+++ binutils-2.27/configure	2022-02-10 13:50:25.679356400 -0500
++++ binutils-2.27/configure	2023-01-15 16:03:58.002134700 -0500
 @@ -3968,9 +3968,6 @@
    tilepro*-*-*)
      noconfigdirs="$noconfigdirs gdb sim"
@@ -2581,7 +2593,7 @@ diff -Naur binutils-2.27-pure/configure binutils-2.27/configure
      ;;
 diff -Naur binutils-2.27-pure/configure.ac binutils-2.27/configure.ac
 --- binutils-2.27-pure/configure.ac	2016-08-03 04:37:38.000000000 -0400
-+++ binutils-2.27/configure.ac	2022-02-10 13:50:25.697357500 -0500
++++ binutils-2.27/configure.ac	2023-01-15 16:03:58.017134900 -0500
 @@ -1304,9 +1304,6 @@
    tilepro*-*-*)
      noconfigdirs="$noconfigdirs gdb sim"
@@ -2594,7 +2606,7 @@ diff -Naur binutils-2.27-pure/configure.ac binutils-2.27/configure.ac
      ;;
 diff -Naur binutils-2.27-pure/elfcpp/elfcpp.h binutils-2.27/elfcpp/elfcpp.h
 --- binutils-2.27-pure/elfcpp/elfcpp.h	2016-08-03 03:36:51.000000000 -0400
-+++ binutils-2.27/elfcpp/elfcpp.h	2022-02-10 13:50:25.711358300 -0500
++++ binutils-2.27/elfcpp/elfcpp.h	2023-01-15 16:03:58.032135100 -0500
 @@ -278,6 +278,8 @@
    EM_FRV = 0x5441,
    // Infineon Technologies 16-bit microcontroller with C166-V2 core.
@@ -2606,7 +2618,7 @@ diff -Naur binutils-2.27-pure/elfcpp/elfcpp.h binutils-2.27/elfcpp/elfcpp.h
    // Renesas M32C
 diff -Naur binutils-2.27-pure/gas/Makefile.am binutils-2.27/gas/Makefile.am
 --- binutils-2.27-pure/gas/Makefile.am	2016-08-03 03:36:51.000000000 -0400
-+++ binutils-2.27/gas/Makefile.am	2022-02-10 13:50:25.726359100 -0500
++++ binutils-2.27/gas/Makefile.am	2023-01-15 16:03:58.047135400 -0500
 @@ -191,6 +191,7 @@
  	config/tc-tic6x.c \
  	config/tc-tilegx.c \
@@ -2625,7 +2637,7 @@ diff -Naur binutils-2.27-pure/gas/Makefile.am binutils-2.27/gas/Makefile.am
  	config/tc-visium.h \
 diff -Naur binutils-2.27-pure/gas/Makefile.in binutils-2.27/gas/Makefile.in
 --- binutils-2.27-pure/gas/Makefile.in	2016-08-03 04:16:28.000000000 -0400
-+++ binutils-2.27/gas/Makefile.in	2022-02-10 13:50:25.741360000 -0500
++++ binutils-2.27/gas/Makefile.in	2023-01-15 16:03:58.062135600 -0500
 @@ -485,6 +485,7 @@
  	config/tc-tic6x.c \
  	config/tc-tilegx.c \
@@ -2673,7 +2685,7 @@ diff -Naur binutils-2.27-pure/gas/Makefile.in binutils-2.27/gas/Makefile.in
  @am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/tc-v850.Tpo $(DEPDIR)/tc-v850.Po
 diff -Naur binutils-2.27-pure/gas/config/tc-v810.c binutils-2.27/gas/config/tc-v810.c
 --- binutils-2.27-pure/gas/config/tc-v810.c	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/gas/config/tc-v810.c	2022-02-10 13:50:25.756360800 -0500
++++ binutils-2.27/gas/config/tc-v810.c	2023-01-15 16:03:58.074635800 -0500
 @@ -0,0 +1,2073 @@
 +/* tc-v810.c -- Assembler code for the NEC V810
 +   Copyright (C) 1996-2016 Free Software Foundation, Inc.
@@ -4750,7 +4762,7 @@ diff -Naur binutils-2.27-pure/gas/config/tc-v810.c binutils-2.27/gas/config/tc-v
 +}
 diff -Naur binutils-2.27-pure/gas/config/tc-v810.h binutils-2.27/gas/config/tc-v810.h
 --- binutils-2.27-pure/gas/config/tc-v810.h	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/gas/config/tc-v810.h	2022-02-10 13:50:25.764361300 -0500
++++ binutils-2.27/gas/config/tc-v810.h	2023-01-15 16:03:58.084636000 -0500
 @@ -0,0 +1,84 @@
 +/* tc-v810.h -- Header file for tc-v810.c.
 +   Copyright (C) 1996-2016 Free Software Foundation, Inc.
@@ -4838,7 +4850,7 @@ diff -Naur binutils-2.27-pure/gas/config/tc-v810.h binutils-2.27/gas/config/tc-v
 +#define TC_INIT_FIX_DATA(fixP)  (fixP)->tc_fix_data = NULL
 diff -Naur binutils-2.27-pure/gas/configure.tgt binutils-2.27/gas/configure.tgt
 --- binutils-2.27-pure/gas/configure.tgt	2016-08-03 03:36:51.000000000 -0400
-+++ binutils-2.27/gas/configure.tgt	2022-02-10 13:50:25.777362000 -0500
++++ binutils-2.27/gas/configure.tgt	2023-01-15 16:03:58.097136100 -0500
 @@ -107,6 +107,7 @@
    sparc*)		cpu_type=sparc arch=sparclite ;; # ??? See tc-sparc.c.
    tilegx*be)		cpu_type=tilegx endian=big ;;
@@ -4857,7 +4869,7 @@ diff -Naur binutils-2.27-pure/gas/configure.tgt binutils-2.27/gas/configure.tgt
    vax-*-netbsdelf*)			fmt=elf em=nbsd ;;
 diff -Naur binutils-2.27-pure/gas/doc/c-v810.texi binutils-2.27/gas/doc/c-v810.texi
 --- binutils-2.27-pure/gas/doc/c-v810.texi	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/gas/doc/c-v810.texi	2022-02-10 13:50:25.789362700 -0500
++++ binutils-2.27/gas/doc/c-v810.texi	2023-01-15 16:03:58.109636300 -0500
 @@ -0,0 +1,347 @@
 +@c Copyright (C) 1997-2016 Free Software Foundation, Inc.
 +@c This is part of the GAS manual.
@@ -5208,7 +5220,7 @@ diff -Naur binutils-2.27-pure/gas/doc/c-v810.texi binutils-2.27/gas/doc/c-v810.t
 +Ltd.
 diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/arith.s binutils-2.27/gas/testsuite/gas/v810/arith.s
 --- binutils-2.27-pure/gas/testsuite/gas/v810/arith.s	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/gas/testsuite/gas/v810/arith.s	2022-02-10 13:50:25.798363300 -0500
++++ binutils-2.27/gas/testsuite/gas/v810/arith.s	2023-01-15 16:03:58.117136500 -0500
 @@ -0,0 +1,16 @@
 +
 +	.text
@@ -5228,7 +5240,7 @@ diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/arith.s binutils-2.27/gas/t
 +	sub r5,r6
 diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/basic.exp binutils-2.27/gas/testsuite/gas/v810/basic.exp
 --- binutils-2.27-pure/gas/testsuite/gas/v810/basic.exp	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/gas/testsuite/gas/v810/basic.exp	2022-02-10 13:50:25.811364000 -0500
++++ binutils-2.27/gas/testsuite/gas/v810/basic.exp	2023-01-15 16:03:58.129636600 -0500
 @@ -0,0 +1,467 @@
 +# Copyright (C) 1996-2016 Free Software Foundation, Inc.
 +
@@ -5699,7 +5711,7 @@ diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/basic.exp binutils-2.27/gas
 +}
 diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/bitstring.s binutils-2.27/gas/testsuite/gas/v810/bitstring.s
 --- binutils-2.27-pure/gas/testsuite/gas/v810/bitstring.s	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/gas/testsuite/gas/v810/bitstring.s	2022-02-10 13:50:25.819364500 -0500
++++ binutils-2.27/gas/testsuite/gas/v810/bitstring.s	2023-01-15 16:03:58.137136800 -0500
 @@ -0,0 +1,17 @@
 +
 +	.v810
@@ -5720,7 +5732,7 @@ diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/bitstring.s binutils-2.27/g
 +	notbsu
 diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/branch.s binutils-2.27/gas/testsuite/gas/v810/branch.s
 --- binutils-2.27-pure/gas/testsuite/gas/v810/branch.s	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/gas/testsuite/gas/v810/branch.s	2022-02-10 13:50:25.827364900 -0500
++++ binutils-2.27/gas/testsuite/gas/v810/branch.s	2023-01-15 16:03:58.142136800 -0500
 @@ -0,0 +1,23 @@
 +
 +	.text
@@ -5747,7 +5759,7 @@ diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/branch.s binutils-2.27/gas/
 +	br bcc
 diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/compare.s binutils-2.27/gas/testsuite/gas/v810/compare.s
 --- binutils-2.27-pure/gas/testsuite/gas/v810/compare.s	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/gas/testsuite/gas/v810/compare.s	2022-02-10 13:50:25.835365400 -0500
++++ binutils-2.27/gas/testsuite/gas/v810/compare.s	2023-01-15 16:03:58.149637000 -0500
 @@ -0,0 +1,26 @@
 +
 +	.text
@@ -5777,13 +5789,13 @@ diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/compare.s binutils-2.27/gas
 +	
 diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/fepsw.s binutils-2.27/gas/testsuite/gas/v810/fepsw.s
 --- binutils-2.27-pure/gas/testsuite/gas/v810/fepsw.s	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/gas/testsuite/gas/v810/fepsw.s	2022-02-10 13:50:25.842365800 -0500
++++ binutils-2.27/gas/testsuite/gas/v810/fepsw.s	2023-01-15 16:03:58.157137100 -0500
 @@ -0,0 +1,2 @@
 +	.text
 +	ldsr r17,fepsw
 diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/float.s binutils-2.27/gas/testsuite/gas/v810/float.s
 --- binutils-2.27-pure/gas/testsuite/gas/v810/float.s	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/gas/testsuite/gas/v810/float.s	2022-02-10 13:50:25.850366200 -0500
++++ binutils-2.27/gas/testsuite/gas/v810/float.s	2023-01-15 16:03:58.164637200 -0500
 @@ -0,0 +1,13 @@
 +
 +	.v810
@@ -5800,7 +5812,7 @@ diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/float.s binutils-2.27/gas/t
 +	trnc.sw r5,r6
 diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/hilo.s binutils-2.27/gas/testsuite/gas/v810/hilo.s
 --- binutils-2.27-pure/gas/testsuite/gas/v810/hilo.s	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/gas/testsuite/gas/v810/hilo.s	2022-02-10 13:50:25.858366700 -0500
++++ binutils-2.27/gas/testsuite/gas/v810/hilo.s	2023-01-15 16:03:58.169637300 -0500
 @@ -0,0 +1,5 @@
 +
 +	.text
@@ -5809,7 +5821,7 @@ diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/hilo.s binutils-2.27/gas/te
 +	movhi hi0(0xdeadbeef),r1,r1
 diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/hilo2.s binutils-2.27/gas/testsuite/gas/v810/hilo2.s
 --- binutils-2.27-pure/gas/testsuite/gas/v810/hilo2.s	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/gas/testsuite/gas/v810/hilo2.s	2022-02-10 13:50:25.865367100 -0500
++++ binutils-2.27/gas/testsuite/gas/v810/hilo2.s	2023-01-15 16:03:58.177137400 -0500
 @@ -0,0 +1,4 @@
 +	.text
 +	.org 0x10000
@@ -5817,7 +5829,7 @@ diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/hilo2.s binutils-2.27/gas/t
 +blah:
 diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/jumps.s binutils-2.27/gas/testsuite/gas/v810/jumps.s
 --- binutils-2.27-pure/gas/testsuite/gas/v810/jumps.s	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/gas/testsuite/gas/v810/jumps.s	2022-02-10 13:50:25.873367500 -0500
++++ binutils-2.27/gas/testsuite/gas/v810/jumps.s	2023-01-15 16:03:58.184637500 -0500
 @@ -0,0 +1,8 @@
 +
 +	.text
@@ -5829,7 +5841,7 @@ diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/jumps.s binutils-2.27/gas/t
 +	jr jumps
 diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/logical.s binutils-2.27/gas/testsuite/gas/v810/logical.s
 --- binutils-2.27-pure/gas/testsuite/gas/v810/logical.s	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/gas/testsuite/gas/v810/logical.s	2022-02-10 13:50:25.880367900 -0500
++++ binutils-2.27/gas/testsuite/gas/v810/logical.s	2023-01-15 16:03:58.192137600 -0500
 @@ -0,0 +1,11 @@
 +
 +	.text
@@ -5844,7 +5856,7 @@ diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/logical.s binutils-2.27/gas
 +	xori 7,r5,r6
 diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/mem.s binutils-2.27/gas/testsuite/gas/v810/mem.s
 --- binutils-2.27-pure/gas/testsuite/gas/v810/mem.s	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/gas/testsuite/gas/v810/mem.s	2022-02-10 13:50:25.888368400 -0500
++++ binutils-2.27/gas/testsuite/gas/v810/mem.s	2023-01-15 16:03:58.199637700 -0500
 @@ -0,0 +1,14 @@
 +
 +	.text
@@ -5862,7 +5874,7 @@ diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/mem.s binutils-2.27/gas/tes
 +	st.w lp,4[sp]
 diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/misc.s binutils-2.27/gas/testsuite/gas/v810/misc.s
 --- binutils-2.27-pure/gas/testsuite/gas/v810/misc.s	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/gas/testsuite/gas/v810/misc.s	2022-02-10 13:50:25.896368900 -0500
++++ binutils-2.27/gas/testsuite/gas/v810/misc.s	2023-01-15 16:03:58.204637800 -0500
 @@ -0,0 +1,11 @@
 +
 +	.text
@@ -5877,7 +5889,7 @@ diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/misc.s binutils-2.27/gas/te
 +	stsr psw,r7
 diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/move.s binutils-2.27/gas/testsuite/gas/v810/move.s
 --- binutils-2.27-pure/gas/testsuite/gas/v810/move.s	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/gas/testsuite/gas/v810/move.s	2022-02-10 13:50:25.903369300 -0500
++++ binutils-2.27/gas/testsuite/gas/v810/move.s	2023-01-15 16:03:58.212137900 -0500
 @@ -0,0 +1,8 @@
 +
 +	.text
@@ -5889,13 +5901,13 @@ diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/move.s binutils-2.27/gas/te
 +	movhi 7,r5,r6
 diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/range.s binutils-2.27/gas/testsuite/gas/v810/range.s
 --- binutils-2.27-pure/gas/testsuite/gas/v810/range.s	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/gas/testsuite/gas/v810/range.s	2022-02-10 13:50:25.911369700 -0500
++++ binutils-2.27/gas/testsuite/gas/v810/range.s	2023-01-15 16:03:58.219638000 -0500
 @@ -0,0 +1,2 @@
 +	.text
 +	ld.b 0xff62[r0],r0
 diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/reloc.s binutils-2.27/gas/testsuite/gas/v810/reloc.s
 --- binutils-2.27-pure/gas/testsuite/gas/v810/reloc.s	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/gas/testsuite/gas/v810/reloc.s	2022-02-10 13:50:25.919370200 -0500
++++ binutils-2.27/gas/testsuite/gas/v810/reloc.s	2023-01-15 16:03:58.227138100 -0500
 @@ -0,0 +1,6 @@
 +	.text
 +	movea lo(foo),r0,r1
@@ -5905,7 +5917,7 @@ diff -Naur binutils-2.27-pure/gas/testsuite/gas/v810/reloc.s binutils-2.27/gas/t
 +	movhi sdaoff(_foo),gp,r1
 diff -Naur binutils-2.27-pure/include/dis-asm.h binutils-2.27/include/dis-asm.h
 --- binutils-2.27-pure/include/dis-asm.h	2016-08-03 03:36:53.000000000 -0400
-+++ binutils-2.27/include/dis-asm.h	2022-02-10 13:50:25.930370800 -0500
++++ binutils-2.27/include/dis-asm.h	2023-01-15 16:03:58.239638300 -0500
 @@ -302,6 +302,7 @@
  extern int print_insn_tic80		(bfd_vma, disassemble_info *);
  extern int print_insn_tilegx		(bfd_vma, disassemble_info *);
@@ -5916,7 +5928,7 @@ diff -Naur binutils-2.27-pure/include/dis-asm.h binutils-2.27/include/dis-asm.h
  extern int print_insn_visium		(bfd_vma, disassemble_info *);
 diff -Naur binutils-2.27-pure/include/elf/common.h binutils-2.27/include/elf/common.h
 --- binutils-2.27-pure/include/elf/common.h	2016-08-03 03:36:53.000000000 -0400
-+++ binutils-2.27/include/elf/common.h	2022-02-10 13:50:25.943371500 -0500
++++ binutils-2.27/include/elf/common.h	2023-01-15 16:03:58.252138500 -0500
 @@ -374,6 +374,9 @@
  /* V850 backend magic number.  Written in the absense of an ABI.  */
  #define EM_CYGNUS_V850		0x9080
@@ -5929,7 +5941,7 @@ diff -Naur binutils-2.27-pure/include/elf/common.h binutils-2.27/include/elf/com
  
 diff -Naur binutils-2.27-pure/include/elf/v810.h binutils-2.27/include/elf/v810.h
 --- binutils-2.27-pure/include/elf/v810.h	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/include/elf/v810.h	2022-02-10 13:50:25.951372000 -0500
++++ binutils-2.27/include/elf/v810.h	2023-01-15 16:03:58.262138700 -0500
 @@ -0,0 +1,102 @@
 +/* V810 ELF support for BFD.
 +   Copyright (C) 1997-2016 Free Software Foundation, Inc.
@@ -6035,7 +6047,7 @@ diff -Naur binutils-2.27-pure/include/elf/v810.h binutils-2.27/include/elf/v810.
 +#endif /* _ELF_V810_H */
 diff -Naur binutils-2.27-pure/include/opcode/v810.h binutils-2.27/include/opcode/v810.h
 --- binutils-2.27-pure/include/opcode/v810.h	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/include/opcode/v810.h	2022-02-10 13:50:25.959372500 -0500
++++ binutils-2.27/include/opcode/v810.h	2023-01-15 16:03:58.269638800 -0500
 @@ -0,0 +1,168 @@
 +/* v810.h -- Header file for NEC V810 opcode table
 +   Copyright (C) 1996-2016 Free Software Foundation, Inc.
@@ -6207,7 +6219,7 @@ diff -Naur binutils-2.27-pure/include/opcode/v810.h binutils-2.27/include/opcode
 +#endif /* V810_H */
 diff -Naur binutils-2.27-pure/ld/Makefile.am binutils-2.27/ld/Makefile.am
 --- binutils-2.27-pure/ld/Makefile.am	2016-08-03 03:36:54.000000000 -0400
-+++ binutils-2.27/ld/Makefile.am	2022-02-10 13:50:25.973373300 -0500
++++ binutils-2.27/ld/Makefile.am	2023-01-15 16:03:58.284639000 -0500
 @@ -423,6 +423,7 @@
  	etic4xcoff.c \
  	etic54xcoff.c \
@@ -6228,7 +6240,7 @@ diff -Naur binutils-2.27-pure/ld/Makefile.am binutils-2.27/ld/Makefile.am
  
 diff -Naur binutils-2.27-pure/ld/Makefile.in binutils-2.27/ld/Makefile.in
 --- binutils-2.27-pure/ld/Makefile.in	2016-08-03 03:36:54.000000000 -0400
-+++ binutils-2.27/ld/Makefile.in	2022-02-10 13:50:25.989374200 -0500
++++ binutils-2.27/ld/Makefile.in	2023-01-15 16:03:58.299639300 -0500
 @@ -791,6 +791,7 @@
  	etic4xcoff.c \
  	etic54xcoff.c \
@@ -6257,7 +6269,7 @@ diff -Naur binutils-2.27-pure/ld/Makefile.in binutils-2.27/ld/Makefile.in
  
 diff -Naur binutils-2.27-pure/ld/configure.tgt binutils-2.27/ld/configure.tgt
 --- binutils-2.27-pure/ld/configure.tgt	2016-08-03 03:36:54.000000000 -0400
-+++ binutils-2.27/ld/configure.tgt	2022-02-10 13:50:26.003375000 -0500
++++ binutils-2.27/ld/configure.tgt	2023-01-15 16:03:58.312139400 -0500
 @@ -788,6 +788,8 @@
  tilepro-*-*)		targ_emul=elf32tilepro ;;
  ft32-*-*)		targ_emul=elf32ft32
@@ -6269,7 +6281,7 @@ diff -Naur binutils-2.27-pure/ld/configure.tgt binutils-2.27/ld/configure.tgt
  			;;
 diff -Naur binutils-2.27-pure/ld/emulparams/v810.sh binutils-2.27/ld/emulparams/v810.sh
 --- binutils-2.27-pure/ld/emulparams/v810.sh	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/ld/emulparams/v810.sh	2022-02-10 13:50:26.010375400 -0500
++++ binutils-2.27/ld/emulparams/v810.sh	2023-01-15 16:03:58.319639600 -0500
 @@ -0,0 +1,12 @@
 +MACHINE=
 +SCRIPT_NAME=v810
@@ -6285,7 +6297,7 @@ diff -Naur binutils-2.27-pure/ld/emulparams/v810.sh binutils-2.27/ld/emulparams/
 +PCFX_FIRMWARE_RESERVED=0x7E00
 diff -Naur binutils-2.27-pure/ld/emultempl/v810elf.em binutils-2.27/ld/emultempl/v810elf.em
 --- binutils-2.27-pure/ld/emultempl/v810elf.em	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/ld/emultempl/v810elf.em	2022-02-10 13:50:26.017375800 -0500
++++ binutils-2.27/ld/emultempl/v810elf.em	2023-01-15 16:03:58.327139700 -0500
 @@ -0,0 +1,28 @@
 +# This shell script emits a C file. -*- C -*-
 +#   Copyright (C) 2013-2016 Free Software Foundation, Inc.
@@ -6317,7 +6329,7 @@ diff -Naur binutils-2.27-pure/ld/emultempl/v810elf.em binutils-2.27/ld/emultempl
 +EOF
 diff -Naur binutils-2.27-pure/ld/scripttempl/v810.sc binutils-2.27/ld/scripttempl/v810.sc
 --- binutils-2.27-pure/ld/scripttempl/v810.sc	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/ld/scripttempl/v810.sc	2022-02-10 13:50:26.025376200 -0500
++++ binutils-2.27/ld/scripttempl/v810.sc	2023-01-15 16:03:58.339639900 -0500
 @@ -0,0 +1,256 @@
 +# Copyright (C) 2014-2016 Free Software Foundation, Inc.
 +# Copyright (C) 2016-2022 John Brandwood <john@telzey.com>
@@ -6577,7 +6589,7 @@ diff -Naur binutils-2.27-pure/ld/scripttempl/v810.sc binutils-2.27/ld/scripttemp
 +EOF
 diff -Naur binutils-2.27-pure/opcodes/Makefile.am binutils-2.27/opcodes/Makefile.am
 --- binutils-2.27-pure/opcodes/Makefile.am	2016-08-03 03:36:54.000000000 -0400
-+++ binutils-2.27/opcodes/Makefile.am	2022-02-10 13:50:26.039377000 -0500
++++ binutils-2.27/opcodes/Makefile.am	2023-01-15 16:03:58.354640100 -0500
 @@ -249,6 +249,8 @@
  	tilegx-opc.c \
  	tilepro-dis.c \
@@ -6589,7 +6601,7 @@ diff -Naur binutils-2.27-pure/opcodes/Makefile.am binutils-2.27/opcodes/Makefile
  	vax-dis.c \
 diff -Naur binutils-2.27-pure/opcodes/Makefile.in binutils-2.27/opcodes/Makefile.in
 --- binutils-2.27-pure/opcodes/Makefile.in	2016-08-03 03:36:54.000000000 -0400
-+++ binutils-2.27/opcodes/Makefile.in	2022-02-10 13:50:26.057378100 -0500
++++ binutils-2.27/opcodes/Makefile.in	2023-01-15 16:03:58.372140400 -0500
 @@ -550,6 +550,8 @@
  	tilegx-opc.c \
  	tilepro-dis.c \
@@ -6609,8 +6621,8 @@ diff -Naur binutils-2.27-pure/opcodes/Makefile.in binutils-2.27/opcodes/Makefile
  @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/v850-opc.Plo@am__quote@
  @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/vax-dis.Plo@am__quote@
 diff -Naur binutils-2.27-pure/opcodes/configure binutils-2.27/opcodes/configure
---- binutils-2.27-pure/opcodes/configure	2022-02-10 13:45:25.203716800 -0500
-+++ binutils-2.27/opcodes/configure	2022-02-10 13:50:26.099380500 -0500
+--- binutils-2.27-pure/opcodes/configure	2022-02-24 15:24:15.564429000 -0500
++++ binutils-2.27/opcodes/configure	2023-01-15 16:03:58.409640900 -0500
 @@ -12671,6 +12671,7 @@
  	bfd_tic80_arch)		ta="$ta tic80-dis.lo tic80-opc.lo" ;;
  	bfd_tilegx_arch)	ta="$ta tilegx-dis.lo tilegx-opc.lo" ;;
@@ -6621,7 +6633,7 @@ diff -Naur binutils-2.27-pure/opcodes/configure binutils-2.27/opcodes/configure
  	bfd_v850ea_arch)	ta="$ta v850-opc.lo v850-dis.lo" ;;
 diff -Naur binutils-2.27-pure/opcodes/configure.ac binutils-2.27/opcodes/configure.ac
 --- binutils-2.27-pure/opcodes/configure.ac	2016-08-03 03:36:54.000000000 -0400
-+++ binutils-2.27/opcodes/configure.ac	2022-02-10 13:50:26.114381300 -0500
++++ binutils-2.27/opcodes/configure.ac	2023-01-15 16:03:58.427141200 -0500
 @@ -339,6 +339,7 @@
  	bfd_tic80_arch)		ta="$ta tic80-dis.lo tic80-opc.lo" ;;
  	bfd_tilegx_arch)	ta="$ta tilegx-dis.lo tilegx-opc.lo" ;;
@@ -6632,7 +6644,7 @@ diff -Naur binutils-2.27-pure/opcodes/configure.ac binutils-2.27/opcodes/configu
  	bfd_v850ea_arch)	ta="$ta v850-opc.lo v850-dis.lo" ;;
 diff -Naur binutils-2.27-pure/opcodes/disassemble.c binutils-2.27/opcodes/disassemble.c
 --- binutils-2.27-pure/opcodes/disassemble.c	2016-08-03 03:36:54.000000000 -0400
-+++ binutils-2.27/opcodes/disassemble.c	2022-02-10 13:50:26.125382000 -0500
++++ binutils-2.27/opcodes/disassemble.c	2023-01-15 16:03:58.439641400 -0500
 @@ -88,6 +88,7 @@
  #define ARCH_tic80
  #define ARCH_tilegx
@@ -6655,7 +6667,7 @@ diff -Naur binutils-2.27-pure/opcodes/disassemble.c binutils-2.27/opcodes/disass
      case bfd_arch_v850_rh850:
 diff -Naur binutils-2.27-pure/opcodes/v810-dis.c binutils-2.27/opcodes/v810-dis.c
 --- binutils-2.27-pure/opcodes/v810-dis.c	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/opcodes/v810-dis.c	2022-02-10 13:50:26.133382400 -0500
++++ binutils-2.27/opcodes/v810-dis.c	2023-01-15 16:03:58.447141500 -0500
 @@ -0,0 +1,344 @@
 +/* Disassemble V810 instructions.
 +   Copyright (C) 1996-2016 Free Software Foundation, Inc.
@@ -7003,7 +7015,7 @@ diff -Naur binutils-2.27-pure/opcodes/v810-dis.c binutils-2.27/opcodes/v810-dis.
 +}
 diff -Naur binutils-2.27-pure/opcodes/v810-opc.c binutils-2.27/opcodes/v810-opc.c
 --- binutils-2.27-pure/opcodes/v810-opc.c	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/opcodes/v810-opc.c	2022-02-10 13:50:26.141382900 -0500
++++ binutils-2.27/opcodes/v810-opc.c	2023-01-15 16:03:58.454641600 -0500
 @@ -0,0 +1,319 @@
 +/* Assemble V810 instructions.
 +   Copyright (C) 1996-2016 Free Software Foundation, Inc.
