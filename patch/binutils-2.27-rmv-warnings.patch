@@ -1,0 +1,12 @@
+diff -Naur binutils-2.27-pure/libiberty/regex.c binutils-2.27/libiberty/regex.c
+--- binutils-2.27-pure/libiberty/regex.c	2016-08-03 03:36:54.000000000 -0400
++++ binutils-2.27/libiberty/regex.c	2023-01-18 01:01:09.261245900 -0500
+@@ -2034,6 +2034,8 @@
+ #  endif
+ # endif /* not DEFINED_ONCE */
+ 
++# pragma GCC diagnostic ignored "-Wuse-after-free"
++
+ # ifdef WCHAR
+ #  define EXTEND_BUFFER()						\
+   do {									\
