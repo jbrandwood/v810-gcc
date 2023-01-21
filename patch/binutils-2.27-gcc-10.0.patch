@@ -1,7 +1,15 @@
 diff -Naur binutils-2.27-pure/bfd/doc/chew.c binutils-2.27/bfd/doc/chew.c
 --- binutils-2.27-pure/bfd/doc/chew.c	2016-08-03 03:36:50.000000000 -0400
-+++ binutils-2.27/bfd/doc/chew.c	2022-02-10 13:45:41.327639100 -0500
-@@ -289,8 +289,10 @@
++++ binutils-2.27/bfd/doc/chew.c	2023-01-21 11:12:59.021161900 -0500
+@@ -85,6 +85,7 @@
+ #include <assert.h>
+ #include <stdio.h>
+ #include <ctype.h>
++#include <stdint.h>
+ #include <stdlib.h>
+ #include <string.h>
+ 
+@@ -289,8 +290,10 @@
  stinst_type *pc;
  stinst_type sstack[STACK];
  stinst_type *ssp = &sstack[0];
@@ -14,7 +22,7 @@ diff -Naur binutils-2.27-pure/bfd/doc/chew.c binutils-2.27/bfd/doc/chew.c
  
  typedef int *word_type;
  
-@@ -411,7 +413,7 @@
+@@ -411,7 +414,7 @@
    isp++;
    icheck_range ();
    pc++;
@@ -23,7 +31,7 @@ diff -Naur binutils-2.27-pure/bfd/doc/chew.c binutils-2.27/bfd/doc/chew.c
    pc++;
  }
  
-@@ -1375,7 +1377,7 @@
+@@ -1375,7 +1378,7 @@
  		  /* Got a number, embedd the magic push number
  		     function */
  		  add_to_definition (ptr, push_number);
@@ -32,7 +40,7 @@ diff -Naur binutils-2.27-pure/bfd/doc/chew.c binutils-2.27/bfd/doc/chew.c
  		  break;
  		default:
  		  add_to_definition (ptr, call);
-@@ -1397,7 +1399,7 @@
+@@ -1397,7 +1400,7 @@
  static void
  bang ()
  {
@@ -41,7 +49,7 @@ diff -Naur binutils-2.27-pure/bfd/doc/chew.c binutils-2.27/bfd/doc/chew.c
    isp -= 2;
    icheck_range ();
    pc++;
-@@ -1406,7 +1408,7 @@
+@@ -1406,7 +1409,7 @@
  static void
  atsign ()
  {
@@ -52,7 +60,7 @@ diff -Naur binutils-2.27-pure/bfd/doc/chew.c binutils-2.27/bfd/doc/chew.c
  
 diff -Naur binutils-2.27-pure/binutils/prdbg.c binutils-2.27/binutils/prdbg.c
 --- binutils-2.27-pure/binutils/prdbg.c	2016-08-03 03:36:51.000000000 -0400
-+++ binutils-2.27/binutils/prdbg.c	2022-02-10 13:45:41.348640300 -0500
++++ binutils-2.27/binutils/prdbg.c	2023-01-21 11:12:16.823513700 -0500
 @@ -672,7 +672,7 @@
  
  	  if (values[i] != val)
@@ -181,7 +189,7 @@ diff -Naur binutils-2.27-pure/binutils/prdbg.c binutils-2.27/binutils/prdbg.c
      return FALSE;
 diff -Naur binutils-2.27-pure/binutils/wrstabs.c binutils-2.27/binutils/wrstabs.c
 --- binutils-2.27-pure/binutils/wrstabs.c	2016-08-03 03:36:51.000000000 -0400
-+++ binutils-2.27/binutils/wrstabs.c	2022-02-10 13:45:41.364641200 -0500
++++ binutils-2.27/binutils/wrstabs.c	2023-01-21 11:12:16.841013900 -0500
 @@ -1443,15 +1443,10 @@
  stab_start_class_type (void *p, const char *tag, unsigned int id, bfd_boolean structp, unsigned int size, bfd_boolean vptr, bfd_boolean ownvptr)
  {
