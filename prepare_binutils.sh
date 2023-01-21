@@ -5,10 +5,18 @@
 # Stage 1 of 8 - Unpack, patch and configure BINUTILS.
 #
 
-OSNAME=`uname`
+OSNAME=`uname -s`
 
-TOPDIR=$(pwd)
-echo TOPDIR is $TOPDIR
+TARGET=v810
+
+GITDIR=$(pwd)
+echo GITDIR is $GITDIR
+
+export DSTDIR=$GITDIR/$TARGET-gcc
+echo DSTDIR is $DSTDIR
+
+mkdir -p $DSTDIR/bin
+export PATH=$DSTDIR/bin:$PATH
 
 #---------------------------------------------------------------------------------
 # Check Prerequisites
@@ -43,12 +51,12 @@ TestFile()
   fi
 }
 
-TestFile "archive/binutils-2.24.tar.bz2";
+TestFile "archive/binutils-2.27.tar.bz2";
 
-TestFile "patch/binutils-2.24-gcc-4.9.patch";
-TestFile "patch/binutils-2.24-gcc-8.0.patch";
-TestFile "patch/binutils-2.24-gcc-10.0.patch";
-TestFile "patch/binutils-2.24-v810.patch";
+TestFile "patch/binutils-2.27-gcc-8.0.patch";
+TestFile "patch/binutils-2.27-gcc-10.0.patch";
+TestFile "patch/binutils-2.27-rmv-warnings.patch";
+TestFile "patch/binutils-2.27-v810.patch";
 
 #---------------------------------------------------------------------------------
 # Prepare Source and Install directories
@@ -56,26 +64,26 @@ TestFile "patch/binutils-2.24-v810.patch";
 
 PrepareSource()
 {
-  if [ -e  binutils-2.24 ] ; then
-    rm -rf binutils-2.24
+  if [ -e  binutils-2.27 ] ; then
+    rm -rf binutils-2.27
   fi
 
   if [ -e  build/binutils ] ; then
     rm -rf build/binutils
   fi
 
-  tar jxvf archive/binutils-2.24.tar.bz2
-  cd binutils-2.24
+  tar jxvf archive/binutils-2.27.tar.bz2
+  cd binutils-2.27
 
-  patch -p 1 -i ../patch/binutils-2.24-gcc-4.9.patch
-  patch -p 1 -i ../patch/binutils-2.24-gcc-8.0.patch
-  patch -p 1 -i ../patch/binutils-2.24-gcc-10.0.patch
-  patch -p 1 -i ../patch/binutils-2.24-v810.patch
+  patch -p 1 -i ../patch/binutils-2.27-gcc-8.0.patch
+  patch -p 1 -i ../patch/binutils-2.27-gcc-10.0.patch
+  patch -p 1 -i ../patch/binutils-2.27-rmv-warnings.patch
+  patch -p 1 -i ../patch/binutils-2.27-v810.patch
 
   cd ..
 }
 
-if [ -d binutils-2.24 ] ; then
+if [ -d binutils-2.27 ] ; then
   if [ "${1}" = "clean" ] ; then
     PrepareSource
   fi
@@ -88,22 +96,26 @@ if [ -d build/binutils ] ; then
 fi
 
 #---------------------------------------------------------------------------------
-# Set the target and compiler flags
+# Set the target compiler flags
 #---------------------------------------------------------------------------------
 
-# Building the toolchain to compile for the NEC V810 cpu.
-
-
-
-TARGET=v810
-
-export CFLAGS='-O2'
-export CXXFLAGS='-O2'
-
-if [ "$OSNAME" = "Linux" ] ; then
-  export LDFLAGS=
-else
+if [ "$OS" = "Windows_NT" ] ; then
+  export CFLAGS='-O2 -static'
+  export CXXFLAGS='-O2 -static'
   export LDFLAGS='-Wl,-Bstatic'
+# export LDFLAGS='-Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive'
+  BUILD=
+else
+  export CFLAGS='-O2'
+  export CXXFLAGS='-O2'
+  export LDFLAGS=
+if [ "$OSNAME" = "Linux" ] ; then
+  BUILD='--build=x86_64-linux-gnu'
+else
+if [ "$OSNAME" = "Darwin" ] ; then
+  BUILD='--build=x86_64-apple-darwin20'
+fi
+fi
 fi
 
 #---------------------------------------------------------------------------------
@@ -113,20 +125,15 @@ fi
 # Compiling on Windows (mingw/cygwin) requires that this configure is invoked
 # from a relative path and not an absolute path. Linux doesn't care.
 
-export SRCDIR=../../binutils-2.24
+export SRCDIR=../../binutils-2.27
 
-export DSTDIR=$TOPDIR/../../bin/$TARGET-gcc
-
-mkdir -p $DSTDIR/bin
-export PATH=$DSTDIR/bin:$PATH
-
-export TMPDIR=$TOPDIR/build/binutils
+export TMPDIR=$GITDIR/build/binutils
 
 mkdir -p $TMPDIR
 cd $TMPDIR
 
 $SRCDIR/configure             \
-  --target=$TARGET            \
+  $BUILD --target=$TARGET     \
   --prefix=$DSTDIR            \
   --with-lib-path=$DSTDIR/lib \
   --disable-nls               \

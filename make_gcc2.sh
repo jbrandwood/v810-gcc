@@ -8,44 +8,41 @@
 # re-run this script without running prepare_gcc2.sh again.
 #
 
-OSNAME=`uname`
-
-TOPDIR=$(pwd)
-echo TOPDIR is $TOPDIR
-
-#---------------------------------------------------------------------------------
-# Set the target and compiler flags
-#---------------------------------------------------------------------------------
-
-# Building the toolchain to compile for the NEC V810 cpu.
+OSNAME=`uname -s`
 
 TARGET=v810
 
-export CFLAGS='-O2'
-export CXXFLAGS='-O2'
+GITDIR=$(pwd)
+echo GITDIR is $GITDIR
 
-if [ "$OSNAME" = "Linux" ] ; then
-  export LDFLAGS=
-else
-  export LDFLAGS='-Wl,-Bstatic'
-fi
-
-#---------------------------------------------------------------------------------
-# Setup the toolchain for linux
-#---------------------------------------------------------------------------------
-
-export DSTDIR=$TOPDIR/../../bin/$TARGET-gcc
+export DSTDIR=$GITDIR/$TARGET-gcc
+echo DSTDIR is $DSTDIR
 
 mkdir -p $DSTDIR/bin
 export PATH=$DSTDIR/bin:$PATH
 
 #---------------------------------------------------------------------------------
+# Set the target compiler flags
+#---------------------------------------------------------------------------------
+
+if [ "$OS" = "Windows_NT" ] ; then
+  export CFLAGS='-O2 -static'
+  export CXXFLAGS='-O2 -static'
+  export LDFLAGS='-Wl,-Bstatic'
+# export LDFLAGS='-Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive'
+else
+  export CFLAGS='-O2'
+  export CXXFLAGS='-O2'
+  export LDFLAGS=
+fi
+
+#---------------------------------------------------------------------------------
 # Build a minimal GCC
 #---------------------------------------------------------------------------------
 
-cd $TOPDIR/build/gcc
+cd $GITDIR/build/gcc
 
-make --jobs=3 all 2>&1 | tee gcc_make.log
+make --jobs=$(($(nproc) + 1)) all 2>&1 | tee gcc_make.log
 
 if [ $? != 0 ]; then
   echo "Error: building gcc";
@@ -65,7 +62,7 @@ cd ../../
 # Remove duplicate/unnecessary files to save space
 #---------------------------------------------------------------------------------
 
-rm $DSTDIR/bin/$TARGET-gcc-4.7.4*
+rm $DSTDIR/bin/$TARGET-gcc-4.9.4*
 rm $DSTDIR/bin/$TARGET-gcc-ar*
 rm $DSTDIR/bin/$TARGET-gcc-nm*
 rm $DSTDIR/bin/$TARGET-gcc-ranlib*

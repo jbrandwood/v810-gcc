@@ -5,10 +5,18 @@
 # Stage 7 of 8 - Configure the final version GCC now that NEWLIB exists.
 #
 
-OSNAME=`uname`
+OSNAME=`uname -s`
 
-TOPDIR=$(pwd)
-echo TOPDIR is $TOPDIR
+TARGET=v810
+
+GITDIR=$(pwd)
+echo GITDIR is $GITDIR
+
+export DSTDIR=$GITDIR/$TARGET-gcc
+echo DSTDIR is $DSTDIR
+
+mkdir -p $DSTDIR/bin
+export PATH=$DSTDIR/bin:$PATH
 
 #---------------------------------------------------------------------------------
 # Check Prerequisites
@@ -38,9 +46,9 @@ TestEXE "bison";
 # Prepare Source and Install directories
 #---------------------------------------------------------------------------------
 
-if [ ! -d gcc-4.7.4 ] ; then
+if [ ! -d gcc-4.9.4 ] ; then
   echo
-  echo "$0 failed, the patched gcc-4.7.4 directory is missing!"
+  echo "$0 failed, the patched gcc-4.9.4 directory is missing!"
   exit 1
 fi
 
@@ -49,20 +57,26 @@ if [ -d build/gcc ] ; then
 fi
 
 #---------------------------------------------------------------------------------
-# Set the target and compiler flags
+# Set the target compiler flags
 #---------------------------------------------------------------------------------
 
-# Building the toolchain to compile for the NEC V810 cpu.
-
-TARGET=v810
-
-export CFLAGS='-O2'
-export CXXFLAGS='-O2'
-
-if [ "$OSNAME" = "Linux" ] ; then
-  export LDFLAGS=
-else
+if [ "$OS" = "Windows_NT" ] ; then
+  export CFLAGS='-O2 -static'
+  export CXXFLAGS='-O2 -static'
   export LDFLAGS='-Wl,-Bstatic'
+# export LDFLAGS='-Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive'
+  BUILD=
+else
+  export CFLAGS='-O2'
+  export CXXFLAGS='-O2'
+  export LDFLAGS=
+if [ "$OSNAME" = "Linux" ] ; then
+  BUILD='--build=x86_64-linux-gnu'
+else
+if [ "$OSNAME" = "Darwin" ] ; then
+  BUILD='--build=x86_64-apple-darwin20'
+fi
+fi
 fi
 
 #---------------------------------------------------------------------------------
@@ -72,14 +86,9 @@ fi
 # Compiling on Windows (mingw/cygwin) requires that this configure is invoked
 # from a relative path and not an absolute path. Linux doesn't care.
 
-export SRCDIR=../../gcc-4.7.4
+export SRCDIR=../../gcc-4.9.4
 
-export DSTDIR=$TOPDIR/../../bin/$TARGET-gcc
-
-mkdir -p $DSTDIR/bin
-export PATH=$DSTDIR/bin:$PATH
-
-export TMPDIR=$TOPDIR/build/gcc
+export TMPDIR=$GITDIR/build/gcc
 
 export TMPDIR=build/gcc
 
@@ -95,7 +104,7 @@ cd $TMPDIR
 # Frame pointer always enabled when -mprolog-function is used.
 
 $SRCDIR/configure                              \
-  --target=$TARGET                             \
+  $BUILD --target=$TARGET                      \
   --prefix=$DSTDIR                             \
   --with-local-prefix=$DESTDIR                 \
   --with-native-system-header=$DESTDIR/include \

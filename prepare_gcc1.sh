@@ -5,10 +5,18 @@
 # Stage 3 of 6 - Unpack, patch and configure the initial minimal GCC.
 #
 
-OSNAME=`uname`
+OSNAME=`uname -s`
 
-TOPDIR=$(pwd)
-echo TOPDIR is $TOPDIR
+TARGET=v810
+
+GITDIR=$(pwd)
+echo GITDIR is $GITDIR
+
+export DSTDIR=$GITDIR/$TARGET-gcc
+echo DSTDIR is $DSTDIR
+
+mkdir -p $DSTDIR/bin
+export PATH=$DSTDIR/bin:$PATH
 
 #---------------------------------------------------------------------------------
 # Check Prerequisites
@@ -43,14 +51,19 @@ TestFile()
   fi
 }
 
-TestFile "archive/gcc-4.7.4.tar.bz2";
+TestFile "archive/gcc-4.9.4.tar.bz2";
+TestFile "archive/cloog-0.18.5.tar.gz";
+TestFile "archive/isl-0.18.tar.bz2";
+TestFile "archive/gmp-6.1.2.tar.bz2";
+TestFile "archive/mpc-1.0.3.tar.gz";
+TestFile "archive/mpfr-3.1.6.tar.bz2";
 
-TestFile "patch/gcc-4.7.4-no-iconv.patch";
-TestFile "patch/gcc-4.7.4-texi.patch";
-TestFile "patch/gcc-4.7.4-gcc-5.0.patch";
-TestFile "patch/gcc-4.7.4-fix-warnings.patch";
-TestFile "patch/gcc-4.7.4-rmv-warnings.patch";
-TestFile "patch/gcc-4.7.4-v810.patch";
+TestFile "patch/gcc-4.9.4-no-iconv.patch";
+TestFile "patch/gcc-4.9.4-texi.patch";
+TestFile "patch/gcc-4.9.4-cpp17.patch";
+TestFile "patch/gcc-4.9.4-fix-warnings.patch";
+TestFile "patch/gcc-4.9.4-rmv-warnings.patch";
+TestFile "patch/gcc-4.9.4-v810.patch";
 
 #---------------------------------------------------------------------------------
 # Prepare Source and Install directories
@@ -58,24 +71,39 @@ TestFile "patch/gcc-4.7.4-v810.patch";
 
 PrepareSource()
 {
-  if [ -e  gcc-4.7.4 ]; then
-    rm -rf gcc-4.7.4
+  if [ -e  gcc-4.9.4 ]; then
+    rm -rf gcc-4.9.4
   fi
 
-  tar jxvf archive/gcc-4.7.4.tar.bz2
-  cd gcc-4.7.4
+  tar -xvjf archive/gcc-4.9.4.tar.bz2
+  cd gcc-4.9.4
 
-  patch -p 1 -i ../patch/gcc-4.7.4-no-iconv.patch
-  patch -p 1 -i ../patch/gcc-4.7.4-texi.patch
-  patch -p 1 -i ../patch/gcc-4.7.4-gcc-5.0.patch
-  patch -p 1 -i ../patch/gcc-4.7.4-fix-warnings.patch
-  patch -p 1 -i ../patch/gcc-4.7.4-rmv-warnings.patch
-  patch -p 1 -i ../patch/gcc-4.7.4-v810.patch
+  tar -xzf ../archive/cloog-0.18.5.tar.gz
+  mv cloog-0.18.5 cloog
+
+  tar -xjf ../archive/isl-0.18.tar.bz2
+  mv isl-0.18 isl
+
+  tar -xjf ../archive/gmp-6.1.2.tar.bz2
+  mv gmp-6.1.2 gmp
+
+  tar -xzf ../archive/mpc-1.0.3.tar.gz
+  mv mpc-1.0.3 mpc
+
+  tar -xjf ../archive/mpfr-3.1.6.tar.bz2
+  mv mpfr-3.1.6 mpfr
+
+  patch -p 1 -i ../patch/gcc-4.9.4-no-iconv.patch
+  patch -p 1 -i ../patch/gcc-4.9.4-texi.patch
+  patch -p 1 -i ../patch/gcc-4.9.4-cpp17.patch
+  patch -p 1 -i ../patch/gcc-4.9.4-fix-warnings.patch
+  patch -p 1 -i ../patch/gcc-4.9.4-rmv-warnings.patch
+  patch -p 1 -i ../patch/gcc-4.9.4-v810.patch
 
   cd ..
 }
 
-if [ -d gcc-4.7.4 ] ; then
+if [ -d gcc-4.9.4 ] ; then
   if [ "${1}" = "clean" ] ; then
     PrepareSource
   fi
@@ -88,20 +116,26 @@ if [ -d build/gcc ] ; then
 fi
 
 #---------------------------------------------------------------------------------
-# Set the target and compiler flags
+# Set the target compiler flags
 #---------------------------------------------------------------------------------
 
-# Building the toolchain to compile for the NEC V810 cpu.
-
-TARGET=v810
-
-export CFLAGS='-O2'
-export CXXFLAGS='-O2'
-
-if [ "$OSNAME" = "Linux" ] ; then
-  export LDFLAGS=
-else
+if [ "$OS" = "Windows_NT" ] ; then
+  export CFLAGS='-O2 -static'
+  export CXXFLAGS='-O2 -static'
   export LDFLAGS='-Wl,-Bstatic'
+# export LDFLAGS='-Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive'
+  BUILD=
+else
+  export CFLAGS='-O2'
+  export CXXFLAGS='-O2'
+  export LDFLAGS=
+if [ "$OSNAME" = "Linux" ] ; then
+  BUILD='--build=x86_64-linux-gnu'
+else
+if [ "$OSNAME" = "Darwin" ] ; then
+  BUILD='--build=x86_64-apple-darwin20'
+fi
+fi
 fi
 
 #---------------------------------------------------------------------------------
@@ -111,14 +145,9 @@ fi
 # Compiling on Windows (mingw/cygwin) requires that this configure is invoked
 # from a relative path and not an absolute path. Linux doesn't care.
 
-export SRCDIR=../../gcc-4.7.4
+export SRCDIR=../../gcc-4.9.4
 
-export DSTDIR=$TOPDIR/../../bin/$TARGET-gcc
-
-mkdir -p $DSTDIR/bin
-export PATH=$DSTDIR/bin:$PATH
-
-export TMPDIR=$TOPDIR/build/gcc
+export TMPDIR=$GITDIR/build/gcc
 
 export TMPDIR=build/gcc
 
@@ -134,7 +163,7 @@ cd $TMPDIR
 # Frame pointer always enabled when -mprolog-function is used.
 
 $SRCDIR/configure                              \
-  --target=$TARGET                             \
+  $BUILD --target=$TARGET                      \
   --prefix=$DSTDIR                             \
   --without-headers                            \
   --with-newlib                                \

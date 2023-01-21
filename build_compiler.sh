@@ -9,10 +9,10 @@
 # template for the individual steps that you need to take to fix things.
 #
 
-OSNAME=`uname`
+OSNAME=`uname -s`
 
-TOPDIR=$(pwd)
-echo TOPDIR is $TOPDIR
+GITDIR=$(pwd)
+echo GITDIR is $GITDIR
 
 rm -rf build
 
@@ -24,11 +24,11 @@ if [ "${1}" = "clean" ] ; then
   if [ -e  build ] ; then
     rm -rf build
   fi
-  if [ -e  binutils-2.24 ] ; then
-    rm -rf binutils-2.24
+  if [ -e  binutils-2.27 ] ; then
+    rm -rf binutils-2.27
   fi
-  if [ -e  gcc-4.7.4 ] ; then
-    rm -rf gcc-4.7.4
+  if [ -e  gcc-4.9.4 ] ; then
+    rm -rf gcc-4.9.4
   fi
   if [ -e  newlib-2.2.0-1 ] ; then
     rm -rf newlib-2.2.0-1
@@ -53,104 +53,15 @@ TestEXE()
 TestEXE "curl";
 
 #---------------------------------------------------------------------------------
-# Download the required library source files from GNU (on MacOSX)
-#---------------------------------------------------------------------------------
-
-mkdir -p archive
-cd archive
-
-if [ "$OSNAME" = "Darwin" ] ; then
-
-  if [ ! -e  gmp-6.0.0a.tar.bz2 ] ; then
-    echo
-    echo "Downloading gmp-6.0.0a.tar.bz2 from ftp.gnu.org";
-    curl -L -O -R https://ftp.gnu.org/gnu/gmp/gmp-6.0.0a.tar.bz2
-  
-    if [ $? != 0 ]; then
-      echo "Error: Cannot download the required version of the gmp source";
-      rm gmp-6.0.0a.tar.bz2
-      cd ..
-      exit 1;
-    fi
-  fi
-  
-  if [ ! -e  mpfr-3.1.2.tar.bz2 ] ; then
-    echo
-    echo "Downloading mpfr-3.1.2.tar.bz2 from ftp.gnu.org";
-    curl -L -O -R https://ftp.gnu.org/gnu/mpfr/mpfr-3.1.2.tar.bz2
-  
-    if [ $? != 0 ]; then
-      echo "Error: Cannot download the required version of the mpfr source";
-      rm mpfr-3.1.2.tar.bz2
-      cd ..
-      exit 1;
-    fi
-  fi
-  
-  if [ ! -e  mpc-1.0.2.tar.gz ] ; then
-    echo
-    echo "Downloading mpc-1.0.2.tar.gz from ftp.gnu.org";
-    curl -L -O -R https://ftp.gnu.org/gnu/mpc/mpc-1.0.2.tar.gz
-  
-    if [ $? != 0 ]; then
-      echo "Error: Cannot download the required version of the mpc source";
-      rm mpc-1.0.2.tar.gz
-      cd ..
-      exit 1;
-    fi
-  fi
-
-fi
-
-cd ..
-
-#---------------------------------------------------------------------------------
 # Download the source files from GNU and Sourceware (Redhat)
 #---------------------------------------------------------------------------------
 
-mkdir -p archive
-cd archive
+./download_prereqs.sh
 
-if [ ! -e binutils-2.24.tar.bz2 ] ; then
-  echo
-  echo "Downloading binutils-2.24.tar.bz2 from ftp.gnu.org";
-  curl -L -O -R https://ftp.gnu.org/gnu/binutils/binutils-2.24.tar.bz2
-
-  if [ $? != 0 ]; then
-    echo "Error: Cannot download the required version of the binutils source";
-    rm binutils-2.24.tar.bz2
-    cd ..
-    exit 1;
-  fi
+if [ $? != 0 ]; then
+  echo "Error: Failed to download source archives";
+  exit 1;
 fi
-
-if [ ! -e gcc-4.7.4.tar.bz2 ] ; then
-  echo
-  echo "Downloading gcc-4.7.4.tar.bz2 from ftp.gnu.org";
-  curl -L -O -R https://ftp.gnu.org/gnu/gcc/gcc-4.7.4/gcc-4.7.4.tar.bz2
-
-  if [ $? != 0 ]; then
-    echo "Error: Cannot download the required version of the gcc source";
-    rm gcc-4.7.4.tar.bz2
-    cd ..
-    exit 1;
-  fi
-fi
-
-if [ ! -e newlib-2.2.0-1.tar.gz ] ; then
-  echo
-  echo "Downloading newlib-2.2.0-1.tar.gz from sourceware.org";
-  curl -L -O -R ftp://sourceware.org/pub/newlib/newlib-2.2.0-1.tar.gz
-
-  if [ $? != 0 ]; then
-    echo "Error: Cannot download the required version of the newlib source";
-    rm newlib-2.2.0-1.tar.gz
-    cd ..
-    exit 1;
-  fi
-fi
-
-cd ..
 
 #---------------------------------------------------------------------------------
 # Now go through the 8-stage build process
