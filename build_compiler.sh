@@ -56,7 +56,7 @@ TestEXE "curl";
 # Download the source files from GNU and Sourceware (Redhat)
 #---------------------------------------------------------------------------------
 
-./download_prereqs.sh
+./step0_download_prereqs.sh
 
 if [ $? != 0 ]; then
   echo "Error: Failed to download source archives";
@@ -67,56 +67,56 @@ fi
 # Now go through the 8-stage build process
 #---------------------------------------------------------------------------------
 
-./prepare_binutils.sh clean
+./step1_prepare_binutils.sh
 
 if [ $? != 0 ]; then
   echo "Error: Failed to prepare binutils";
   exit 1;
 fi
 
-./make_binutils.sh
+./step2_make_binutils.sh
 
 if [ $? != 0 ]; then
   echo "Error: Failed to build binutils";
   exit 1;
 fi
 
-./prepare_gcc1.sh clean
+./step3_prepare_initial_gcc.sh
 
 if [ $? != 0 ]; then
   echo "Error: Failed to prepare initial gcc";
   exit 1;
 fi
 
-./make_gcc1.sh
+./step4_make_initial_gcc.sh
 
 if [ $? != 0 ]; then
   echo "Error: Failed to build initial gcc";
   exit 1;
 fi
 
-./prepare_newlib.sh clean
+./step5_prepare_newlib.sh
 
 if [ $? != 0 ]; then
   echo "Error: Failed to prepare newlib";
   exit 1;
 fi
 
-./make_newlib.sh
+./step6_make_newlib.sh
 
 if [ $? != 0 ]; then
   echo "Error: Failed to build newlib";
   exit 1;
 fi
 
-./prepare_gcc2.sh clean
+./step7_prepare_final_gcc.sh
 
 if [ $? != 0 ]; then
   echo "Error: Failed to prepare final gcc";
   exit 1;
 fi
 
-./make_gcc2.sh
+./step8_make_final_gcc.sh
 
 if [ $? != 0 ]; then
   echo "Error: Failed to build final gcc";
