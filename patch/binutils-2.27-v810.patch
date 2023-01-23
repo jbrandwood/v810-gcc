@@ -6297,8 +6297,8 @@ diff -Naur binutils-2.27-pure/ld/emulparams/v810.sh binutils-2.27/ld/emulparams/
 +PCFX_FIRMWARE_RESERVED=0x7E00
 diff -Naur binutils-2.27-pure/ld/emultempl/v810elf.em binutils-2.27/ld/emultempl/v810elf.em
 --- binutils-2.27-pure/ld/emultempl/v810elf.em	1969-12-31 19:00:00.000000000 -0500
-+++ binutils-2.27/ld/emultempl/v810elf.em	2023-01-15 16:03:58.327139700 -0500
-@@ -0,0 +1,28 @@
++++ binutils-2.27/ld/emultempl/v810elf.em	2023-01-22 17:43:42.234201500 -0500
+@@ -0,0 +1,42 @@
 +# This shell script emits a C file. -*- C -*-
 +#   Copyright (C) 2013-2016 Free Software Foundation, Inc.
 +#
@@ -6324,9 +6324,23 @@ diff -Naur binutils-2.27-pure/ld/emultempl/v810elf.em binutils-2.27/ld/emultempl
 +# features.
 +#
 +fragment <<EOF
-+/* No cpu specific features on the V810!  */
++
++#include "ldctor.h"
++
++static void
++v810elf_after_parse (void)
++{
++  /* Always behave as if called with --sort-common command line option.  */
++  config.sort_common = sort_descending;
++
++  gld${EMULATION_NAME}_after_parse ();
++}
 +
 +EOF
++
++# Put these extra v810-elf routines in ld_${EMULATION_NAME}_emulation
++#
++LDEMUL_AFTER_PARSE=v810elf_after_parse
 diff -Naur binutils-2.27-pure/ld/scripttempl/v810.sc binutils-2.27/ld/scripttempl/v810.sc
 --- binutils-2.27-pure/ld/scripttempl/v810.sc	1969-12-31 19:00:00.000000000 -0500
 +++ binutils-2.27/ld/scripttempl/v810.sc	2023-01-15 16:03:58.339639900 -0500
