@@ -42,7 +42,7 @@ fi
 
 cd $GITDIR/build/gcc
 
-make --jobs=$(($(nproc) + 1)) all 2>&1 | tee gcc_make.log
+make --jobs=$(nproc) all 2>&1 | tee gcc_make.log
 
 if [ $? != 0 ]; then
   echo "Error: building gcc";

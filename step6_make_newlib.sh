@@ -40,7 +40,7 @@ fi
 
 cd $GITDIR/build/newlib
 
-make --jobs=$(($(nproc) + 1)) all 2>&1 | tee newlib_make.log
+make --jobs=$(nproc) all 2>&1 | tee newlib_make.log
 
 if [ $? != 0 ]; then
   echo "Error: building newlib";
