@@ -62,10 +62,12 @@ pacman -S --needed git base-devel autoconf gperf
 ```
 
 Install the compiler of your choice to build v810-gcc for either the base Microsoft MSVCRT or the newer Microsoft UCRT.
+
+Either ...
 ```
 pacman -S mingw-w64-x86_64-gcc
 ```
-
+Or ...
 ```
 pacman -S mingw-w64-ucrt-x86_64-gcc
 ```
