@@ -1,0 +1,138 @@
+diff -Naur newlib-2.2.0-1-pure/newlib/libc/machine/v810/Makefile.am newlib-2.2.0-1/newlib/libc/machine/v810/Makefile.am
+--- newlib-2.2.0-1-pure/newlib/libc/machine/v810/Makefile.am	2023-07-05 18:52:09.175005700 +0100
++++ newlib-2.2.0-1/newlib/libc/machine/v810/Makefile.am	2023-07-05 18:56:19.961523500 +0100
+@@ -8,7 +8,7 @@
+ 
+ noinst_LIBRARIES = lib.a
+ 
+-lib_a_SOURCES = setjmp.S
++lib_a_SOURCES = setjmp.S memcpy.S memmove.S
+ lib_a_CCASFLAGS = $(AM_CCASFLAGS)
+ lib_a_CFLAGS = $(AM_CFLAGS)
+ 
+diff -Naur newlib-2.2.0-1-pure/newlib/libc/machine/v810/Makefile.in newlib-2.2.0-1/newlib/libc/machine/v810/Makefile.in
+--- newlib-2.2.0-1-pure/newlib/libc/machine/v810/Makefile.in	2023-07-05 18:52:09.189027000 +0100
++++ newlib-2.2.0-1/newlib/libc/machine/v810/Makefile.in	2023-07-05 18:56:19.975524100 +0100
+@@ -69,7 +69,8 @@
+ ARFLAGS = cru
+ lib_a_AR = $(AR) $(ARFLAGS)
+ lib_a_LIBADD =
+-am_lib_a_OBJECTS = lib_a-setjmp.$(OBJEXT)
++am_lib_a_OBJECTS = lib_a-setjmp.$(OBJEXT)  lib_a-memcpy.$(OBJEXT) \
++	lib_a-memmove.$(OBJEXT)
+ lib_a_OBJECTS = $(am_lib_a_OBJECTS)
+ DEFAULT_INCLUDES = -I.@am__isrc@
+ depcomp =
+@@ -195,7 +196,7 @@
+ INCLUDES = $(NEWLIB_CFLAGS) $(CROSS_CFLAGS) $(TARGET_CFLAGS)
+ AM_CCASFLAGS = $(INCLUDES)
+ noinst_LIBRARIES = lib.a
+-lib_a_SOURCES = setjmp.S
++lib_a_SOURCES = setjmp.S memcpy.S memmove.S
+ lib_a_CCASFLAGS = $(AM_CCASFLAGS)
+ lib_a_CFLAGS = $(AM_CFLAGS)
+ ACLOCAL_AMFLAGS = -I ../../.. -I ../../../..
+@@ -264,6 +265,18 @@
+ lib_a-setjmp.obj: setjmp.S
+ 	$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CCASFLAGS) $(CCASFLAGS) -c -o lib_a-setjmp.obj `if test -f 'setjmp.S'; then $(CYGPATH_W) 'setjmp.S'; else $(CYGPATH_W) '$(srcdir)/setjmp.S'; fi`
+ 
++lib_a-memcpy.o: memcpy.S
++	$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CCASFLAGS) $(CCASFLAGS) -c -o lib_a-memcpy.o `test -f 'memcpy.S' || echo '$(srcdir)/'`memcpy.S
++
++lib_a-memcpy.obj: memcpy.S
++	$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CCASFLAGS) $(CCASFLAGS) -c -o lib_a-memcpy.obj `if test -f 'memcpy.S'; then $(CYGPATH_W) 'memcpy.S'; else $(CYGPATH_W) '$(srcdir)/memcpy.S'; fi`
++
++lib_a-memmove.o: memmove.S
++	$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CCASFLAGS) $(CCASFLAGS) -c -o lib_a-memmove.o `test -f 'memmove.S' || echo '$(srcdir)/'`memmove.S
++
++lib_a-memmove.obj: memmove.S
++	$(CCAS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CCASFLAGS) $(CCASFLAGS) -c -o lib_a-memmove.obj `if test -f 'memmove.S'; then $(CYGPATH_W) 'memmove.S'; else $(CYGPATH_W) '$(srcdir)/memmove.S'; fi`
++
+ ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
+ 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
+ 	unique=`for i in $$list; do \
+diff -Naur newlib-2.2.0-1-pure/newlib/libc/machine/v810/memcpy.S newlib-2.2.0-1/newlib/libc/machine/v810/memcpy.S
+--- newlib-2.2.0-1-pure/newlib/libc/machine/v810/memcpy.S	1970-01-01 01:00:00.000000000 +0100
++++ newlib-2.2.0-1/newlib/libc/machine/v810/memcpy.S	2023-07-05 18:56:20.101529200 +0100
+@@ -0,0 +1,50 @@
++    .section .text
++    .align  1
++    .global _memcpy
++    .type   _memcpy, @function
++_memcpy:
++    mov     r6, r10
++    or      r7, r6
++    andi    3, r6, r0
++    mov     r10, r6
++    bne     .Lmemcpy_move
++
++    # src and dst are word aligned
++    andi    3, r8, r9
++    shr     2, r8
++    be      .Lmemcpy_res
++    # Copy one word if an odd number
++    andi    1, r8, r0
++    be      .Lmemcpy_skip
++    ld.w    0[r7], r11
++    st.w    r11, 0[r6]
++    add     4, r7
++    add     4, r6
++.Lmemcpy_skip:
++
++    # Copy words in pairs
++    shr     1, r8
++    be      .Lmemcpy_res
++.Lmemcpy_loop:
++    add     8, r6
++    ld.w    0[r7], r11
++    ld.w    4[r7], r12
++    st.w    r11, -8[r6]
++    add     8, r7
++    add     -1, r8
++    st.w    r12, -4[r6]
++    bne     .Lmemcpy_loop
++
++    # Copy residual bytes if any
++.Lmemcpy_res:
++    add     -1, r9
++    blt     .Lmemcpy_done
++    ld.b    0[r7], r11
++    st.b    r11, 0[r6]
++    add     1, r7
++    add     1, r6
++    br      .Lmemcpy_res
++.Lmemcpy_done:
++    jmp     [r31]    
++.Lmemcpy_move:
++    jr      _memmove
+diff -Naur newlib-2.2.0-1-pure/newlib/libc/machine/v810/memmove.S newlib-2.2.0-1/newlib/libc/machine/v810/memmove.S
+--- newlib-2.2.0-1-pure/newlib/libc/machine/v810/memmove.S	1970-01-01 01:00:00.000000000 +0100
++++ newlib-2.2.0-1/newlib/libc/machine/v810/memmove.S	2023-07-05 18:56:20.115523600 +0100
+@@ -0,0 +1,27 @@
++    .section .text
++    .align  1
++    .global _memmove
++    .type   _memmove, @function
++_memmove:
++    mov     r6, r10
++    # save bitstring registers
++    mov     r26, r11
++    mov     r27, r12
++    mov     r28, r13
++    mov     r29, r14
++    # move bitstring
++    mov     r6, r29
++    mov     r7, r30
++    shl     3, r6
++    mov     r6, r26
++    shl     3, r7
++    mov     r7, r27
++    shl     3, r8
++    mov     r8, r28
++    movbsu
++    # restore bitstring registers
++    mov     r11, r26
++    mov     r12, r27
++    mov     r13, r28
++    mov     r14, r29
++    jmp     [r31]
