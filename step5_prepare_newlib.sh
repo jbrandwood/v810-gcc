@@ -54,6 +54,7 @@ TestFile()
 TestFile "archive/newlib-2.2.0-1.tar.gz";
 
 TestFile "patch/newlib-2.2.0-1-v810.patch";
+TestFile "patch/newlib-2.2.0-1-v810-memcpy.patch";
 
 #---------------------------------------------------------------------------------
 # Prepare Source and Install directories
@@ -73,6 +74,7 @@ PrepareSource()
   cd newlib-2.2.0-1
 
   patch -p 1 -i ../patch/newlib-2.2.0-1-v810.patch
+  patch -p 1 -i ../patch/newlib-2.2.0-1-v810-memcpy.patch
 
   cd ..
 }
