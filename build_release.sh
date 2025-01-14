@@ -109,7 +109,6 @@ for i in "${!sources[@]}"; do
     url=${sources[$i]}
     file=${sources[$i]##*/}
 
-
     if [[ ! -f archive/$file ]]; then
         echo "Downloading $file"
         curl -LOR --output-dir archive "$url"
@@ -168,27 +167,27 @@ echo "### GCC (initial) ######################################################"
 [[ -d build/gcc ]] || mkdir -p build/gcc
 cd build/gcc
 ../../src/gcc/configure \
-  "$build" \
-  --target="$target" \
-  --prefix="$dstdir" \
-  --without-headers \
-  --with-newlib \
-  --with-local-prefix="$dstdir" \
-  --with-native-system-header="${dstdir}/include" \
-  --disable-shared \
-  --enable-static \
-  --disable-pedantic \
-  --disable-nls \
-  --disable-multilib \
-  --disable-decimal-float \
-  --disable-libgomp \
-  --disable-libitm \
-  --disable-libssp \
-  --disable-libstdc++-v3 \
-  --disable-libquadmath \
-  --disable-lto \
-  --enable-frame-pointer \
-  --enable-languages=c
+    "$build" \
+    --target="$target" \
+    --prefix="$dstdir" \
+    --without-headers \
+    --with-newlib \
+    --with-local-prefix="$dstdir" \
+    --with-native-system-header="${dstdir}/include" \
+    --disable-shared \
+    --enable-static \
+    --disable-pedantic \
+    --disable-nls \
+    --disable-multilib \
+    --disable-decimal-float \
+    --disable-libgomp \
+    --disable-libitm \
+    --disable-libssp \
+    --disable-libstdc++-v3 \
+    --disable-libquadmath \
+    --disable-lto \
+    --enable-frame-pointer \
+    --enable-languages=c
 make --jobs="$cpus" all
 make install-strip
 cd -
@@ -198,24 +197,24 @@ echo "### NEWLIB #############################################################"
 [[ -d build/newlib ]] || mkdir -p build/newlib
 cd build/newlib
 ../../src/newlib/configure \
-  $build \
-  --target="$target" \
-  --prefix="$dstdir" \
-  --disable-multilib \
-  --disable-newlib-multithread \
-  --disable-newlib-iconv \
-  --disable-newlib-fvwrite-in-streamio \
-  --disable-newlib-fseek-optimization \
-  --disable-newlib-wide-orient \
-  --disable-newlib-io-float \
-  --disable-newlib-atexit-dynamic-alloc \
-  --disable-newlib-supplied-syscalls \
-  --enable-newlib-global-atexit \
-  --enable-newlib-nano-formatted-io \
-  --enable-newlib-nano-malloc \
-  --enable-newlib-reent-small \
-  --enable-lite-exit \
-  --enable-newlib-hw-fp
+    $build \
+    --target="$target" \
+    --prefix="$dstdir" \
+    --disable-multilib \
+    --disable-newlib-multithread \
+    --disable-newlib-iconv \
+    --disable-newlib-fvwrite-in-streamio \
+    --disable-newlib-fseek-optimization \
+    --disable-newlib-wide-orient \
+    --disable-newlib-io-float \
+    --disable-newlib-atexit-dynamic-alloc \
+    --disable-newlib-supplied-syscalls \
+    --enable-newlib-global-atexit \
+    --enable-newlib-nano-formatted-io \
+    --enable-newlib-nano-malloc \
+    --enable-newlib-reent-small \
+    --enable-lite-exit \
+    --enable-newlib-hw-fp
 make --jobs="$cpus" all
 make install
 cd -
@@ -224,25 +223,25 @@ echo "### GCC (final) ########################################################"
 [[ -d build/gcc ]] || mkdir -p build/gcc
 cd build/gcc
 ../../src/gcc/configure \
-  $build \
-  --target="$target" \
-  --prefix="$dstdir" \
-  --with-local-prefix="$dstdir" \
-  --with-native-system-header="${dstdir}/include" \
-  --disable-shared \
-  --enable-static \
-  --disable-pedantic \
-  --disable-nls \
-  --disable-multilib \
-  --disable-decimal-float \
-  --disable-libgomp \
-  --disable-libitm \
-  --disable-libssp \
-  --disable-libstdc++-v3 \
-  --disable-libquadmath \
-  --disable-lto \
-  --enable-frame-pointer \
-  --enable-languages=c,c++
+    $build \
+    --target="$target" \
+    --prefix="$dstdir" \
+    --with-local-prefix="$dstdir" \
+    --with-native-system-header="${dstdir}/include" \
+    --disable-shared \
+    --enable-static \
+    --disable-pedantic \
+    --disable-nls \
+    --disable-multilib \
+    --disable-decimal-float \
+    --disable-libgomp \
+    --disable-libitm \
+    --disable-libssp \
+    --disable-libstdc++-v3 \
+    --disable-libquadmath \
+    --disable-lto \
+    --enable-frame-pointer \
+    --enable-languages=c,c++
 make --jobs="$cpus" all
 make install-strip
 cd -
