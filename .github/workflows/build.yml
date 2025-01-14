@@ -51,15 +51,19 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ runner.os }}
+          name: zip-${{ runner.os }}
           path: "*.zip"
 
   release:
     if: github.event.pull_request.merged == true
+    needs: build
     runs-on: ubuntu-24.04
     steps:
       - name: Download artifacts
         uses: actions/download-artifact@v4
+        with:
+          name: zip-*
+          merge-multiple: true
 
       - name: Create release
         uses: ncipollo/release-action@v1
