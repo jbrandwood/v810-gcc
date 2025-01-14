@@ -13,25 +13,24 @@ fi
 # =============================================================================
 # Environment setup
 # =============================================================================
-# This is defined in the build action, so it's safe to disable here
-# TARGET="v810"
+target="v810"
 
-BINUTILS_VER="2.27"
-GCC_VER="4.9.4"
-NEWLIB_VER="2.2.0-1"
-CLOOG_VER="0.18.5"
-ISL_VER="0.18"
-GMP_VER="6.1.2"
-MPFR_VER="3.1.6"
-MPC_VER="1.0.3"
+binutils_ver="2.27"
+gcc_ver="4.9.4"
+newlib_ver="2.2.0-1"
+cloog_ver="0.18.5"
+isl_ver="0.18"
+gmp_ver="6.1.2"
+mpfr_ver="3.1.6"
+mpc_ver="1.0.3"
 
 
-OS=$(uname -s)
+os=$(uname -s)
 
-DSTDIR=${PWD}/${TARGET}-gcc
-mkdir -p "${DSTDIR}"/{bin,lib}
+dstdir=${PWD}/${target}-gcc
+mkdir -p "${dstdir}"/{bin,lib}
 
-export PATH=${DSTDIR}/bin:$PATH
+export PATH=${dstdir}/bin:$PATH
 
 rm -rf src build
 
@@ -41,25 +40,28 @@ export CFLAGS="-O2"
 export CXXFLAGS="-O2"
 export LDFLAGS=""
 
-case $OS in
+case $os in
     Linux)
-      CPUS=$(nproc)
-      BUILD="--build=x86_64-linux-gnu"
+      os_name="Linux"
+      cpus=$(nproc)
+      build="--build=x86_64-linux-gnu"
       ;;
     Darwin)
-      CPUS=$(sysctl -n hw.logicalcpu)
-      BUILD="--build=x86_64-apple-darwin20"
+      os_name="macOS"
+      cpus=$(sysctl -n hw.logicalcpu)
+      build="--build=x86_64-apple-darwin20"
       ;;
     Windows_NT|MINGW64_NT*)
-      CPUS=$(nproc)
-      BUILD=""
+      os_name="Windows"
+      cpus=$(nproc)
+      build=""
       export CFLAGS="-O2 -static"
       export CXXFLAGS="-O2 -static"
       export LDFLAGS="-Wl,-Bstatic"
     # export LDFLAGS="-Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive"
       ;;
     *)
-        echo "Unknown OS: $OS"
+        echo "Unknown OS: $os"
         exit 1
 esac
 
@@ -90,14 +92,14 @@ done
 # =============================================================================
 declare -A sources
 sources=(
-    [binutils]="http://ftpmirror.gnu.org/binutils/binutils-${BINUTILS_VER}.tar.bz2"
-    [gcc]="http://ftpmirror.gnu.org/gcc/gcc-${GCC_VER}/gcc-${GCC_VER}.tar.bz2"
-    [newlib]="ftp://sourceware.org/pub/newlib/newlib-${NEWLIB_VER}.tar.gz"
-    [cloog]="https://github.com/periscop/cloog/releases/download/cloog-${CLOOG_VER}/cloog-${CLOOG_VER}.tar.gz"
-    [isl]="https://gcc.gnu.org/pub/gcc/infrastructure/isl-${ISL_VER}.tar.bz2"
-    [gmp]="http://ftpmirror.gnu.org/gmp/gmp-${GMP_VER}.tar.bz2"
-    [mpfr]="http://ftpmirror.gnu.org/mpfr/mpfr-${MPFR_VER}.tar.bz2"
-    [mpc]="http://ftpmirror.gnu.org/mpc/mpc-${MPC_VER}.tar.gz"
+    [binutils]="http://ftpmirror.gnu.org/binutils/binutils-${binutils_ver}.tar.bz2"
+    [gcc]="http://ftpmirror.gnu.org/gcc/gcc-${gcc_ver}/gcc-${gcc_ver}.tar.bz2"
+    [newlib]="ftp://sourceware.org/pub/newlib/newlib-${newlib_ver}.tar.gz"
+    [cloog]="https://github.com/periscop/cloog/releases/download/cloog-${cloog_ver}/cloog-${cloog_ver}.tar.gz"
+    [isl]="https://gcc.gnu.org/pub/gcc/infrastructure/isl-${isl_ver}.tar.bz2"
+    [gmp]="http://ftpmirror.gnu.org/gmp/gmp-${gmp_ver}.tar.bz2"
+    [mpfr]="http://ftpmirror.gnu.org/mpfr/mpfr-${mpfr_ver}.tar.bz2"
+    [mpc]="http://ftpmirror.gnu.org/mpc/mpc-${mpc_ver}.tar.gz"
 )
 
 [[ -d archive ]] || mkdir archive
@@ -128,17 +130,17 @@ done
 # =============================================================================
 # Apply patches
 # =============================================================================
-for file in "patch/binutils-${BINUTILS_VER}"*; do
+for file in "patch/binutils-${binutils_ver}"*; do
     echo "### Patching binutils with $file"
     patch -d src/binutils -p 1 -i "../../$file"
 done
 
-for file in "patch/gcc-${GCC_VER}"*; do
+for file in "patch/gcc-${gcc_ver}"*; do
     echo "### Patching GCC with $file"
     patch -d src/gcc -p 1 -i "../../$file"
 done
 
-for file in "patch/newlib-${NEWLIB_VER}"*; do
+for file in "patch/newlib-${newlib_ver}"*; do
     echo "### Patching newlib with $file"
     patch -d src/newlib -p 1 -i "../../$file"
 done
@@ -149,30 +151,30 @@ echo "### BINUTILS ###########################################################"
 [[ -d build/binutils ]] || mkdir -p build/binutils
 cd build/binutils
 ../../src/binutils/configure \
-    "$BUILD" \
-    --target="$TARGET" \
-    --prefix="$DSTDIR" \
-    --with-lib-path="${DSTDIR}/lib" \
+    "$build" \
+    --target="$target" \
+    --prefix="$dstdir" \
+    --with-lib-path="${dstdir}/lib" \
     --disable-nls \
     --disable-shared \
     --disable-multilib \
     --disable-lto
-make --jobs="$CPUS" all
+make --jobs="$cpus" all
 make install-strip
 cd -
-rm -f "$DSTDIR/bin/$TARGET-ld.bfd" "$DSTDIR/$TARGET/bin/ld.bfd"
+rm -f "${dstdir}/bin/$target-ld.bfd" "${dstdir}/${target}/bin/ld.bfd"
 
 echo "### GCC (initial) ######################################################"
 [[ -d build/gcc ]] || mkdir -p build/gcc
 cd build/gcc
 ../../src/gcc/configure \
-  "$BUILD" \
-  --target="$TARGET" \
-  --prefix="$DSTDIR" \
+  "$build" \
+  --target="$target" \
+  --prefix="$dstdir" \
   --without-headers \
   --with-newlib \
-  --with-local-prefix="$DSTDIR" \
-  --with-native-system-header="${DSTDIR}/include" \
+  --with-local-prefix="$dstdir" \
+  --with-native-system-header="${dstdir}/include" \
   --disable-shared \
   --enable-static \
   --disable-pedantic \
@@ -187,18 +189,18 @@ cd build/gcc
   --disable-lto \
   --enable-frame-pointer \
   --enable-languages=c
-make --jobs="$CPUS" all
+make --jobs="$cpus" all
 make install-strip
 cd -
-rm -f "$DSTDIR/bin/$TARGET-gcc-"{4.9.4,ar,nm,ranlib}
+rm -f "${dstdir}/bin/${target}-gcc-"{4.9.4,ar,nm,ranlib}
 
 echo "### NEWLIB #############################################################"
 [[ -d build/newlib ]] || mkdir -p build/newlib
 cd build/newlib
 ../../src/newlib/configure \
-  $BUILD \
-  --target="$TARGET" \
-  --prefix="$DSTDIR" \
+  $build \
+  --target="$target" \
+  --prefix="$dstdir" \
   --disable-multilib \
   --disable-newlib-multithread \
   --disable-newlib-iconv \
@@ -214,7 +216,7 @@ cd build/newlib
   --enable-newlib-reent-small \
   --enable-lite-exit \
   --enable-newlib-hw-fp
-make --jobs="$CPUS" all
+make --jobs="$cpus" all
 make install
 cd -
 
@@ -222,11 +224,11 @@ echo "### GCC (final) ########################################################"
 [[ -d build/gcc ]] || mkdir -p build/gcc
 cd build/gcc
 ../../src/gcc/configure \
-  $BUILD \
-  --target="$TARGET" \
-  --prefix="$DSTDIR" \
-  --with-local-prefix="$DSTDIR" \
-  --with-native-system-header="${DSTDIR}/include" \
+  $build \
+  --target="$target" \
+  --prefix="$dstdir" \
+  --with-local-prefix="$dstdir" \
+  --with-native-system-header="${dstdir}/include" \
   --disable-shared \
   --enable-static \
   --disable-pedantic \
@@ -241,7 +243,10 @@ cd build/gcc
   --disable-lto \
   --enable-frame-pointer \
   --enable-languages=c,c++
-make --jobs="$CPUS" all
+make --jobs="$cpus" all
 make install-strip
 cd -
-rm -f "${DSTDIR}/bin/${TARGET}-gcc-"{4.9.4,ar,nm,ranlib}
+rm -f "${dstdir}/bin/${target}-gcc-"{4.9.4,ar,nm,ranlib}
+
+# Make artifact
+zip -r "${target}-gcc-${os_name}-x86_64.zip" "${target}-gcc"
