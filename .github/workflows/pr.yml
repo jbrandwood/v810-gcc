@@ -27,11 +27,9 @@ jobs:
       - name: Build Linux
         if: startsWith(matrix.os, 'ubuntu')
         run: |
-          #sudo apt update
-          #sudo apt install -y gperf
-          #./build_release.sh
-          echo "hey :)" >hello.txt
-          zip hello.zip hello.txt
+          sudo apt update
+          sudo apt install -y gperf
+          ./build_release.sh
 
       - name: Build MacOS
         if: startsWith(matrix.os, 'macos')
