@@ -51,9 +51,10 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ runner.os }}
+          name: ${{ runner.os }}-zip
           path: "*.zip"
           overwrite: true
+          if-no-files-found: error
 
   release:
     if: github.event.pull_request.merged == true
@@ -62,7 +63,7 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: Linux
+          pattern: "*-zip"
           merge-multiple: true
 
       - name: Create release
