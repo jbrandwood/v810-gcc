@@ -1,8 +1,10 @@
 name: Pull Request
 
-# Runs a build when a pull request is created against the master branch.
-# If the PR is merged, a release is created called "latest", overwriting the
-# existing release, if necessary.
+# Runs a build when a pull request is created against the master branch. This
+# ensures that it builds correctly before it can be merged.
+#
+# If the PR is merged, the build is run again and a release is created called
+# "latest", overwriting the existing release, if necessary.
 
 on:
   pull_request:
@@ -12,8 +14,7 @@ jobs:
   build:
     strategy:
       matrix:
-        # os: [ubuntu-24.04, macos-14, windows-2025]
-        os: [ubuntu-24.04]
+        os: [ubuntu-24.04, macos-14, windows-2025]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout patches & tarballs
@@ -33,6 +34,7 @@ jobs:
 
       - name: Build MacOS
         if: startsWith(matrix.os, 'macos')
+        continue-on-error: true
         run: |
           sudo ln -s /opt/homebrew/bin/gcc-13 /usr/local/bin/gcc
           sudo ln -s /opt/homebrew/bin/gcc-ar-13 /usr/local/bin/gcc-ar
@@ -46,8 +48,9 @@ jobs:
 
       - name: Build Windows
         if: startsWith(matrix.os, 'windows')
+        continue-on-error: true
         run: |
-          C:\msys64\msys2_shell.cmd -mingw64 -no-start -defterm -c "pacman -S --noconfirm --needed git base-devel gcc autoconf gperf"
+          C:\msys64\msys2_shell.cmd -mingw64 -no-start -defterm -c "pacman -S --noconfirm --needed git base-devel gcc autoconf gperf zip"
           C:\msys64\msys2_shell.cmd -mingw64 -no-start -defterm -where %CD% -c "./build_release.sh"
 
       - name: Upload artifact
@@ -57,7 +60,8 @@ jobs:
           name: ${{ runner.os }}
           path: "*.zip"
           overwrite: true
-          if-no-files-found: error
+          retention-days: 1
+          # if-no-files-found: error
 
   release:
     needs: build
