@@ -2,10 +2,11 @@ name: Build
 
 on:
   pull_request:
-    branches: [master]
+    types: [opened, synchronize, reopened, closed]
 
 jobs:
   build:
+    # if: github.event.pull_request.opened == true || github.event.pull_request.synchronize == true
     strategy:
       matrix:
         # os: [ubuntu-24.04, macos-14, windows-2025]
@@ -23,9 +24,11 @@ jobs:
       - name: Build Linux
         if: startsWith(matrix.os, 'ubuntu')
         run: |
-          sudo apt update
-          sudo apt install -y gperf
-          ./build_release.sh
+          #sudo apt update
+          #sudo apt install -y gperf
+          #./build_release.sh
+          echo "hey :)" >hello.txt
+          zip hello.zip hello.txt
 
       - name: Build MacOS
         if: startsWith(matrix.os, 'macos')
@@ -49,5 +52,18 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ format(github.head_ref, '/', '_') }}-${{ runner.os }}
+          name: ${{ runner.os }}
           path: "*.zip"
+
+  release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "*.zip"
+          tag: latest
