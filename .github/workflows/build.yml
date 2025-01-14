@@ -10,16 +10,16 @@ on:
   push:
     branches: [master]
     paths:
-      - archive
-      - patch
+      - archive/**
+      - patch/**
       - build_release.sh
-      - .github/workflows
+      - .github/workflows/**
   pull_request:
     paths:
-      - archive
-      - patch
+      - archive/**
+      - patch/**
       - build_release.sh
-      - .github/workflows
+      - .github/workflows/**
 
 jobs:
   build:
