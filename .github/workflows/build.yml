@@ -4,9 +4,6 @@ on:
   pull_request:
     branches: [master]
 
-env:
-  TARGET: v810
-
 jobs:
   build:
     strategy:
@@ -52,5 +49,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ format(github.head_ref, '/', '_') }}____${{ env.TARGET }}-gcc-${{ runner.os }}-${{ runner.arch }}
-          path: ${{ env.TARGET }}-gcc
+          name: ${{ format(github.head_ref, '/', '_') }}-${{ runner.os }}
+          path: "*.zip"

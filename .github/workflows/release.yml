@@ -12,13 +12,7 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: ${{ format(github.event.pull_request.head.ref, '/', '_') }}____*.zip
-
-      - name: Sanitize filenames
-        run: |
-          for file in *.zip; do
-              mv "$file" "${file#*____}"
-          done
+          pattern: ${{ format(github.event.pull_request.head.ref, '/', '_') }}-*
 
       - name: Create release
         uses: ncipollo/release-action@v1
