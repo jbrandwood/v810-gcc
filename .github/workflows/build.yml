@@ -1,4 +1,4 @@
-name: Pull Request
+name: Build
 
 # Runs a build when a pull request is created against the master branch. This
 # ensures that it builds correctly before it can be merged.
@@ -7,8 +7,17 @@ name: Pull Request
 # "latest", overwriting the existing release, if necessary.
 
 on:
-  pull_request:
+  push:
     branches: [master]
+    paths:
+      - archive
+      - patch
+      - build_release.sh
+  pull_request:
+    paths:
+      - archive
+      - patch
+      - build_release.sh
 
 jobs:
   build:
@@ -54,7 +63,7 @@ jobs:
           C:\msys64\msys2_shell.cmd -mingw64 -no-start -defterm -where %CD% -c "./build_release.sh"
 
       - name: Upload artifact
-        if: github.event.pull_request.merged == true
+        if: ${{ github.ref_name == 'master' }}
         uses: actions/upload-artifact@v4
         with:
           name: ${{ runner.os }}
@@ -65,7 +74,7 @@ jobs:
 
   release:
     needs: build
-    if: github.event.pull_request.merged == true
+    if: ${{ github.ref_name == 'master' }}
     runs-on: ubuntu-24.04
     steps:
       - name: Download artifacts
