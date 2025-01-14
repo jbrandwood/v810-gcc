@@ -1,0 +1,27 @@
+name: Release
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  release:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ${{ format(github.event.pull_request.head.ref, '/', '_') }}____*.zip
+
+      - name: Sanitize filenames
+        run: |
+          for file in *.zip; do
+              mv "$file" "${file#*____}"
+          done
+
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "*.zip"
+          tag: latest

@@ -1,0 +1,53 @@
+name: Build
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        # os: [ubuntu-24.04, macos-14, windows-2025]
+        os: [ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout patches & tarballs
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            archive
+            patch
+            build_release.sh
+
+      - name: Build Linux
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt update
+          sudo apt install -y gperf
+          ./build_release.sh
+
+      - name: Build MacOS
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          sudo ln -s /opt/homebrew/bin/gcc-13 /usr/local/bin/gcc
+          sudo ln -s /opt/homebrew/bin/gcc-ar-13 /usr/local/bin/gcc-ar
+          sudo ln -s /opt/homebrew/bin/gcc-nm-13 /usr/local/bin/gcc-nm
+          sudo ln -s /opt/homebrew/bin/gcc-ranlib-13 /usr/local/bin/gcc-ranlib
+          sudo ln -s /opt/homebrew/bin/g++-13 /usr/local/bin/g++
+          hash -r
+
+          brew install gperf texinfo autoconf bash
+          bash build_release.sh
+
+      - name: Build Windows
+        if: startsWith(matrix.os, 'windows')
+        run: |
+          C:\msys64\msys2_shell.cmd -mingw64 -no-start -defterm -c "pacman -S --noconfirm --needed git base-devel gcc autoconf gperf"
+          C:\msys64\msys2_shell.cmd -mingw64 -no-start -defterm -where %CD% -c "./build_release.sh"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ format(github.head_ref, '/', '_') }}____${{ env.TARGET }}-gcc-${{ runner.os }}-${{ runner.arch }}
+          path: ${{ env.TARGET }}-gcc
