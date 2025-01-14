@@ -13,7 +13,8 @@ fi
 # =============================================================================
 # Environment setup
 # =============================================================================
-TARGET="v810"
+# This is defined in the build action, so it's safe to disable here
+# TARGET="v810"
 
 BINUTILS_VER="2.27"
 GCC_VER="4.9.4"
