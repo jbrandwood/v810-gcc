@@ -13,11 +13,13 @@ on:
       - archive
       - patch
       - build_release.sh
+      - .github/workflows
   pull_request:
     paths:
       - archive
       - patch
       - build_release.sh
+      - .github/workflows
 
 jobs:
   build:
