@@ -4088,12 +4088,7 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.h gcc-4.9.4/gcc/config/v810/v810.
 +/* We don't have to worry about dbx compatibility for the v810.  */
 +#define DEFAULT_GDB_EXTENSIONS 1
 +
-+/* Use stabs debugging info by default.  */
-+#undef PREFERRED_DEBUGGING_TYPE
-+#define PREFERRED_DEBUGGING_TYPE DBX_DEBUG
-+
 +/* Use dwarf2 debugging info by default.  */
-+/* Not, quite yet on the V810 ...
 +#undef  PREFERRED_DEBUGGING_TYPE
 +#define PREFERRED_DEBUGGING_TYPE   DWARF2_DEBUG
 +
@@ -4106,7 +4101,6 @@ diff -Naur gcc-4.9.4-pure/gcc/config/v810/v810.h gcc-4.9.4/gcc/config/v810/v810.
 +#define ASM_GENERATE_INTERNAL_LABEL(STRING, PREFIX, NUM)  \
 +  sprintf (STRING, "*.%s%u", PREFIX, (unsigned int)(NUM))
 +#endif
-+*/
 +
 +/* Specify the machine mode that this machine uses
 +   for the index in the tablejump instruction.  */
