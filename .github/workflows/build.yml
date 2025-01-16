@@ -1,0 +1,92 @@
+name: Build
+
+# Runs a build when a pull request is created against the master branch. This
+# ensures that it builds correctly before it can be merged.
+#
+# If the PR is merged, the build is run again and a release is created called
+# "latest", overwriting the existing release, if necessary.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - archive/**
+      - patch/**
+      - build_release.sh
+      - .github/workflows/**
+  pull_request:
+    paths:
+      - archive/**
+      - patch/**
+      - build_release.sh
+      - .github/workflows/**
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, macos-14, windows-2025]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout patches & tarballs
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            archive
+            patch
+            build_release.sh
+
+      - name: Build Linux
+        if: startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt update
+          sudo apt install -y gperf
+          ./build_release.sh
+
+      - name: Build MacOS
+        if: startsWith(matrix.os, 'macos')
+        continue-on-error: true
+        run: |
+          sudo ln -s /opt/homebrew/bin/gcc-13 /usr/local/bin/gcc
+          sudo ln -s /opt/homebrew/bin/gcc-ar-13 /usr/local/bin/gcc-ar
+          sudo ln -s /opt/homebrew/bin/gcc-nm-13 /usr/local/bin/gcc-nm
+          sudo ln -s /opt/homebrew/bin/gcc-ranlib-13 /usr/local/bin/gcc-ranlib
+          sudo ln -s /opt/homebrew/bin/g++-13 /usr/local/bin/g++
+          hash -r
+
+          brew install gperf texinfo autoconf bash
+          bash build_release.sh
+
+      - name: Build Windows
+        if: startsWith(matrix.os, 'windows')
+        continue-on-error: true
+        run: |
+          C:\msys64\msys2_shell.cmd -mingw64 -no-start -defterm -c "pacman -S --noconfirm --needed git base-devel gcc autoconf gperf zip"
+          C:\msys64\msys2_shell.cmd -mingw64 -no-start -defterm -where %CD% -c "./build_release.sh"
+
+      - name: Upload artifact
+        if: ${{ github.ref_name == 'master' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ runner.os }}
+          path: "*.zip"
+          overwrite: true
+          retention-days: 1
+          # if-no-files-found: error
+
+  release:
+    needs: build
+    if: ${{ github.ref_name == 'master' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - name: Create release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "*.zip"
+          tag: latest
+          allowUpdates: true

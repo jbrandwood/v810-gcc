@@ -1,6 +1,5 @@
 # Prerequisites
+src/
 build/
-binutils*/
-gcc*/
-newlib*/
 v810-gcc/
+*.log

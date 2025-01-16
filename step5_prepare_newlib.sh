@@ -45,7 +45,7 @@ TestEXE "bison";
 ## Test for files to unpack
 TestFile()
 {
-  if [ ! -f "$1" ]; then 
+  if [ ! -f "$1" ]; then
     echo "Error: $1 not found";
     exit 1;
   fi
@@ -53,8 +53,8 @@ TestFile()
 
 TestFile "archive/newlib-2.2.0-1.tar.gz";
 
-TestFile "patch/newlib-2.2.0-1-v810.patch";
-TestFile "patch/newlib-2.2.0-1-v810-memcpy.patch";
+TestFile "patch/newlib-2.2.0-1-01-v810.patch";
+TestFile "patch/newlib-2.2.0-1-02-v810-memcpy.patch";
 
 #---------------------------------------------------------------------------------
 # Prepare Source and Install directories
