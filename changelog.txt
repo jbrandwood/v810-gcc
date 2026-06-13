@@ -14,3 +14,6 @@
 2021-09-20 Fix building V810-GCC project with the current GCC v10 compiler.
            This involved fixing or hiding the latest compilation warnings
            that GCC10 complains about. There are no functional changes.
+
+2026-06-13 Fix broken build caused by the renaming of 2 of the patches by
+           restoring the old names and fixing the step5 build script.
