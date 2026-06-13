@@ -139,10 +139,8 @@ for file in "patch/gcc-${gcc_ver}"*; do
     patch -d src/gcc -p 1 -i "../../$file"
 done
 
-for file in "patch/newlib-${newlib_ver}"*; do
-    echo "### Patching newlib with $file"
-    patch -d src/newlib -p 1 -i "../../$file"
-done
+patch -d src/newlib -p 1 -i ../../patch/newlib-2.2.0-1-v810.patch
+patch -d src/newlib -p 1 -i ../../patch/newlib-2.2.0-1-v810-memcpy.patch
 
 # Build and install programs
 #------------------------------------------------------------------------------
