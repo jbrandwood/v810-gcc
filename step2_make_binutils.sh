@@ -9,6 +9,7 @@
 #
 
 OSNAME=`uname -s`
+OSARCH=`uname -m`
 
 TARGET=v810
 
@@ -26,14 +27,15 @@ export PATH=$DSTDIR/bin:$PATH
 #---------------------------------------------------------------------------------
 
 if [ "$OS" = "Windows_NT" ] ; then
-  export CFLAGS='-O2 -static'
-  export CXXFLAGS='-O2 -static'
-  export LDFLAGS='-Wl,-Bstatic'
-# export LDFLAGS='-Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive'
+  JOBS=$(nproc)
 else
-  export CFLAGS='-O2'
-  export CXXFLAGS='-O2'
-  export LDFLAGS=
+  if [ "$OSNAME" = "Linux" ] ; then
+    JOBS=$(nproc)
+  else
+    if [ "$OSNAME" = "Darwin" ] ; then
+      JOBS=`sysctl -n hw.logicalcpu`
+    fi
+  fi
 fi
 
 #---------------------------------------------------------------------------------
@@ -42,7 +44,7 @@ fi
 
 cd $GITDIR/build/binutils
 
-make --jobs=$(nproc) all 2>&1 | tee binutils_make.log
+make --jobs=$JOBS all 2>&1 | tee binutils_make.log
 
 if [ $? != 0 ]; then
   echo "Error: building binutils";

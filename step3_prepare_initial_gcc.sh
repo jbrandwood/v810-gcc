@@ -6,6 +6,7 @@
 #
 
 OSNAME=`uname -s`
+OSARCH=`uname -m`
 
 TARGET=v810
 
@@ -58,6 +59,7 @@ TestFile "archive/gmp-6.1.2.tar.bz2";
 TestFile "archive/mpc-1.0.3.tar.gz";
 TestFile "archive/mpfr-3.1.6.tar.bz2";
 
+TestFile "patch/gcc-4.9.4-aarch64-darwin.patch";
 TestFile "patch/gcc-4.9.4-no-iconv.patch";
 TestFile "patch/gcc-4.9.4-texi.patch";
 TestFile "patch/gcc-4.9.4-cpp17.patch";
@@ -93,6 +95,7 @@ PrepareSource()
   tar -xjf ../archive/mpfr-3.1.6.tar.bz2
   mv mpfr-3.1.6 mpfr
 
+  patch -p 1 -i ../patch/gcc-4.9.4-aarch64-darwin.patch
   patch -p 1 -i ../patch/gcc-4.9.4-no-iconv.patch
   patch -p 1 -i ../patch/gcc-4.9.4-texi.patch
   patch -p 1 -i ../patch/gcc-4.9.4-cpp17.patch
@@ -119,23 +122,35 @@ fi
 # Set the target compiler flags
 #---------------------------------------------------------------------------------
 
+NOZLIB=
+
 if [ "$OS" = "Windows_NT" ] ; then
-  export CFLAGS='-O2 -static'
-  export CXXFLAGS='-O2 -static'
+  export CFLAGS='-std=gnu99 -O2 -static'
+  export CXXFLAGS='-std=gnu++98 -O2 -static'
   export LDFLAGS='-Wl,-Bstatic'
-# export LDFLAGS='-Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive'
   BUILD=
 else
-  export CFLAGS='-O2'
-  export CXXFLAGS='-O2'
+  export CFLAGS='-std=gnu99 -O2'
+  export CXXFLAGS='-std=gnu++98 -O2'
   export LDFLAGS=
-if [ "$OSNAME" = "Linux" ] ; then
-  BUILD='--build=x86_64-linux-gnu'
-else
-if [ "$OSNAME" = "Darwin" ] ; then
-  BUILD='--build=x86_64-apple-darwin20'
-fi
-fi
+  if [ "$OSNAME" = "Linux" ] ; then
+    if [ "$OSARCH" = "x86_64" ] ; then
+      BUILD='--build=x86_64-linux-gnu'
+    else
+      BUILD='--build=aarch64-linux-gnu'
+    fi
+  else
+    if [ "$OSNAME" = "Darwin" ] ; then
+      export CC=gcc-16
+      export CXX=g++-16
+      NOZLIB='--with-system-zlib'
+      if [ "$OSARCH" = "x86_64" ] ; then
+        BUILD='--build=x86_64-apple-darwin'
+      else
+        BUILD='--build=aarch64-apple-darwin'
+      fi
+    fi
+  fi
 fi
 
 #---------------------------------------------------------------------------------
@@ -163,7 +178,8 @@ cd $TMPDIR
 # Frame pointer always enabled when -mprolog-function is used.
 
 $SRCDIR/configure                              \
-  $BUILD --target=$TARGET                      \
+  $NOZLIB $BUILD                               \
+  --target=$TARGET                             \
   --prefix=$DSTDIR                             \
   --without-headers                            \
   --with-newlib                                \

@@ -6,6 +6,7 @@
 #
 
 OSNAME=`uname -s`
+OSARCH=`uname -m`
 
 TARGET=v810
 
@@ -95,19 +96,31 @@ fi
 # Set the target compiler flags
 #---------------------------------------------------------------------------------
 
-export CFLAGS='-O2'
-export CXXFLAGS='-O2'
+export CFLAGS='-std=gnu99 -O2'
+export CXXFLAGS='-std=gnu++98 -O2'
 
 if [ "$OS" = "Windows_NT" ] ; then
   export LDFLAGS='-Wl,-Bstatic'
+  BUILD=
 else
   export LDFLAGS=
-fi
-
-if [ "$OSNAME" = "Darwin" ] ; then
-  BUILD='--build=x86_64-apple-darwin20'
-else
-  BUILD=
+  if [ "$OSNAME" = "Linux" ] ; then
+    if [ "$OSARCH" = "x86_64" ] ; then
+      BUILD='--build=x86_64-linux-gnu'
+    else
+      BUILD='--build=aarch64-linux-gnu'
+    fi
+  else
+    if [ "$OSNAME" = "Darwin" ] ; then
+      export CC=gcc-16
+      export CXX=g++-16
+      if [ "$OSARCH" = "x86_64" ] ; then
+        BUILD='--build=x86_64-apple-darwin'
+      else
+        BUILD='--build=aarch64-apple-darwin'
+      fi
+    fi
+  fi
 fi
 
 #---------------------------------------------------------------------------------
@@ -127,6 +140,7 @@ cd $TMPDIR
 $SRCDIR/configure                       \
   --prefix=$DSTDIR                      \
   $BUILD --target=$TARGET               \
+  --without-isl                         \
   --disable-multilib                    \
   --disable-newlib-multithread          \
   --disable-newlib-iconv                \

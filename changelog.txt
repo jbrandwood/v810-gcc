@@ -17,3 +17,7 @@
 
 2026-06-13 Fix broken build caused by the renaming of 2 of the patches by
            restoring the old names and fixing the step5 build script.
+           Change the Binutils build to use ISL since it was already used
+           by the GCC build.
+
+2026-06-21 Update build instructions to include macOS (both ARM and Intel).

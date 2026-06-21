@@ -1,0 +1,72 @@
+diff -Naur a/gcc/config/aarch64/host-aarch64-darwin.c b/gcc/config/aarch64/host-aarch64-darwin.c
+--- a/gcc/config/aarch64/host-aarch64-darwin.c	1969-12-31 19:00:00
++++ b/gcc/config/aarch64/host-aarch64-darwin.c	2026-06-20 14:16:55
+@@ -0,0 +1,32 @@
++/* aarch64-darwin host-specific hook definitions.
++   Copyright (C) 2006-2021 Free Software Foundation, Inc.
++
++This file is part of GCC.
++
++GCC is free software; you can redistribute it and/or modify it under
++the terms of the GNU General Public License as published by the Free
++Software Foundation; either version 3, or (at your option) any later
++version.
++
++GCC is distributed in the hope that it will be useful, but WITHOUT ANY
++WARRANTY; without even the implied warranty of MERCHANTABILITY or
++FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
++for more details.
++
++You should have received a copy of the GNU General Public License
++along with GCC; see the file COPYING3.  If not see
++<http://www.gnu.org/licenses/>.  */
++
++#define IN_TARGET_CODE 1
++
++#include "config.h"
++#include "system.h"
++#include "coretypes.h"
++#include "hosthooks.h"
++#include "hosthooks-def.h"
++#include "config/host-darwin.h"
++
++/* Darwin doesn't do anything special for aarch64 hosts; this file exists just
++   to include config/host-darwin.h.  */
++
++const struct host_hooks host_hooks = HOST_HOOKS_INITIALIZER;
+diff -Naur a/gcc/config/aarch64/x-darwin b/gcc/config/aarch64/x-darwin
+--- a/gcc/config/aarch64/x-darwin	1969-12-31 19:00:00
++++ b/gcc/config/aarch64/x-darwin	2026-06-20 14:16:55
+@@ -0,0 +1,3 @@
++host-aarch64-darwin.o : $(srcdir)/config/aarch64/host-aarch64-darwin.c
++	$(COMPILE) $<
++	$(POSTCOMPILE)
+diff -Naur a/gcc/config/host-darwin.c b/gcc/config/host-darwin.c
+--- a/gcc/config/host-darwin.c	2014-01-02 17:23:26
++++ b/gcc/config/host-darwin.c	2026-06-20 14:16:55
+@@ -24,7 +24,10 @@
+ #include "config/host-darwin.h"
+ 
+ /* Yes, this is really supposed to work.  */
+-static char pch_address_space[1024*1024*1024] __attribute__((aligned (4096)));
++/* This allows for a pagesize of 16384, which we have on Darwin20, but should
++   continue to work OK for pagesize 4096 which we have on earlier versions.
++   The size is 1 (binary) Gb.  */
++static char pch_address_space[65536*16384] __attribute__((aligned (16384)));
+ 
+ /* Return the address of the PCH address space, if the PCH will fit in it.  */
+ 
+diff -Naur a/gcc/config.host b/gcc/config.host
+--- a/gcc/config.host	2014-01-02 17:23:26
++++ b/gcc/config.host	2026-06-20 23:21:08
+@@ -241,6 +241,10 @@
+     echo "*** linking with posix.dll is not allowed by the GNU GPL."
+     exit 1
+     ;;
++  aarch64-*-darwin*)
++    out_host_hook_obj="${out_host_hook_obj} host-aarch64-darwin.o"
++    host_xmake_file="${host_xmake_file} aarch64/x-darwin"
++    ;;
+   i[34567]86-*-darwin* | x86_64-*-darwin*)
+     out_host_hook_obj="${out_host_hook_obj} host-i386-darwin.o"
+     host_xmake_file="${host_xmake_file} i386/x-darwin"

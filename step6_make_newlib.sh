@@ -9,6 +9,7 @@
 #
 
 OSNAME=`uname -s`
+OSARCH=`uname -m`
 
 TARGET=v810
 
@@ -25,13 +26,16 @@ export PATH=$DSTDIR/bin:$PATH
 # Set the target compiler flags
 #---------------------------------------------------------------------------------
 
-export CFLAGS='-O2'
-export CXXFLAGS='-O2'
-
 if [ "$OS" = "Windows_NT" ] ; then
-  export LDFLAGS='-Wl,-Bstatic'
+  JOBS=$(nproc)
 else
-  export LDFLAGS=
+  if [ "$OSNAME" = "Linux" ] ; then
+    JOBS=$(nproc)
+  else
+    if [ "$OSNAME" = "Darwin" ] ; then
+      JOBS=`sysctl -n hw.logicalcpu`
+    fi
+  fi
 fi
 
 #---------------------------------------------------------------------------------
@@ -40,7 +44,7 @@ fi
 
 cd $GITDIR/build/newlib
 
-make --jobs=$(nproc) all 2>&1 | tee newlib_make.log
+make --jobs=$JOBS all 2>&1 | tee newlib_make.log
 
 if [ $? != 0 ]; then
   echo "Error: building newlib";

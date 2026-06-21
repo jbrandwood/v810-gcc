@@ -6,6 +6,7 @@
 #
 
 OSNAME=`uname -s`
+OSARCH=`uname -m`
 
 TARGET=v810
 
@@ -72,7 +73,7 @@ PrepareSource()
     rm -rf build/binutils
   fi
 
-  tar jxvf archive/binutils-2.27.tar.bz2
+  tar -xvjf archive/binutils-2.27.tar.bz2
   cd binutils-2.27
 
   patch -p 1 -i ../patch/binutils-2.27-gcc-8.0.patch
@@ -99,23 +100,35 @@ fi
 # Set the target compiler flags
 #---------------------------------------------------------------------------------
 
+NOZLIB=
+
 if [ "$OS" = "Windows_NT" ] ; then
-  export CFLAGS='-O2 -static'
-  export CXXFLAGS='-O2 -static'
+  export CFLAGS='-std=gnu99 -O2 -static'
+  export CXXFLAGS='-std=gnu++98 -O2 -static'
   export LDFLAGS='-Wl,-Bstatic'
-# export LDFLAGS='-Wl,-Bstatic,--whole-archive -lwinpthread -Wl,--no-whole-archive'
   BUILD=
 else
-  export CFLAGS='-O2'
-  export CXXFLAGS='-O2'
+  export CFLAGS='-std=gnu99 -O2'
+  export CXXFLAGS='-std=gnu++98 -O2'
   export LDFLAGS=
-if [ "$OSNAME" = "Linux" ] ; then
-  BUILD='--build=x86_64-linux-gnu'
-else
-if [ "$OSNAME" = "Darwin" ] ; then
-  BUILD='--build=x86_64-apple-darwin20'
-fi
-fi
+  if [ "$OSNAME" = "Linux" ] ; then
+    if [ "$OSARCH" = "x86_64" ] ; then
+      BUILD='--build=x86_64-linux-gnu'
+    else
+      BUILD='--build=arm-linux-gnu'
+    fi
+  else
+    if [ "$OSNAME" = "Darwin" ] ; then
+      export CC=gcc-16
+      export CXX=g++-16
+      NOZLIB='--with-system-zlib'
+      if [ "$OSARCH" = "x86_64" ] ; then
+        BUILD='--build=x86_64-apple-darwin'
+      else
+        BUILD='--build=aarch64-apple-darwin'
+      fi
+    fi
+  fi
 fi
 
 #---------------------------------------------------------------------------------
@@ -131,11 +144,14 @@ export TMPDIR=$GITDIR/build/binutils
 
 mkdir -p $TMPDIR
 cd $TMPDIR
+# mkdir -p bfd
 
 $SRCDIR/configure             \
-  $BUILD --target=$TARGET     \
+  $NOZLIB $BUILD              \
+  --target=$TARGET            \
   --prefix=$DSTDIR            \
   --with-lib-path=$DSTDIR/lib \
+  --without-isl               \
   --disable-nls               \
   --disable-shared            \
   --disable-multilib          \

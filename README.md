@@ -65,11 +65,11 @@ Install the compiler of your choice to build v810-gcc for either the base Micros
 
 Either ...
 ```
-pacman -S mingw-w64-x86_64-gcc
+pacman -S mingw-w64-ucrt-x86_64-gcc
 ```
 Or ...
 ```
-pacman -S mingw-w64-ucrt-x86_64-gcc
+pacman -S mingw-w64-x86_64-gcc
 ```
 
 Build the toolchain.
@@ -89,6 +89,49 @@ Clean up the temporary directories.
 Install the "build-essential" package and other prerequisites ...
 ```
 sudo apt-get install build-essential curl flex git gperf bison texinfo 
+```
+
+Build the toolchain.
+```
+cd <some_directory>/src/v810-gcc/
+./build_compiler.sh
+```
+
+Clean up the temporary directories.
+```
+./build_compiler.sh clean
+```
+
+
+## Notes for building on macOS (with Homebrew and the Command Line Tools for Xcode)
+
+*Please note that the macOS builds of v810-gcc may have problems compiling projects which use precompiled headers (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=71934).*
+
+
+While the standard macOS Zsh works fine (i.e. you do not need Bash), the build uses non-POSIX extensions to the AWK language, and so you must install MAWK or GAWK.
+
+The old versions of FLEX and BISON that Apple uses work fine, but you do need to install either the Command Line Tools or the full Xcode in order to get them.
+
+The old GCC v4.9 codebase does some horrible things that the modern CLANG compiler considers fatal errors, and so you absolutely must use a GCC compiler to build v810-gcc.
+
+The old BINUTILS codebase is much cleaner than the GCC codebase, and compiles fine with both Apple's AWK and CLANG, but this toolchain is pointless without its C compiler!
+
+You can probably use MacPorts instead to Homebrew, but that is something for you to figure out, if you wish to.
+
+
+Install Apple's Command Line Tools for Xcode package (https://developer.apple.com/documentation/xcode/installing-the-command-line-tools/) ...
+```
+xcode-select --install
+```
+
+Install Homebrew (https://brew.sh/) ...
+```
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+Install the prerequisite Homebrew packages ...
+```
+brew install autoconf gcc mawk texinfo
 ```
 
 Build the toolchain.
