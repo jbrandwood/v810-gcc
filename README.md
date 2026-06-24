@@ -6,7 +6,7 @@ The toolchain currently consists of ...
 * gcc 4.9.4
 * newlib 2.2.0-1
 
-The toolchain can currently be built on either Windows or Linux.
+The toolchain can currently be built on either Windows, Linux or macOS.
 
 
 ## Directory Layout
@@ -107,18 +107,6 @@ Clean up the temporary directories.
 
 *Please note that the macOS builds of v810-gcc may have problems compiling projects which use precompiled headers (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=71934).*
 
-
-While the standard macOS Zsh works fine (i.e. you do not need Bash), the build uses non-POSIX extensions to the AWK language, and so you must install MAWK or GAWK.
-
-The old versions of FLEX and BISON that Apple uses work fine, but you do need to install either the Command Line Tools or the full Xcode in order to get them.
-
-The old GCC v4.9 codebase does some horrible things that the modern CLANG compiler considers fatal errors, and so you absolutely must use a GCC compiler to build v810-gcc.
-
-The old BINUTILS codebase is much cleaner than the GCC codebase, and compiles fine with both Apple's AWK and CLANG, but this toolchain is pointless without its C compiler!
-
-You can probably use MacPorts instead to Homebrew, but that is something for you to figure out, if you wish to.
-
-
 Install Apple's Command Line Tools for Xcode package (https://developer.apple.com/documentation/xcode/installing-the-command-line-tools/) ...
 ```
 xcode-select --install
@@ -132,6 +120,36 @@ Install Homebrew (https://brew.sh/) ...
 Install the prerequisite Homebrew packages ...
 ```
 brew install autoconf gcc mawk texinfo
+```
+
+Build the toolchain.
+```
+cd <some_directory>/src/v810-gcc/
+./build_compiler.sh
+```
+
+Clean up the temporary directories.
+```
+./build_compiler.sh clean
+```
+
+
+## Notes for building on macOS (with MacPorts and the Command Line Tools for Xcode)
+
+*Please note that the macOS builds of v810-gcc may have problems compiling projects which use precompiled headers (https://gcc.gnu.org/bugzilla/show_bug.cgi?id=71934).*
+
+Install Apple's Command Line Tools for Xcode package (https://developer.apple.com/documentation/xcode/installing-the-command-line-tools/) ...
+```
+xcode-select --install
+```
+
+Install MacPorts (https://www.macports.org/install.php) ...
+
+  The easiest way to install MacPorts on a Mac is by downloading the pkg or dmg for Tahoe, Sequoia, Sonoma, Ventura, Monterey, Big Sur, Catalina, Mojave, High Sierra, Sierra, El Capitan, Yosemite, Mavericks, Mountain Lion, Lion, Snow Leopard, or Leopard and running the system's Installer by double-clicking on the pkg contained therein, following the on-screen instructions until completion.
+
+Install the prerequisite MacPorts packages ...
+```
+sudo port install autoconf gcc15 mawk texinfo
 ```
 
 Build the toolchain.

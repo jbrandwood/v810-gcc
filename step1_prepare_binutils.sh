@@ -119,8 +119,20 @@ else
     fi
   else
     if [ "$OSNAME" = "Darwin" ] ; then
-      export CC=gcc-16
-      export CXX=g++-16
+      # Current Homebrew package compiler name.
+      if command -v gcc-16 &>/dev/null ; then
+        export CC=gcc-16
+        export CXX=g++-16
+      else
+        # Current MacPorts package compiler name.
+        if command -v gcc-mp-15 &>/dev/null ; then
+          export CC=gcc-mp-15
+          export CXX=g++-mp-15
+        else
+          echo "Error: Cannot locate GCC compiler!";
+          exit 1;
+        fi
+      fi
       NOZLIB='--with-system-zlib'
       if [ "$OSARCH" = "x86_64" ] ; then
         BUILD='--build=x86_64-apple-darwin'
