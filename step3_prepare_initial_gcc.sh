@@ -66,6 +66,7 @@ TestFile "patch/gcc-4.9.4-cpp17.patch";
 TestFile "patch/gcc-4.9.4-fix-warnings.patch";
 TestFile "patch/gcc-4.9.4-rmv-warnings.patch";
 TestFile "patch/gcc-4.9.4-v810.patch";
+TestFile "patch/gcc-4.9.4-relocatable-pch.patch";
 
 #---------------------------------------------------------------------------------
 # Prepare Source and Install directories
@@ -102,6 +103,7 @@ PrepareSource()
   patch -p 1 -i ../patch/gcc-4.9.4-fix-warnings.patch
   patch -p 1 -i ../patch/gcc-4.9.4-rmv-warnings.patch
   patch -p 1 -i ../patch/gcc-4.9.4-v810.patch
+  patch -p 1 -i ../patch/gcc-4.9.4-relocatable-pch.patch
 
   cd ..
 }

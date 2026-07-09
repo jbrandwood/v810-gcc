@@ -1,0 +1,1653 @@
+diff -Naur a/gcc/c-family/c-common.c b/gcc/c-family/c-common.c
+--- a/gcc/c-family/c-common.c	2026-06-24 13:42:58.426060000 -0400
++++ b/gcc/c-family/c-common.c	2026-06-22 13:32:08.874263500 -0400
+@@ -9477,8 +9477,8 @@
+   {
+     tree d1 = DECL_NAME (*x);
+     tree d2 = DECL_NAME (*y);
+-    resort_data.new_value (&d1, resort_data.cookie);
+-    resort_data.new_value (&d2, resort_data.cookie);
++    resort_data.new_value (&d1, &d1, resort_data.cookie);
++    resort_data.new_value (&d2, &d2, resort_data.cookie);
+     if (d1 < d2)
+       return -1;
+   }
+diff -Naur a/gcc/c-family/c-pch.c b/gcc/c-family/c-pch.c
+--- a/gcc/c-family/c-pch.c	2014-01-09 13:25:19.000000000 -0500
++++ b/gcc/c-family/c-pch.c	2026-07-08 21:54:13.348136600 -0400
+@@ -63,7 +63,6 @@
+ {
+   unsigned char debug_info_type;
+   signed char match[MATCH_SIZE];
+-  void (*pch_init) (void);
+   size_t target_data_length;
+ };
+ 
+@@ -127,7 +126,6 @@
+ 	gcc_assert (v.match[i] == *pch_matching[i].flag_var);
+       }
+   }
+-  v.pch_init = &pch_init;
+   target_validity = targetm.get_pch_validity (&v.target_data_length);
+ 
+   if (fwrite (partial_pch, IDENT_LENGTH, 1, f) != 1
+@@ -291,20 +289,6 @@
+ 	}
+   }
+ 
+-  /* If the text segment was not loaded at the same address as it was
+-     when the PCH file was created, function pointers loaded from the
+-     PCH will not be valid.  We could in theory remap all the function
+-     pointers, but no support for that exists at present.
+-     Since we have the same executable, it should only be necessary to
+-     check one function.  */
+-  if (v.pch_init != &pch_init)
+-    {
+-      if (cpp_get_options (pfile)->warn_invalid_pch)
+-	cpp_error (pfile, CPP_DL_WARNING,
+-		   "%s: had text segment at different address", name);
+-      return 2;
+-    }
+-
+   /* Check the target-specific validity data.  */
+   {
+     void *this_file_data = xmalloc (v.target_data_length);
+@@ -405,7 +389,8 @@
+   if (cpp_get_callbacks (parse_in)->valid_pch)
+     {
+       cpp_get_callbacks (parse_in)->valid_pch = NULL;
+-      host_hooks.gt_pch_use_address (NULL, 0, -1, 0);
++      void *addr = NULL;
++      host_hooks.gt_pch_use_address (addr, 0, -1, 0);
+     }
+ }
+ 
+diff -Naur a/gcc/config/avr/avr.c b/gcc/config/avr/avr.c
+--- a/gcc/config/avr/avr.c	2015-03-03 06:09:30.000000000 -0500
++++ b/gcc/config/avr/avr.c	2026-06-29 10:50:30.658522600 -0400
+@@ -8474,10 +8474,9 @@
+ /* Unnamed section callback for progmem*.data sections.  */
+ 
+ static void
+-avr_output_progmem_section_asm_op (const void *data)
++avr_output_progmem_section_asm_op (const char *data)
+ {
+-  fprintf (asm_out_file, "\t.section\t%s,\"a\",@progbits\n",
+-           (const char*) data);
++  fprintf (asm_out_file, "\t.section\t%s,\"a\",@progbits\n", data);
+ }
+ 
+ 
+diff -Naur a/gcc/config/darwin.c b/gcc/config/darwin.c
+--- a/gcc/config/darwin.c	2015-07-09 13:56:23.000000000 -0400
++++ b/gcc/config/darwin.c	2026-06-29 10:54:42.074250600 -0400
+@@ -40,6 +40,7 @@
+ #include "function.h"
+ #include "ggc.h"
+ #include "langhooks.h"
++#include "targhooks.h"
+ #include "target.h"
+ #include "tm_p.h"
+ #include "diagnostic-core.h"
+@@ -136,7 +137,7 @@
+    DIRECTIVE is as for output_section_asm_op.  */
+ 
+ static void
+-output_objc_section_asm_op (const void *directive)
++output_objc_section_asm_op (const char *directive)
+ {
+   static bool been_here = false;
+ 
+diff -Naur a/gcc/config/host-darwin.c b/gcc/config/host-darwin.c
+--- a/gcc/config/host-darwin.c	2026-06-24 13:42:57.834896700 -0400
++++ b/gcc/config/host-darwin.c	2026-06-24 14:45:15.253904900 -0400
+@@ -1,5 +1,5 @@
+ /* Darwin host-specific hook definitions.
+-   Copyright (C) 2003-2014 Free Software Foundation, Inc.
++   Copyright (C) 2003-2021 Free Software Foundation, Inc.
+ 
+    This file is part of GCC.
+ 
+@@ -20,61 +20,164 @@
+ #include "config.h"
+ #include "system.h"
+ #include "coretypes.h"
++#include "options.h"
+ #include "diagnostic-core.h"
+ #include "config/host-darwin.h"
++#include <errno.h>
+ 
+-/* Yes, this is really supposed to work.  */
+-/* This allows for a pagesize of 16384, which we have on Darwin20, but should
+-   continue to work OK for pagesize 4096 which we have on earlier versions.
+-   The size is 1 (binary) Gb.  */
+-static char pch_address_space[65536*16384] __attribute__((aligned (16384)));
+-
+-/* Return the address of the PCH address space, if the PCH will fit in it.  */
++/* For Darwin (macOS only) platforms, without ASLR (PIE) enabled on the
++   binaries, the following VM addresses are expected to be available.
++   NOTE, that for aarch64, ASLR is always enabled - but the VM address
++   mentioned below is available (at least on Darwin20).
++
++   The spaces should all have 512Mb available c.f. PCH files for large
++   C++ or Objective-C in the range of 150Mb for 64b hosts.
++
++   We also try to steer clear of places already used for sanitizers.
++
++   If the allocation fails at the 'ideal' address, we go with what the
++   kernel provides (there is more likelihood that we will need to relocate
++   on read in).  */
++
++#define PAGE_SZ 4096
++#if defined(__x86_64) && defined(__LP64__)
++# define TRY_EMPTY_VM_SPACE	0x180000000000ULL
++#elif defined(__x86_64)
++# define TRY_EMPTY_VM_SPACE	0x00006fe00000ULL
++#elif defined(__i386)
++# define TRY_EMPTY_VM_SPACE	0x00006fe00000ULL
++#elif defined(__POWERPC__) && defined(__LP64__)
++# define TRY_EMPTY_VM_SPACE	0x180000000000ULL
++#elif defined(__POWERPC__)
++# define TRY_EMPTY_VM_SPACE	0x00006fe00000ULL
++#elif defined(__aarch64__)
++# undef PAGE_SZ
++# define PAGE_SZ 16384
++# define TRY_EMPTY_VM_SPACE	0x180000000000ULL
++#else
++# error "unknown Darwin target"
++#endif
++
++/* Try to map a known position in the VM.  The current PCH implementation
++   can adjust values at write-time, but not at read-time thus we need to
++   pick up the same position when reading as we got at write-time.  */
+ 
+ void *
+-darwin_gt_pch_get_address (size_t sz, int fd ATTRIBUTE_UNUSED)
++darwin_gt_pch_get_address (size_t sz, int fd)
+ {
+-  if (sz <= sizeof (pch_address_space))
+-    return pch_address_space;
+-  else
+-    return NULL;
++  /* First try with the constraint that we really want this address...  */
++  void *addr = mmap ((void *)TRY_EMPTY_VM_SPACE, sz, PROT_READ | PROT_WRITE,
++		     MAP_PRIVATE | MAP_FIXED, fd, 0);
++
++  if (addr != (void *) MAP_FAILED)
++    munmap (addr, sz);
++
++  /* This ought to be the only alternative to failure, but there are comments
++     that suggest some versions of mmap can be buggy and return a different
++     value.  */
++  if (addr == (void *) TRY_EMPTY_VM_SPACE)
++    return addr;
++
++  /* OK try to find a space without the constraint.  */
++  addr = mmap ((void *) TRY_EMPTY_VM_SPACE, sz, PROT_READ | PROT_WRITE,
++	       MAP_PRIVATE, fd, 0);
++
++  /* We return whatever the kernel gave us.  */
++  if (addr != (void *) MAP_FAILED)
++    {
++      /* Unmap the area before returning.  */
++      munmap (addr, sz);
++      return addr;
++    }
++
++  /* Otherwise, try again but put some arbitrary buffer space first.  */
++  size_t buffer_size = 64 * 1024 * 1024;
++  void *buffer = mmap (0, buffer_size, PROT_NONE,
++		       MAP_PRIVATE | MAP_ANON, -1, 0);
++  addr = mmap ((void *)TRY_EMPTY_VM_SPACE, sz, PROT_READ | PROT_WRITE,
++		MAP_PRIVATE, fd, 0);
++
++  if (buffer != (void *) MAP_FAILED)
++    munmap (buffer, buffer_size);
++
++  /* If we failed this time, that means there is *no* large enough free
++     space.  */
++  if (addr == (void *) MAP_FAILED)
++    {
++      error ("PCH memory not available %m");
++      return NULL;
++    }
++
++  munmap (addr, sz);
++  return addr;
+ }
+ 
+-/* Check ADDR and SZ for validity, and deallocate (using munmap) that part of
+-   pch_address_space beyond SZ.  */
++/* Try to mmap the PCH file at ADDR for SZ bytes at OFF offset in the file.
++   If we succeed return 1, if we cannot mmap the desired address, then we
++   fail with -1.  */
+ 
+ int
+-darwin_gt_pch_use_address (void *addr, size_t sz, int fd, size_t off)
++darwin_gt_pch_use_address (void *&addr, size_t sz, int fd, size_t off)
+ {
+-  const size_t pagesize = getpagesize();
+-  void *mmap_result;
+-  int ret;
+-
+-  gcc_assert ((size_t)pch_address_space % pagesize == 0
+-	      && sizeof (pch_address_space) % pagesize == 0);
+-  
+-  ret = (addr == pch_address_space && sz <= sizeof (pch_address_space));
+-  if (! ret)
+-    sz = 0;
++  void *mapped_addr;
+ 
+-  /* Round the size to a whole page size.  Normally this is a no-op.  */
+-  sz = (sz + pagesize - 1) / pagesize * pagesize;
++  /* We're called with size == 0 if we're not planning to load a PCH
++     file at all.  This allows the hook to free any static space that
++     we might have allocated at link time.  */
++  if (sz == 0)
++    return -1;
++
++  gcc_checking_assert (!(off % PAGE_SZ));
++
++  /* Try to map the file with MAP_PRIVATE and FIXED.  */
++  mapped_addr = mmap (addr, sz, PROT_READ | PROT_WRITE,
++		      MAP_PRIVATE | MAP_FIXED, fd, (off_t) off);
++
++  /* Hopefully, we succeed.  */
++  if (mapped_addr == addr)
++    return 1;
++
++  /* In theory, the only alternative to success for MAP_FIXED should be FAILED
++     however, there are some buggy earlier implementations that could return
++     an address.  */
++  if (mapped_addr != (void *) MAP_FAILED)
++    munmap (mapped_addr, sz);
++
++  /* Try to map the file with MAP_PRIVATE but let the kernel move it.  */
++  mapped_addr = mmap (addr, sz, PROT_READ | PROT_WRITE,
++		      MAP_PRIVATE, fd, (off_t) off);
+ 
+-  if (munmap (pch_address_space + sz, sizeof (pch_address_space) - sz) != 0)
+-    fatal_error ("couldn%'t unmap pch_address_space: %m");
+-
+-  if (ret)
++  /* Hopefully, we succeed.  */
++  if (mapped_addr != (void *) MAP_FAILED)
+     {
+-      mmap_result = mmap (addr, sz,
+-			  PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_FIXED,
+-			  fd, off);
++      addr = mapped_addr;
++      return 1;
++    }
++
++  /* Try to make an anonymous private mmap at the desired location in case
++     the problem is in mapping the file.  */
++  mapped_addr = mmap (addr, sz, PROT_READ | PROT_WRITE,
++		      MAP_PRIVATE | MAP_ANON, -1, (off_t)0);
++
++  /* If this fails, we are out of ideas (and maybe memory).  */
++  if (mapped_addr == (void *) MAP_FAILED)
++    return -1;
+ 
+-      /* The file might not be mmap-able.  */
+-      ret = mmap_result != (void *) MAP_FAILED;
++  addr = mapped_addr;
++
++  if (lseek (fd, off, SEEK_SET) == (off_t) -1)
++    return -1;
++
++  while (sz)
++    {
++      ssize_t nbytes;
+ 
+-      /* Sanity check for broken MAP_FIXED.  */
+-      gcc_assert (!ret || mmap_result == addr);
++      nbytes = read (fd, addr, MIN (sz, (size_t) -1 >> 1));
++      if (nbytes <= 0)
++	return -1;
++      addr = (char *) addr + nbytes;
++      sz -= nbytes;
+     }
+ 
+-  return ret;
++  return 1;
+ }
+diff -Naur a/gcc/config/host-darwin.h b/gcc/config/host-darwin.h
+--- a/gcc/config/host-darwin.h	2014-01-02 17:23:26.000000000 -0500
++++ b/gcc/config/host-darwin.h	2026-06-24 14:45:15.259865800 -0400
+@@ -1,5 +1,5 @@
+ /* Darwin host-specific hook definitions.
+-   Copyright (C) 2003-2014 Free Software Foundation, Inc.
++   Copyright (C) 2003-2021 Free Software Foundation, Inc.
+ 
+    This file is part of GCC.
+ 
+@@ -18,7 +18,7 @@
+    <http://www.gnu.org/licenses/>.  */
+ 
+ extern void * darwin_gt_pch_get_address (size_t sz, int fd);
+-extern int darwin_gt_pch_use_address (void *addr, size_t sz, int fd, 
++extern int darwin_gt_pch_use_address (void *&addr, size_t sz, int fd, 
+ 				      size_t off);
+ 
+ #undef HOST_HOOKS_GT_PCH_GET_ADDRESS
+diff -Naur a/gcc/config/host-hpux.c b/gcc/config/host-hpux.c
+--- a/gcc/config/host-hpux.c	2014-01-02 17:23:26.000000000 -0500
++++ b/gcc/config/host-hpux.c	2026-06-22 12:09:25.658896400 -0400
+@@ -24,7 +24,7 @@
+ #include "hosthooks-def.h"
+ 
+ static void *hpux_gt_pch_get_address (size_t, int);
+-static int hpux_gt_pch_use_address (void *, size_t, int, size_t);
++static int hpux_gt_pch_use_address (void *&, size_t, int, size_t);
+ 
+ #undef HOST_HOOKS_GT_PCH_GET_ADDRESS
+ #define HOST_HOOKS_GT_PCH_GET_ADDRESS hpux_gt_pch_get_address
+@@ -78,7 +78,7 @@
+    little else we can do given the current PCH implementation.  */
+ 
+ static int
+-hpux_gt_pch_use_address (void *base, size_t size, int fd, size_t offset)
++hpux_gt_pch_use_address (void *&base, size_t size, int fd, size_t offset)
+ {
+   void *addr;
+ 
+diff -Naur a/gcc/config/host-linux.c b/gcc/config/host-linux.c
+--- a/gcc/config/host-linux.c	2014-02-14 09:14:03.000000000 -0500
++++ b/gcc/config/host-linux.c	2026-06-22 12:15:54.419374400 -0400
+@@ -177,7 +177,7 @@
+    little else we can do given the current PCH implementation.  */
+ 
+ static int
+-linux_gt_pch_use_address (void *base, size_t size, int fd, size_t offset)
++linux_gt_pch_use_address (void *&base, size_t size, int fd, size_t offset)
+ {
+   void *addr;
+ 
+@@ -200,24 +200,22 @@
+   addr = mmap (base, size, PROT_READ | PROT_WRITE,
+ 	       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+ 
+-  if (addr != base)
+-    {
+-      if (addr != (void *) MAP_FAILED)
+-        munmap (addr, size);
+-      return -1;
+-    }
++  if (addr == (void *) MAP_FAILED)
++    return -1;
+ 
+   if (lseek (fd, offset, SEEK_SET) == (off_t)-1)
+     return -1;
+ 
++  base = addr;
++
+   while (size)
+     {
+       ssize_t nbytes;
+ 
+-      nbytes = read (fd, base, MIN (size, (size_t)-1 >> 1));
++      nbytes = read (fd, addr, MIN (size, (size_t)-1 >> 1));
+       if (nbytes <= 0)
+         return -1;
+-      base = (char *) base + nbytes;
++      addr = (char *) addr + nbytes;
+       size -= nbytes;
+     }
+ 
+diff -Naur a/gcc/config/host-openbsd.c b/gcc/config/host-openbsd.c
+--- a/gcc/config/host-openbsd.c	2014-01-02 17:23:26.000000000 -0500
++++ b/gcc/config/host-openbsd.c	2026-06-22 12:11:05.544233700 -0400
+@@ -66,7 +66,7 @@
+    mapping the data at BASE, -1 if we couldn't.  */
+ 
+ static int
+-openbsd_gt_pch_use_address (void *base, size_t size, int fd, size_t offset)
++openbsd_gt_pch_use_address (void *&base, size_t size, int fd, size_t offset)
+ {
+   void *addr;
+ 
+diff -Naur a/gcc/config/host-solaris.c b/gcc/config/host-solaris.c
+--- a/gcc/config/host-solaris.c	2014-01-02 17:23:26.000000000 -0500
++++ b/gcc/config/host-solaris.c	2026-06-22 12:11:05.530855100 -0400
+@@ -105,7 +105,7 @@
+    mapping the data at BASE, -1 if we couldn't.  */
+ 
+ static int
+-sol_gt_pch_use_address (void *base, size_t size, int fd, size_t offset)
++sol_gt_pch_use_address (void *&base, size_t size, int fd, size_t offset)
+ {
+   void *addr;
+ 
+diff -Naur a/gcc/config/i386/host-mingw32.c b/gcc/config/i386/host-mingw32.c
+--- a/gcc/config/i386/host-mingw32.c	2014-01-02 17:23:26.000000000 -0500
++++ b/gcc/config/i386/host-mingw32.c	2026-06-22 12:19:59.114476500 -0400
+@@ -30,7 +30,7 @@
+ #include <stdlib.h>
+ 
+ static void * mingw32_gt_pch_get_address (size_t, int);
+-static int mingw32_gt_pch_use_address (void *, size_t, int, size_t);
++static int mingw32_gt_pch_use_address (void *&, size_t, int, size_t);
+ static size_t mingw32_gt_pch_alloc_granularity (void);
+ 
+ #undef HOST_HOOKS_GT_PCH_GET_ADDRESS
+@@ -116,7 +116,7 @@
+    if the memory is allocated but the data not loaded, return 1 if done.  */
+ 
+ static int
+-mingw32_gt_pch_use_address (void *addr, size_t size, int fd,
++mingw32_gt_pch_use_address (void *&addr, size_t size, int fd,
+ 			    size_t offset)
+ {
+   void * mmap_addr;
+diff -Naur a/gcc/config/pa/pa.c b/gcc/config/pa/pa.c
+--- a/gcc/config/pa/pa.c	2016-01-11 20:41:59.000000000 -0500
++++ b/gcc/config/pa/pa.c	2026-06-29 10:57:49.844374900 -0400
+@@ -9714,7 +9714,7 @@
+    to the default text subspace.  */
+ 
+ static void
+-som_output_text_section_asm_op (const void *data ATTRIBUTE_UNUSED)
++som_output_text_section_asm_op (const char *data ATTRIBUTE_UNUSED)
+ {
+   gcc_assert (TARGET_SOM);
+   if (TARGET_GAS)
+@@ -9758,7 +9758,7 @@
+    sections.  This function is only used with SOM.  */
+ 
+ static void
+-som_output_comdat_data_section_asm_op (const void *data)
++som_output_comdat_data_section_asm_op (const char *data)
+ {
+   in_section = NULL;
+   output_section_asm_op (data);
+diff -Naur a/gcc/config/rs6000/rs6000.c b/gcc/config/rs6000/rs6000.c
+--- a/gcc/config/rs6000/rs6000.c	2016-02-04 08:59:27.000000000 -0500
++++ b/gcc/config/rs6000/rs6000.c	2026-06-29 11:08:41.682843800 -0400
+@@ -28647,7 +28647,7 @@
+ /* A get_unnamed_section callback, used for switching to toc_section.  */
+ 
+ static void
+-rs6000_elf_output_toc_section_asm_op (const void *data ATTRIBUTE_UNUSED)
++rs6000_elf_output_toc_section_asm_op (const char *data ATTRIBUTE_UNUSED)
+ {
+   if ((DEFAULT_ABI == ABI_AIX || DEFAULT_ABI == ABI_ELFv2)
+       && TARGET_MINIMAL_TOC
+@@ -29421,35 +29421,39 @@
+    points to the section string variable.  */
+ 
+ static void
+-rs6000_xcoff_output_readonly_section_asm_op (const void *directive)
++rs6000_xcoff_output_readonly_section_asm_op (const char *directive)
+ {
+   fprintf (asm_out_file, "\t.csect %s[RO],%s\n",
+-	   *(const char *const *) directive,
+-	   XCOFF_CSECT_DEFAULT_ALIGNMENT_STR);
++	   directive
++	   ? xcoff_private_rodata_section_name
++	   : xcoff_read_only_section_name,
++ 	   XCOFF_CSECT_DEFAULT_ALIGNMENT_STR);
+ }
+ 
+ /* Likewise for read-write sections.  */
+ 
+ static void
+-rs6000_xcoff_output_readwrite_section_asm_op (const void *directive)
++rs6000_xcoff_output_readwrite_section_asm_op (const char *directive)
+ {
+   fprintf (asm_out_file, "\t.csect %s[RW],%s\n",
+-	   *(const char *const *) directive,
++	   xcoff_private_data_section_name,
+ 	   XCOFF_CSECT_DEFAULT_ALIGNMENT_STR);
+ }
+ 
+ static void
+-rs6000_xcoff_output_tls_section_asm_op (const void *directive)
++rs6000_xcoff_output_tls_section_asm_op (const char *directive)
+ {
+   fprintf (asm_out_file, "\t.csect %s[TL],%s\n",
+-	   *(const char *const *) directive,
++	   directive
++	   ? xcoff_private_data_section_name
++	   : xcoff_tls_data_section_name,
+ 	   XCOFF_CSECT_DEFAULT_ALIGNMENT_STR);
+ }
+ 
+ /* A get_unnamed_section callback, used for switching to toc_section.  */
+ 
+ static void
+-rs6000_xcoff_output_toc_section_asm_op (const void *data ATTRIBUTE_UNUSED)
++rs6000_xcoff_output_toc_section_asm_op (const char *data ATTRIBUTE_UNUSED)
+ {
+   if (TARGET_MINIMAL_TOC)
+     {
+@@ -29476,27 +29480,27 @@
+ {
+   read_only_data_section
+     = get_unnamed_section (0, rs6000_xcoff_output_readonly_section_asm_op,
+-			   &xcoff_read_only_section_name);
++			   NULL);
+ 
+   private_data_section
+     = get_unnamed_section (SECTION_WRITE,
+ 			   rs6000_xcoff_output_readwrite_section_asm_op,
+-			   &xcoff_private_data_section_name);
++			   NULL);
+ 
+   tls_data_section
+     = get_unnamed_section (SECTION_TLS,
+ 			   rs6000_xcoff_output_tls_section_asm_op,
+-			   &xcoff_tls_data_section_name);
++			   NULL);
+ 
+   tls_private_data_section
+     = get_unnamed_section (SECTION_TLS,
+ 			   rs6000_xcoff_output_tls_section_asm_op,
+-			   &xcoff_private_data_section_name);
++			   "");
+ 
+   read_only_private_data_section
+     = get_unnamed_section (0, rs6000_xcoff_output_readonly_section_asm_op,
+-			   &xcoff_private_data_section_name);
+-
++			   "");
++ 
+   toc_section
+     = get_unnamed_section (0, rs6000_xcoff_output_toc_section_asm_op, NULL);
+ 
+diff -Naur a/gcc/coretypes.h b/gcc/coretypes.h
+--- a/gcc/coretypes.h	2014-01-02 17:23:26.000000000 -0500
++++ b/gcc/coretypes.h	2026-06-21 22:27:29.603603500 -0400
+@@ -214,8 +214,10 @@
+ #define MEMMODEL_MASK ((1<<16)-1)
+ 
+ /* Support for user-provided GGC and PCH markers.  The first parameter
+-   is a pointer to a pointer, the second a cookie.  */
+-typedef void (*gt_pointer_operator) (void *, void *);
++   is a pointer to a pointer, the second either NULL if the pointer to
++   pointer points into a GC object or the actual pointer address if
++   the first argument points to a temporary and the third a cookie.  */
++typedef void (*gt_pointer_operator) (void *, void *, void *);
+ 
+ #if !defined (HAVE_UCHAR)
+ typedef unsigned char uchar;
+diff -Naur a/gcc/cp/class.c b/gcc/cp/class.c
+--- a/gcc/cp/class.c	2014-08-25 09:13:41.000000000 -0400
++++ b/gcc/cp/class.c	2026-06-22 14:08:24.833959300 -0400
+@@ -2057,8 +2057,8 @@
+   {
+     tree d1 = DECL_NAME (OVL_CURRENT (*m1));
+     tree d2 = DECL_NAME (OVL_CURRENT (*m2));
+-    resort_data.new_value (&d1, resort_data.cookie);
+-    resort_data.new_value (&d2, resort_data.cookie);
++    resort_data.new_value (&d1, &d1, resort_data.cookie);
++    resort_data.new_value (&d2, &d2, resort_data.cookie);
+     if (d1 < d2)
+       return -1;
+   }
+diff -Naur a/gcc/gengtype-state.c b/gcc/gengtype-state.c
+--- a/gcc/gengtype-state.c	2014-01-02 17:23:26.000000000 -0500
++++ b/gcc/gengtype-state.c	2026-06-26 12:17:42.602863000 -0400
+@@ -60,6 +60,7 @@
+     case TYPE_STRING:
+     case TYPE_POINTER:
+     case TYPE_ARRAY:
++    case TYPE_CALLBACK:
+       return NULL;
+     default:
+       gcc_unreachable ();
+@@ -174,6 +175,7 @@
+   void write_state_version (const char *version);
+   void write_state_scalar_type (type_p current);
+   void write_state_string_type (type_p current);
++  void write_state_callback_type (type_p current);
+   void write_state_undefined_type (type_p current);
+   void write_state_struct_union_type (type_p current, const char *kindstr);
+   void write_state_struct_type (type_p current);
+@@ -904,6 +906,20 @@
+     fatal ("Unexpected type in write_state_string_type");
+ }
+ 
++/* Write the callback type.  There is only one such thing! */
++void
++state_writer::write_state_callback_type (type_p current)
++{
++  if (current == &callback_type)
++    {
++      write_any_indent (0);
++      fprintf (state_file, "callback ");
++      write_state_common_type_content (current);
++    }
++  else
++    fatal ("Unexpected type in write_state_callback_type");
++}
++
+ /* Write an undefined type.  */
+ void
+ state_writer::write_state_undefined_type (type_p current)
+@@ -1175,6 +1191,9 @@
+ 	case TYPE_STRING:
+ 	  write_state_string_type (current);
+ 	  break;
++	case TYPE_CALLBACK:
++	  write_state_callback_type (current);
++	  break;
+ 	}
+     }
+ 
+@@ -1530,6 +1549,14 @@
+   read_state_common_type_content (*type);
+ }
+ 
++/* Read the callback_type.  */
++static void
++read_state_callback_type (type_p *type)
++{
++  *type = &callback_type;
++  read_state_common_type_content (*type);
++}
++
+ 
+ /* Read a lang_bitmap representing a set of GCC front-end languages.  */
+ static void
+@@ -1915,6 +1942,11 @@
+ 	      next_state_tokens (1);
+ 	      read_state_string_type (current);
+ 	    }
++	  else if (state_token_is_name (t0, "callback"))
++	    {
++	      next_state_tokens (1);
++	      read_state_callback_type (current);
++	    }
+ 	  else if (state_token_is_name (t0, "undefined"))
+ 	    {
+ 	      *current = XCNEW (struct type);
+diff -Naur a/gcc/gengtype.c b/gcc/gengtype.c
+--- a/gcc/gengtype.c	2026-06-24 13:42:59.686530300 -0400
++++ b/gcc/gengtype.c	2026-07-08 21:31:57.293924900 -0400
+@@ -180,6 +180,7 @@
+   int nb_struct = 0, nb_union = 0, nb_array = 0, nb_pointer = 0;
+   int nb_lang_struct = 0, nb_param_struct = 0;
+   int nb_user_struct = 0, nb_undefined = 0;
++  int nb_callback = 0;
+   type_p p = NULL;
+   for (p = t; p; p = p->next)
+     {
+@@ -209,6 +210,9 @@
+ 	case TYPE_ARRAY:
+ 	  nb_array++;
+ 	  break;
++	case TYPE_CALLBACK:
++	  nb_callback++;
++	  break;
+ 	case TYPE_LANG_STRUCT:
+ 	  nb_lang_struct++;
+ 	  break;
+@@ -227,6 +231,8 @@
+     fprintf (stderr, "@@%%@@ %d structs, %d unions\n", nb_struct, nb_union);
+   if (nb_pointer > 0 || nb_array > 0)
+     fprintf (stderr, "@@%%@@ %d pointers, %d arrays\n", nb_pointer, nb_array);
++  if (nb_callback > 0)
++    fprintf (stderr, "@@%%@@ %d callbacks\n", nb_callback);
+   if (nb_lang_struct > 0 || nb_param_struct > 0)
+     fprintf (stderr, "@@%%@@ %d lang_structs, %d param_structs\n",
+ 	     nb_lang_struct, nb_param_struct);
+@@ -507,6 +513,10 @@
+   TYPE_SCALAR, 0, 0, 0, GC_USED, {0}
+ };
+ 
++struct type callback_type = {
++  TYPE_CALLBACK, 0, 0, 0, GC_USED, {0}
++};
++
+ /* Lists of various things.  */
+ 
+ pair_p typedefs = NULL;
+@@ -1486,7 +1496,7 @@
+ 
+ static void
+ process_gc_options (options_p opt, enum gc_used_enum level, int *maybe_undef,
+-		    int *pass_param, int *length, int *skip,
++		    int *pass_param, int *length, int *skip, int *callback,
+ 		    type_p *nested_ptr)
+ {
+   options_p o;
+@@ -1503,6 +1513,8 @@
+       *length = 1;
+     else if (strcmp (o->name, "skip") == 0)
+       *skip = 1;
++    else if (strcmp (o->name, "callback") == 0)
++      *callback = 1;
+     else if (strcmp (o->name, "nested_ptr") == 0
+ 	     && o->kind == OPTION_NESTED)
+       *nested_ptr = ((const struct nested_ptr_data *) o->info.nested)->type;
+@@ -1551,7 +1563,7 @@
+ 	type_p dummy2;
+ 	bool allow_undefined_field_types = (t->kind == TYPE_USER_STRUCT);
+ 
+-	process_gc_options (t->u.s.opt, level, &dummy, &dummy, &dummy, &dummy,
++	process_gc_options (t->u.s.opt, level, &dummy, &dummy, &dummy, &dummy, &dummy,
+ 			    &dummy2);
+ 
+ 	if (t->u.s.base_class)
+@@ -1570,9 +1582,10 @@
+ 	    int pass_param = 0;
+ 	    int length = 0;
+ 	    int skip = 0;
++	    int callback = 0;
+ 	    type_p nested_ptr = NULL;
+ 	    process_gc_options (f->opt, level, &maybe_undef, &pass_param,
+-				&length, &skip, &nested_ptr);
++				&length, &skip, &callback, &nested_ptr);
+ 
+ 	    if (nested_ptr && f->type->kind == TYPE_POINTER)
+ 	      set_gc_used_type (nested_ptr, GC_POINTED_TO,
+@@ -1586,6 +1599,8 @@
+ 				GC_POINTED_TO, NULL);
+ 	    else if (skip)
+ 	      ;			/* target type is not used through this field */
++	    else if (callback)
++	      f->type = &callback_type;
+ 	    else
+ 	      set_gc_used_type (f->type, GC_USED, pass_param ? param : NULL,
+ 				allow_undefined_field_types);
+@@ -2524,6 +2539,7 @@
+   int loopcounter;
+   bool in_ptr_field;
+   bool have_this_obj;
++  bool in_nested_ptr;
+ };
+ 
+ 
+@@ -2566,6 +2582,7 @@
+       {
+       case TYPE_NONE:
+       case TYPE_UNDEFINED:
++      case TYPE_CALLBACK:
+ 	gcc_unreachable ();
+ 	break;
+       case TYPE_POINTER:
+@@ -2788,6 +2805,8 @@
+       ;
+     else if (strcmp (oo->name, "variable_size") == 0)
+       ;
++    else if (strcmp (oo->name, "callback") == 0)
++      ;
+     else
+       error_at_line (d->line, "unknown option `%s'\n", oo->name);
+ 
+@@ -2846,6 +2865,7 @@
+     {
+     case TYPE_SCALAR:
+     case TYPE_STRING:
++    case TYPE_CALLBACK:
+       d->process_field (t, d);
+       break;
+ 
+@@ -2891,6 +2911,7 @@
+ 	    if (nested_ptr_d)
+ 	      {
+ 		const char *oldprevval2 = d->prev_val[2];
++		bool old_in_nested_ptr = d->in_nested_ptr;
+ 
+ 		if (!union_or_struct_p (nested_ptr_d->type))
+ 		  {
+@@ -2900,8 +2921,9 @@
+ 		    return;
+ 		  }
+ 
+-		d->prev_val[2] = d->val;
+-		oprintf (d->of, "%*s{\n", d->indent, "");
++ 		d->prev_val[2] = d->val;
++		d->in_nested_ptr = true;
++ 		oprintf (d->of, "%*s{\n", d->indent, "");
+ 		d->indent += 2;
+ 		d->val = xasprintf ("x%d", d->counter++);
+ 		oprintf (d->of, "%*s%s %s * %s%s =\n", d->indent, "",
+@@ -2927,9 +2949,10 @@
+ 		  }
+ 
+ 		d->indent -= 2;
+-		oprintf (d->of, "%*s}\n", d->indent, "");
+-		d->val = d->prev_val[2];
+-		d->prev_val[2] = oldprevval2;
++ 		oprintf (d->of, "%*s}\n", d->indent, "");
++ 		d->val = d->prev_val[2];
++ 		d->prev_val[2] = oldprevval2;
++		d->in_nested_ptr = old_in_nested_ptr;
+ 	      }
+ 	    else
+ 	      d->process_field (t->u.p, d);
+@@ -3404,6 +3427,7 @@
+       break;
+ 
+     case TYPE_SCALAR:
++    case TYPE_CALLBACK:
+       break;
+ 
+     case TYPE_ARRAY:
+@@ -4008,18 +4032,24 @@
+     case TYPE_LANG_STRUCT:
+     case TYPE_PARAM_STRUCT:
+     case TYPE_STRING:
+-      oprintf (d->of, "%*s  op (&(%s), cookie);\n", d->indent, "", d->val);
+-      break;
++      if (d->in_nested_ptr)
++	oprintf (d->of, "%*s  op (&(%s), &(%s), cookie);\n",
++		 d->indent, "", d->val, d->prev_val[2]);
++      oprintf (d->of, "%*s  op (&(%s), NULL, cookie);\n",
++	       d->indent, "", d->val);
++       break;
+ 
+     case TYPE_USER_STRUCT:
+       if (d->in_ptr_field)
+-	oprintf (d->of, "%*s  op (&(%s), cookie);\n", d->indent, "", d->val);
++	oprintf (d->of, "%*s  op (&(%s), NULL, cookie);\n",
++		 d->indent, "", d->val);
+       else
+ 	oprintf (d->of, "%*s  gt_pch_nx (&(%s), op, cookie);\n",
+ 		 d->indent, "", d->val);
+       break;
+ 
+     case TYPE_SCALAR:
++    case TYPE_CALLBACK:
+       break;
+ 
+     case TYPE_ARRAY:
+@@ -4091,14 +4121,20 @@
+     case TYPE_STRING:
+       oprintf (d->of, "%*sif ((void *)(%s) == this_obj)\n", d->indent, "",
+ 	       d->prev_val[3]);
+-      oprintf (d->of, "%*s  op (&(%s), cookie);\n", d->indent, "", d->val);
++      if (d->in_nested_ptr)
++	oprintf (d->of, "%*s  op (&(%s), &(%s), cookie);\n",
++		 d->indent, "", d->val, d->prev_val[2]);
++      else
++	oprintf (d->of, "%*s  op (&(%s), NULL, cookie);\n",
++		 d->indent, "", d->val);
+       break;
+ 
+     case TYPE_USER_STRUCT:
+       oprintf (d->of, "%*sif ((void *)(%s) == this_obj)\n", d->indent, "",
+ 	       d->prev_val[3]);
+       if (d->in_ptr_field)
+-	oprintf (d->of, "%*s  op (&(%s), cookie);\n", d->indent, "", d->val);
++	oprintf (d->of, "%*s  op (&(%s), NULL, cookie);\n",
++		 d->indent, "", d->val);
+       else
+ 	oprintf (d->of, "%*s  gt_pch_nx (&(%s), op, cookie);\n",
+ 		 d->indent, "", d->val);
+@@ -4107,6 +4143,13 @@
+     case TYPE_SCALAR:
+       break;
+ 
++    case TYPE_CALLBACK:
++      oprintf (d->of, "%*sif ((void *)(%s) == this_obj)\n", d->indent, "",
++	       d->prev_val[3]);
++      oprintf (d->of, "%*s  gt_pch_note_callback (&(%s), this_obj);\n",
++	       d->indent, "", d->val);
++      break;
++
+     case TYPE_ARRAY:
+     case TYPE_NONE:
+     case TYPE_UNDEFINED:
+@@ -4623,6 +4666,7 @@
+     case TYPE_UNION:
+     case TYPE_LANG_STRUCT:
+     case TYPE_PARAM_STRUCT:
++    case TYPE_CALLBACK:
+       error_at_line (line, "global `%s' is unimplemented type", name);
+     }
+ }
+@@ -5102,6 +5146,7 @@
+       }
+     case TYPE_NONE:
+     case TYPE_UNDEFINED:
++    case TYPE_CALLBACK:
+     case TYPE_ARRAY:
+       gcc_unreachable ();
+     }
+@@ -5175,6 +5220,9 @@
+     case TYPE_ARRAY:
+       printf ("TYPE_ARRAY");
+       break;
++    case TYPE_CALLBACK:
++      printf ("TYPE_CALLBACK");
++      break;
+     case TYPE_LANG_STRUCT:
+       printf ("TYPE_LANG_STRUCT");
+       break;
+@@ -5356,6 +5404,7 @@
+ 	      t->u.scalar_is_char ? "true" : "false");
+       break;
+     case TYPE_STRING:
++    case TYPE_CALLBACK:
+       break;
+     case TYPE_STRUCT:
+     case TYPE_UNION:
+diff -Naur a/gcc/gengtype.h b/gcc/gengtype.h
+--- a/gcc/gengtype.h	2014-01-02 17:23:26.000000000 -0500
++++ b/gcc/gengtype.h	2026-06-29 16:58:04.570808100 -0400
+@@ -142,6 +142,9 @@
+   TYPE_UNION,           /* Type for GTY-ed discriminated unions.  */
+   TYPE_POINTER,         /* Pointer type to GTY-ed type.  */
+   TYPE_ARRAY,           /* Array of GTY-ed types.  */
++  TYPE_CALLBACK,	/* A function pointer that needs relocation if
++			   the executable has been loaded at a different
++			   address.  */
+   TYPE_LANG_STRUCT,     /* GCC front-end language specific structs.
+                            Various languages may have homonymous but
+                            different structs.  */
+@@ -332,6 +335,9 @@
+ extern struct type scalar_nonchar;
+ extern struct type scalar_char;
+ 
++/* The one and only TYPE_CALLBACK.  */
++extern struct type callback_type;
++
+ /* Test if a type is a union, either a plain one or a language
+    specific one.  */
+ #define UNION_P(x)					\
+diff -Naur a/gcc/ggc-common.c b/gcc/ggc-common.c
+--- a/gcc/ggc-common.c	2014-01-02 17:23:26.000000000 -0500
++++ b/gcc/ggc-common.c	2026-07-08 22:02:43.972024700 -0400
+@@ -47,7 +47,7 @@
+ 
+ static int ggc_htab_delete (void **, void *);
+ static int compare_ptr_data (const void *, const void *);
+-static void relocate_ptrs (void *, void *);
++static void relocate_ptrs (void *, void *, void *);
+ static void write_pch_globals (const struct ggc_root_tab * const *tab,
+ 			       struct traversal_state *state);
+ 
+@@ -320,6 +320,8 @@
+ }
+ 
+ static hash_table <saving_hasher> saving_htab;
++static vec<void *> callback_vec;
++static vec<void *> reloc_addrs_vec;
+ 
+ /* Register an object in the hash table.  */
+ 
+@@ -352,6 +354,24 @@
+   return 1;
+ }
+ 
++/* Register address of a callback pointer.  */
++
++void
++gt_pch_note_callback (void *obj, void *base)
++{
++  void *ptr;
++  memcpy (&ptr, obj, sizeof (void *));
++  if (ptr != NULL)
++    {
++      struct ptr_data *data
++	= (struct ptr_data *)
++	  saving_htab.find_with_hash (base, POINTER_HASH (base));
++      gcc_assert (data);
++      callback_vec.safe_push ((char *) data->new_addr
++			      + ((char *) obj - (char *) base));
++    }
++}
++
+ /* Register an object in the hash table.  */
+ 
+ void
+@@ -419,10 +439,10 @@
+ /* Callbacks for note_ptr_fn.  */
+ 
+ static void
+-relocate_ptrs (void *ptr_p, void *state_p)
++relocate_ptrs (void *ptr_p, void *real_ptr_p, void *state_p)
+ {
+   void **ptr = (void **)ptr_p;
+-  struct traversal_state *state ATTRIBUTE_UNUSED
++  struct traversal_state *state
+     = (struct traversal_state *)state_p;
+   struct ptr_data *result;
+ 
+@@ -433,6 +453,19 @@
+     saving_htab.find_with_hash (*ptr, POINTER_HASH (*ptr));
+   gcc_assert (result);
+   *ptr = result->new_addr;
++  if (ptr_p == real_ptr_p)
++    return;
++  if (real_ptr_p == NULL)
++    real_ptr_p = ptr_p;
++  gcc_assert (real_ptr_p >= state->ptrs[state->ptrs_i]->obj
++	      && ((char *) real_ptr_p + sizeof (void *)
++		  <= ((char *) state->ptrs[state->ptrs_i]->obj
++		      + state->ptrs[state->ptrs_i]->size)));
++  void *addr
++    = (void *) ((char *) state->ptrs[state->ptrs_i]->new_addr
++		+ ((char *) real_ptr_p
++		   - (char *) state->ptrs[state->ptrs_i]->obj));
++  reloc_addrs_vec.safe_push (addr);
+ }
+ 
+ /* Write out, after relocation, the pointers in TAB.  */
+@@ -467,6 +500,61 @@
+ 	}
+ }
+ 
++/* Callback for qsort.  */
++
++static int
++compare_ptr (const void *p1_p, const void *p2_p)
++{
++  void *p1 = *(void *const *)p1_p;
++  void *p2 = *(void *const *)p2_p;
++  return (((uintptr_t)p1 > (uintptr_t)p2)
++	  - ((uintptr_t)p1 < (uintptr_t)p2));
++}
++
++/* Decode one uleb128 from P, return first byte after it, store
++   decoded value into *VAL.  */
++
++static unsigned char *
++read_uleb128 (unsigned char *p, size_t *val)
++{
++  unsigned int shift = 0;
++  unsigned char byte;
++  size_t result;
++
++  result = 0;
++  do
++    {
++      byte = *p++;
++      result |= ((size_t) byte & 0x7f) << shift;
++      shift += 7;
++    }
++  while (byte & 0x80);
++
++  *val = result;
++  return p;
++}
++
++/* Store VAL as uleb128 at P, return length in bytes.  */
++
++static size_t
++write_uleb128 (unsigned char *p, size_t val)
++{
++  size_t len = 0;
++  do
++    {
++      unsigned char byte = (val & 0x7f);
++      val >>= 7;
++      if (val != 0)
++	/* More bytes to follow.  */
++	byte |= 0x80;
++
++      *p++ = byte;
++      ++len;
++    }
++  while (val != 0);
++  return len;
++}
++
+ /* Hold the information we need to mmap the file back in.  */
+ 
+ struct mmap_info
+@@ -520,6 +608,10 @@
+      HOST_HOOKS_GT_PCH_USE_ADDRESS.)  */
+   mmi.preferred_base = host_hooks.gt_pch_get_address (mmi.size, fileno (f));
+ 
++  /* If the host cannot supply any suitable address for this, we are stuck.  */
++  if (mmi.preferred_base == NULL)
++    fatal_error ("cannot write PCH file: required memory segment unavailable");
++
+   ggc_pch_this_base (state.d, mmi.preferred_base);
+ 
+   state.ptrs = XNEWVEC (struct ptr_data *, state.count);
+@@ -569,6 +661,7 @@
+   /* Actually write out the objects.  */
+   for (i = 0; i < state.count; i++)
+     {
++      state.ptrs_i = i;
+       if (this_object_size < state.ptrs[i]->size)
+ 	{
+ 	  this_object_size = state.ptrs[i]->size;
+@@ -649,12 +742,64 @@
+   vbits.release ();
+ #endif
+ 
++  reloc_addrs_vec.qsort (compare_ptr);
++
++  size_t reloc_addrs_size = 0;
++  void *last_addr = NULL;
++  unsigned char uleb128_buf[sizeof (size_t) * 2];
++//for (void *addr : reloc_addrs_vec)
++  for (void **pvec = reloc_addrs_vec.address(),
++            **pend = reloc_addrs_vec.address() + reloc_addrs_vec.length(); pvec != pend; ++pvec)
++    {
++      void *addr = *pvec;
++      gcc_assert ((uintptr_t) addr >= (uintptr_t) mmi.preferred_base
++		  && ((uintptr_t) addr + sizeof (void *)
++		      < (uintptr_t) mmi.preferred_base + mmi.size));
++      if (addr == last_addr)
++	continue;
++      if (last_addr == NULL)
++	last_addr = mmi.preferred_base;
++      size_t diff = (uintptr_t) addr - (uintptr_t) last_addr;
++      reloc_addrs_size += write_uleb128 (uleb128_buf, diff);
++      last_addr = addr;
++    }
++  if (fwrite (&reloc_addrs_size, sizeof (reloc_addrs_size), 1, f) != 1)
++    fatal_error ("cannot write PCH file: %m");
++  last_addr = NULL;
++//for (void *addr : reloc_addrs_vec)
++  for (void **pvec = reloc_addrs_vec.address(),
++            **pend = reloc_addrs_vec.address() + reloc_addrs_vec.length(); pvec != pend; ++pvec)
++    {
++      void *addr = *pvec;
++      if (addr == last_addr)
++	continue;
++      if (last_addr == NULL)
++	last_addr = mmi.preferred_base;
++      size_t diff = (uintptr_t) addr - (uintptr_t) last_addr;
++      reloc_addrs_size = write_uleb128 (uleb128_buf, diff);
++      if (fwrite (uleb128_buf, 1, reloc_addrs_size, f) != reloc_addrs_size)
++	fatal_error ("cannot write PCH file: %m");
++      last_addr = addr;
++    }
++
+   ggc_pch_finish (state.d, state.f);
++
+   gt_pch_fixup_stringpool ();
+ 
++  unsigned num_callbacks = callback_vec.length ();
++  void (*pch_save) (FILE *) = &gt_pch_save;
++  if (fwrite (&pch_save, sizeof (pch_save), 1, f) != 1
++      || fwrite (&num_callbacks, sizeof (num_callbacks), 1, f) != 1
++      || (num_callbacks
++	  && fwrite (callback_vec.address (), sizeof (void *), num_callbacks,
++		     f) != num_callbacks))
++    fatal_error ("cannot write PCH file: %m");
++
+   XDELETE (state.ptrs);
+   XDELETE (this_object);
+   saving_htab.dispose ();
++  callback_vec.release ();
++  reloc_addrs_vec.release ();
+ }
+ 
+ /* Read the state of the compiler back in from F.  */
+@@ -668,6 +813,13 @@
+   struct mmap_info mmi;
+   int result;
+ 
++  /* We are about to reload the line maps along with the rest of the PCH
++     data, which means that the (loaded) ones cannot be guaranteed to be
++     in any valid state for reporting diagnostics that happen during the
++     load.  Save the current table (and use it during the loading process
++     below).  */
++  class line_maps *save_line_table = line_table;
++
+   /* Delete any deletable objects.  This makes ggc_pch_read much
+      faster, as it can be sure that no GCable objects remain other
+      than the ones just read in.  */
+@@ -682,27 +834,48 @@
+ 	fatal_error ("can%'t read PCH file: %m");
+ 
+   /* Read in all the global pointers, in 6 easy loops.  */
++  bool error_reading_pointers = false;
+   for (rt = gt_ggc_rtab; *rt; rt++)
+     for (rti = *rt; rti->base != NULL; rti++)
+       for (i = 0; i < rti->nelt; i++)
+ 	if (fread ((char *)rti->base + rti->stride * i,
+ 		   sizeof (void *), 1, f) != 1)
+-	  fatal_error ("can%'t read PCH file: %m");
++	  error_reading_pointers = true;
+ 
+   for (rt = gt_pch_cache_rtab; *rt; rt++)
+     for (rti = *rt; rti->base != NULL; rti++)
+       for (i = 0; i < rti->nelt; i++)
+ 	if (fread ((char *)rti->base + rti->stride * i,
+ 		   sizeof (void *), 1, f) != 1)
+-	  fatal_error ("can%'t read PCH file: %m");
++	  error_reading_pointers = true;
++
++  /* Stash the newly read-in line table pointer - it does not point to
++     anything meaningful yet, so swap the old one back in.  */
++  class line_maps *new_line_table = line_table;
++  line_table = save_line_table;
++  if (error_reading_pointers)
++    fatal_error ("cannot read PCH file: %m");
+ 
+   if (fread (&mmi, sizeof (mmi), 1, f) != 1)
+     fatal_error ("can%'t read PCH file: %m");
+ 
++  void *orig_preferred_base = mmi.preferred_base;
+   result = host_hooks.gt_pch_use_address (mmi.preferred_base, mmi.size,
+ 					  fileno (f), mmi.offset);
++
++  /* We could not mmap or otherwise allocate the required memory at the
++     address needed.  */
+   if (result < 0)
+-    fatal_error ("had to relocate PCH");
++    {
++      fatal_error ("PCH allocation failure");
++      /* There is no point in continuing from here, we will only end up
++	 with a crashed (most likely hanging) compiler.  */
++      exit (-1);
++    }
++
++  /* (0) We allocated memory, but did not mmap the file, so we need to read
++     the data in manually.  (>0) Otherwise the mmap succeed for the address
++     we wanted.  */
+   if (result == 0)
+     {
+       if (fseek (f, mmi.offset, SEEK_SET) != 0
+@@ -712,9 +885,108 @@
+   else if (fseek (f, mmi.offset + mmi.size, SEEK_SET) != 0)
+     fatal_error ("can%'t read PCH file: %m");
+ 
++  size_t reloc_addrs_size;
++  if (fread (&reloc_addrs_size, sizeof (reloc_addrs_size), 1, f) != 1)
++    fatal_error ("cannot read PCH file: %m");
++
++  if (orig_preferred_base != mmi.preferred_base)
++    {
++      uintptr_t bias
++	= (uintptr_t) mmi.preferred_base - (uintptr_t) orig_preferred_base;
++
++      /* Adjust all the global pointers by bias.  */
++      line_table = new_line_table;
++      for (rt = gt_ggc_rtab; *rt; rt++)
++	for (rti = *rt; rti->base != NULL; rti++)
++      for (i = 0; i < rti->nelt; i++)
++	{
++	  char *addr = (char *)rti->base + rti->stride * i;
++	  char *p;
++	  memcpy (&p, addr, sizeof (void *));
++	  if ((uintptr_t) p >= (uintptr_t) orig_preferred_base
++	      && (uintptr_t) p < (uintptr_t) orig_preferred_base + mmi.size)
++	    {
++	      p = (char *) ((uintptr_t) p + bias);
++	      memcpy (addr, &p, sizeof (void *));
++	    }
++	}
++      new_line_table = line_table;
++      line_table = save_line_table;
++
++      /* And adjust all the pointers in the image by bias too.  */
++      char *addr = (char *) mmi.preferred_base;
++      unsigned char uleb128_buf[4096], *uleb128_ptr = uleb128_buf;
++      while (reloc_addrs_size != 0)
++	{
++	  size_t this_size
++	    = MIN (reloc_addrs_size,
++		   (size_t) (4096 - (uleb128_ptr - uleb128_buf)));
++	  if (fread (uleb128_ptr, 1, this_size, f) != this_size)
++	    fatal_error ("cannot read PCH file: %m");
++	  unsigned char *uleb128_end = uleb128_ptr + this_size;
++	  if (this_size != reloc_addrs_size)
++	    uleb128_end -= 2 * sizeof (size_t);
++	  uleb128_ptr = uleb128_buf;
++	  while (uleb128_ptr < uleb128_end)
++	    {
++	      size_t diff;
++	      uleb128_ptr = read_uleb128 (uleb128_ptr, &diff);
++	      addr = (char *) ((uintptr_t) addr + diff);
++
++	      char *p;
++	      memcpy (&p, addr, sizeof (void *));
++	      gcc_assert ((uintptr_t) p >= (uintptr_t) orig_preferred_base
++			  && ((uintptr_t) p
++			      < (uintptr_t) orig_preferred_base + mmi.size));
++	      p = (char *) ((uintptr_t) p + bias);
++	      memcpy (addr, &p, sizeof (void *));
++	    }
++	  reloc_addrs_size -= this_size;
++	  if (reloc_addrs_size == 0)
++	    break;
++	  this_size = uleb128_end + 2 * sizeof (size_t) - uleb128_ptr;
++	  memcpy (uleb128_buf, uleb128_ptr, this_size);
++	  uleb128_ptr = uleb128_buf + this_size;
++	}
++    }
++  else if (fseek (f, (mmi.offset + mmi.size + sizeof (reloc_addrs_size)
++		      + reloc_addrs_size), SEEK_SET) != 0)
++    fatal_error ("cannot read PCH file: %m");
++
+   ggc_pch_read (f, mmi.preferred_base);
+ 
++  void (*pch_save) (FILE *);
++  unsigned num_callbacks;
++  if (fread (&pch_save, sizeof (pch_save), 1, f) != 1
++      || fread (&num_callbacks, sizeof (num_callbacks), 1, f) != 1)
++    fatal_error ("cannot read PCH file: %m");
++  if (pch_save != &gt_pch_save)
++    {
++      uintptr_t binbias = (uintptr_t) &gt_pch_save - (uintptr_t) pch_save;
++      void **ptrs = XNEWVEC (void *, num_callbacks);
++      unsigned i;
++      uintptr_t bias
++	= (uintptr_t) mmi.preferred_base - (uintptr_t) orig_preferred_base;
++
++      if (fread (ptrs, sizeof (void *), num_callbacks, f) != num_callbacks)
++	fatal_error ("cannot read PCH file: %m");
++      for (i = 0; i < num_callbacks; ++i)
++	{
++	  void *ptr = (void *) ((uintptr_t) ptrs[i] + bias);
++	  memcpy (&pch_save, ptr, sizeof (pch_save));
++	  pch_save = (void (*) (FILE *)) ((uintptr_t) pch_save + binbias);
++	  memcpy (ptr, &pch_save, sizeof (pch_save));
++	}
++      XDELETE (ptrs);
++    }
++  else if (fseek (f, num_callbacks * sizeof (void *), SEEK_CUR) != 0)
++    fatal_error ("cannot read PCH file: %m");
++
+   gt_pch_restore_stringpool ();
++
++  /* Barring corruption of the PCH file, the restored line table should be
++     complete and usable.  */
++  line_table = new_line_table;
+ }
+ 
+ /* Default version of HOST_HOOKS_GT_PCH_GET_ADDRESS when mmap is not present.
+@@ -735,7 +1007,7 @@
+    of the PCH file would be required.  */
+ 
+ int
+-default_gt_pch_use_address (void *base, size_t size, int fd ATTRIBUTE_UNUSED,
++default_gt_pch_use_address (void *&base, size_t size, int fd ATTRIBUTE_UNUSED,
+ 			    size_t offset ATTRIBUTE_UNUSED)
+ {
+   void *addr = xmalloc (size);
+@@ -781,7 +1053,7 @@
+    mapped with something.  */
+ 
+ int
+-mmap_gt_pch_use_address (void *base, size_t size, int fd, size_t offset)
++mmap_gt_pch_use_address (void *&base, size_t size, int fd, size_t offset)
+ {
+   void *addr;
+ 
+diff -Naur a/gcc/ggc.h b/gcc/ggc.h
+--- a/gcc/ggc.h	2014-02-06 21:14:58.000000000 -0500
++++ b/gcc/ggc.h	2026-06-29 14:26:44.855800500 -0400
+@@ -50,6 +50,10 @@
+ /* Used by the gt_pch_n_* routines.  Register an object in the hash table.  */
+ extern int gt_pch_note_object (void *, void *, gt_note_pointers);
+ 
++/* Used by the gt_pch_p_* routines.  Register address of a callback
++   pointer.  */
++extern void gt_pch_note_callback (void *, void *);
++
+ /* Used by the gt_pch_n_* routines.  Register that an object has a reorder
+    function.  */
+ extern void gt_pch_note_reorder (void *, void *, gt_handle_reorder);
+diff -Naur a/gcc/hosthooks-def.h b/gcc/hosthooks-def.h
+--- a/gcc/hosthooks-def.h	2014-01-02 17:23:26.000000000 -0500
++++ b/gcc/hosthooks-def.h	2026-06-22 01:35:51.962393200 -0400
+@@ -35,10 +35,10 @@
+   default_gt_pch_alloc_granularity
+ 
+ extern void* default_gt_pch_get_address (size_t, int);
+-extern int default_gt_pch_use_address (void *, size_t, int, size_t);
++extern int default_gt_pch_use_address (void *&, size_t, int, size_t);
+ extern size_t default_gt_pch_alloc_granularity (void);
+ extern void* mmap_gt_pch_get_address (size_t, int);
+-extern int mmap_gt_pch_use_address (void *, size_t, int, size_t);
++extern int mmap_gt_pch_use_address (void *&, size_t, int, size_t);
+ 
+ /* The structure is defined in hosthooks.h.  */
+ #define HOST_HOOKS_INITIALIZER {		\
+diff -Naur a/gcc/hosthooks.h b/gcc/hosthooks.h
+--- a/gcc/hosthooks.h	2014-01-02 17:23:26.000000000 -0500
++++ b/gcc/hosthooks.h	2026-06-22 01:34:49.370939300 -0400
+@@ -30,10 +30,12 @@
+   void * (*gt_pch_get_address) (size_t size, int fd);
+ 
+   /* ADDR is an address returned by gt_pch_get_address.  Attempt to allocate
+-     SIZE bytes at the same address and load it with the data from FD at
+-     OFFSET.  Return -1 if we couldn't allocate memory at ADDR, return 0
+-     if the memory is allocated but the data not loaded, return 1 if done.  */
+-  int (*gt_pch_use_address) (void *addr, size_t size, int fd, size_t offset);
++     SIZE bytes at the same address (preferrably) or some other address
++     and load it with the data from FD at OFFSET.  Return -1 if we couldn't
++     allocate memory, otherwise update ADDR to the actual address where it got
++     allocated, return 0 if the memory is allocated but the data not loaded,
++     return 1 if done.  */
++  int (*gt_pch_use_address) (void *&addr, size_t size, int fd, size_t offset);
+ 
+   /*  Return the alignment required for allocating virtual memory. Usually
+       this is the same as pagesize.  */
+diff -Naur a/gcc/objc/objc-next-metadata-tags.h b/gcc/objc/objc-next-metadata-tags.h
+--- a/gcc/objc/objc-next-metadata-tags.h	2014-01-02 17:23:26.000000000 -0500
++++ b/gcc/objc/objc-next-metadata-tags.h	2026-06-29 10:28:37.985382400 -0400
+@@ -77,6 +77,8 @@
+   OCTI_RT_META_MAX
+ };
+ 
++extern GTY(()) tree objc_rt_trees[OCTI_RT_META_MAX];
++
+ /* Tags for the META data so that the backend can put them in the correct
+    sections for targets/runtimes (Darwin/NeXT) that require this.
+    This information also survives LTO - which might produce mixed language
+diff -Naur a/gcc/objc/objc-next-runtime-abi-01.c b/gcc/objc/objc-next-runtime-abi-01.c
+--- a/gcc/objc/objc-next-runtime-abi-01.c	2014-01-31 03:13:50.000000000 -0500
++++ b/gcc/objc/objc-next-runtime-abi-01.c	2026-06-29 10:30:25.658075800 -0400
+@@ -54,6 +54,7 @@
+ 
+ #include "objc-runtime-hooks.h"
+ #include "objc-runtime-shared-support.h"
++#include "objc-next-metadata-tags.h"
+ #include "objc-encoding.h"
+ 
+ /* NeXT ABI 0 and 1 private definitions.  */
+@@ -98,14 +99,6 @@
+ 
+ #define CLS_HAS_CXX_STRUCTORS		0x2000L
+ 
+-/* rt_trees identifiers - shared between NeXT implementations.  These
+-   allow the FE to tag meta-data in a manner that survives LTO and can
+-   be used when the runtime requires that certain meta-data items
+-   appear in particular named sections.  */
+-
+-#include "objc-next-metadata-tags.h"
+-extern GTY(()) tree objc_rt_trees[OCTI_RT_META_MAX];
+-
+ static void next_runtime_01_initialize (void);
+ 
+ static tree next_runtime_abi_01_super_superclassfield_id (void);
+diff -Naur a/gcc/objc/objc-next-runtime-abi-02.c b/gcc/objc/objc-next-runtime-abi-02.c
+--- a/gcc/objc/objc-next-runtime-abi-02.c	2014-01-31 03:13:50.000000000 -0500
++++ b/gcc/objc/objc-next-runtime-abi-02.c	2026-06-29 10:32:16.177734900 -0400
+@@ -55,6 +55,7 @@
+ 
+ #include "objc-runtime-hooks.h"
+ #include "objc-runtime-shared-support.h"
++#include "objc-next-metadata-tags.h"
+ #include "objc-encoding.h"
+ 
+ /* ABI 2 Private definitions. */
+@@ -174,14 +175,6 @@
+ #define objc_rethrow_exception_decl \
+ 				objc_v2_global_trees[OCTI_V2_RETHROW_DECL]
+ 
+-/* rt_trees identifiers - shared between NeXT implementations.  These allow
+-   the FE to tag meta-data in a manner that survives LTO and can be used when
+-   the  runtime requires that certain meta-data items appear in particular
+-   named sections.  */
+-
+-#include "objc-next-metadata-tags.h"
+-extern GTY(()) tree objc_rt_trees[OCTI_RT_META_MAX];
+-
+ /* The OCTI_V2_... enumeration itself is in above.  */
+ static GTY(()) tree objc_v2_global_trees[OCTI_V2_MAX];
+ 
+diff -Naur a/gcc/objc/objc-runtime-shared-support.c b/gcc/objc/objc-runtime-shared-support.c
+--- a/gcc/objc/objc-runtime-shared-support.c	2014-01-02 17:23:26.000000000 -0500
++++ b/gcc/objc/objc-runtime-shared-support.c	2026-06-29 10:35:26.920219700 -0400
+@@ -47,15 +47,10 @@
+ 
+ #include "objc-runtime-shared-support.h"
+ #include "objc-encoding.h"
+-
+-/* rt_trees identifiers - shared between NeXT implementations.  These allow
+-   the FE to tag meta-data in a manner that survives LTO and can be used when
+-   the  runtime requires that certain meta-data items appear in particular
+-   named sections.  */
+ #include "objc-next-metadata-tags.h"
+-extern GTY(()) tree objc_rt_trees[OCTI_RT_META_MAX];
+ 
+ /* Rather than repeatedly looking up the identifiers, we save them here.  */
++extern GTY(()) tree objc_rt_trees[OCTI_RT_META_MAX];
+ tree objc_rt_trees[OCTI_RT_META_MAX];
+ 
+ /* For building an objc struct.  These might not be used when this file
+diff -Naur a/gcc/output.h b/gcc/output.h
+--- a/gcc/output.h	2014-01-20 15:13:10.000000000 -0500
++++ b/gcc/output.h	2026-06-25 14:17:41.582310900 -0400
+@@ -447,7 +447,7 @@
+ 
+ /* A callback that writes the assembly code for switching to an unnamed
+    section.  The argument provides callback-specific data.  */
+-typedef void (*unnamed_section_callback) (const void *);
++typedef void (*unnamed_section_callback) (const char *);
+ 
+ /* Information about a SECTION_UNNAMED section.  */
+ struct GTY(()) unnamed_section {
+@@ -455,8 +455,8 @@
+ 
+   /* The callback used to switch to the section, and the data that
+      should be passed to the callback.  */
+-  unnamed_section_callback GTY ((skip)) callback;
+-  const void *GTY ((skip)) data;
++  unnamed_section_callback GTY ((callback)) callback;
++  const char *data;
+ 
+   /* The next entry in the chain of unnamed sections.  */
+   section *next;
+@@ -480,7 +480,7 @@
+   struct section_common common;
+ 
+   /* The callback used to assemble decls in this section.  */
+-  noswitch_section_callback GTY ((skip)) callback;
++  noswitch_section_callback GTY ((callback)) callback;
+ };
+ 
+ /* Information about a section, which may be named or unnamed.  */
+@@ -515,8 +515,8 @@
+ extern GTY(()) section *in_section;
+ extern GTY(()) bool in_cold_section_p;
+ 
+-extern section *get_unnamed_section (unsigned int, void (*) (const void *),
+-				     const void *);
++extern section *get_unnamed_section (unsigned int, void (*) (const char *),
++				     const char *);
+ extern section *get_section (const char *, unsigned int, tree);
+ extern section *get_named_section (tree, const char *, int);
+ extern section *get_variable_section (tree, bool);
+@@ -536,7 +536,7 @@
+ 
+ extern bool unlikely_text_section_p (section *);
+ extern void switch_to_section (section *);
+-extern void output_section_asm_op (const void *);
++extern void output_section_asm_op (const char *);
+ 
+ extern void record_tm_clone_pair (tree, tree);
+ extern void finish_tm_clone_pairs (void);
+diff -Naur a/gcc/stringpool.c b/gcc/stringpool.c
+--- a/gcc/stringpool.c	2014-01-02 17:23:26.000000000 -0500
++++ b/gcc/stringpool.c	2026-06-22 01:14:00.881675400 -0400
+@@ -233,7 +233,7 @@
+ void
+ gt_pch_nx (unsigned char *x, gt_pointer_operator op, void *cookie)
+ {
+-  op (x, cookie);
++  op (x, NULL, cookie);
+ }
+ 
+ /* Handle saving and restoring the string pool for PCH.  */
+diff -Naur a/gcc/tree-cfg.c b/gcc/tree-cfg.c
+--- a/gcc/tree-cfg.c	2016-07-07 17:43:34.000000000 -0400
++++ b/gcc/tree-cfg.c	2026-06-22 12:42:02.050281900 -0400
+@@ -8588,11 +8588,11 @@
+ gt_pch_nx (edge_def *e, gt_pointer_operator op, void *cookie)
+ {
+   tree block = LOCATION_BLOCK (e->goto_locus);
+-  op (&(e->src), cookie);
+-  op (&(e->dest), cookie);
++  op (&(e->src), NULL, cookie);
++  op (&(e->dest), NULL, cookie);
+   if (current_ir_type () == IR_GIMPLE)
+-    op (&(e->insns.g), cookie);
++    op (&(e->insns.g), NULL, cookie);
+   else
+-    op (&(e->insns.r), cookie);
+-  op (&(block), cookie);
++    op (&(e->insns.r), NULL, cookie);
++  op (&(block), &(block), cookie);
+ }
+diff -Naur a/gcc/tree-core.h b/gcc/tree-core.h
+--- a/gcc/tree-core.h	2014-06-30 12:35:48.000000000 -0400
++++ b/gcc/tree-core.h	2026-06-25 14:24:48.382483800 -0400
+@@ -1523,7 +1523,7 @@
+ struct GTY(()) tree_translation_unit_decl {
+   struct tree_decl_common common;
+   /* Source language of this translation unit.  Used for DWARF output.  */
+-  const char * GTY((skip(""))) language;
++  const char *language;
+   /* TODO: Non-optimization used to build this translation unit.  */
+   /* TODO: Root of a partial DWARF tree for global types and decls.  */
+ };
+diff -Naur a/gcc/varasm.c b/gcc/varasm.c
+--- a/gcc/varasm.c	2015-05-26 16:16:17.000000000 -0400
++++ b/gcc/varasm.c	2026-06-25 15:05:40.898205300 -0400
+@@ -232,8 +232,8 @@
+ /* Return a new unnamed section with the given fields.  */
+ 
+ section *
+-get_unnamed_section (unsigned int flags, void (*callback) (const void *),
+-		     const void *data)
++get_unnamed_section (unsigned int flags, void (*callback) (const char *),
++		     const char *data)
+ {
+   section *sect;
+ 
+@@ -7013,9 +7013,9 @@
+    a get_unnamed_section callback.  */
+ 
+ void
+-output_section_asm_op (const void *directive)
++output_section_asm_op (const char *directive)
+ {
+-  fprintf (asm_out_file, "%s\n", (const char *) directive);
++  fprintf (asm_out_file, "%s\n", directive);
+ }
+ 
+ /* Emit assembly code to switch to section NEW_SECTION.  Do nothing if
+diff -Naur a/gcc/vec.h b/gcc/vec.h
+--- a/gcc/vec.h	2014-02-12 11:01:03.000000000 -0500
++++ b/gcc/vec.h	2026-06-22 01:20:00.479869200 -0400
+@@ -1122,7 +1122,7 @@
+ gt_pch_nx (vec<T *, A, vl_embed> *v, gt_pointer_operator op, void *cookie)
+ {
+   for (unsigned i = 0; i < v->length (); i++)
+-    op (&((*v)[i]), cookie);
++    op (&((*v)[i]), NULL, cookie);
+ }
+ 
+ template<typename T, typename A>
+diff -Naur a/libcpp/include/line-map.h b/libcpp/include/line-map.h
+--- a/libcpp/include/line-map.h	2014-01-23 04:13:08.000000000 -0500
++++ b/libcpp/include/line-map.h	2026-06-29 13:34:24.663984000 -0400
+@@ -308,11 +308,11 @@
+ 
+   /* If non-null, the allocator to use when resizing 'maps'.  If null,
+      xrealloc is used.  */
+-  line_map_realloc reallocator;
++  line_map_realloc GTY((callback)) reallocator;
+ 
+   /* The allocators' function used to know the actual size it
+      allocated, for a certain allocation size requested.  */
+-  line_map_round_alloc_size_func round_alloc_size;
++  line_map_round_alloc_size_func GTY((callback)) round_alloc_size;
+ 
+   struct location_adhoc_data_map location_adhoc_data_map;
+ };

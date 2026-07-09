@@ -21,3 +21,8 @@
            by the GCC build.
 
 2026-06-21 Update build instructions to include macOS (both ARM and Intel).
+
+2026-07-09 Backport Jakub Jelinek and Iain Sandoe's GCC12 & GCC11 fixes for
+           precompiled headers on platforms like macOS to GCC4.
+           See https://gcc.gnu.org/bugzilla/show_bug.cgi?id=71934
+           See https://gcc.gnu.org/bugzilla/show_bug.cgi?id=55610
